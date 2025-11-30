@@ -46,14 +46,24 @@ export interface TimelineData {
   };
 }
 
-export const useTimeline = () => {
+/**
+ * Fetch timeline data derived from wave_plan_data.
+ *
+ * @param planning_flow_id - Optional planning flow UUID to fetch specific wave data.
+ *   If provided, derives timeline phases from that flow's wave_plan_data.
+ *   If not provided, uses the latest planning flow for the engagement.
+ */
+export const useTimeline = (planning_flow_id?: string) => {
   const { isAuthenticated, client, engagement } = useAuth();
 
   return useQuery<TimelineData>({
-    queryKey: ['timeline', client?.id, engagement?.id],
+    queryKey: ['timeline', planning_flow_id, client?.id, engagement?.id],
     queryFn: async () => {
-      // Use consolidated roadmap endpoint (queries real project_timelines and timeline_phases tables)
-      const response = await apiCall('/api/v1/plan/roadmap');
+      // Use roadmap endpoint which now derives phases from wave_plan_data
+      const url = planning_flow_id
+        ? `/api/v1/plan/roadmap?planning_flow_id=${planning_flow_id}`
+        : '/api/v1/plan/roadmap';
+      const response = await apiCall(url);
       return response;
     },
     enabled: isAuthenticated && !!client && !!engagement,

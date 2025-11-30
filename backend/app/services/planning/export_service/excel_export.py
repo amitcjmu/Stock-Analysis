@@ -244,7 +244,7 @@ class ExcelExportService(BaseExportService):
                 for milestone in milestones:
                     milestone_row = [
                         milestone.get("name", "Unknown"),
-                        milestone.get("planned_date", "TBD"),
+                        milestone.get("target_date", "TBD"),
                         milestone.get("actual_date", "N/A"),
                         milestone.get("status", "Pending"),
                         milestone.get("phase_id", "N/A"),

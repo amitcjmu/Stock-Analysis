@@ -35,6 +35,7 @@ export interface GetApplicationsParams {
   page?: number;
   page_size?: number;
   search?: string;
+  assessed_only?: boolean; // Filter to only apps with 6R strategies assigned
 }
 
 // =============================================================================
@@ -59,6 +60,9 @@ export const applicationsApi = {
 
     // Add search filter
     if (params.search) queryParams.append('search', params.search);
+
+    // Add assessed_only filter (for Planning Flow - only apps with 6R strategies)
+    if (params.assessed_only) queryParams.append('assessed_only', 'true');
 
     const query = queryParams.toString();
     const endpoint = `/api/v1/applications${query ? `?${query}` : ''}`;

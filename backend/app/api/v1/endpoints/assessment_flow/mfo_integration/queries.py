@@ -9,7 +9,7 @@ import logging
 from typing import Any, Dict, Optional
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.assessment_flow import AssessmentFlow
@@ -48,15 +48,20 @@ async def get_assessment_status_via_mfo(
     """
     try:
         # Query both master and child flows
-        # Per two-table pattern: Join on master_flow_id with child flow ID filter
-        # Fixed per CodeRabbit: filter on AssessmentFlow.id (child PK) not master flow_id
+        # MFO Pattern: flow_id can be either AssessmentFlow.id OR master_flow_id
+        # Frontend URLs use master_flow_id, so we must check both
         query = (
             select(CrewAIFlowStateExtensions, AssessmentFlow)
             .join(
                 AssessmentFlow,
                 AssessmentFlow.master_flow_id == CrewAIFlowStateExtensions.flow_id,
             )
-            .where(AssessmentFlow.id == flow_id)
+            .where(
+                or_(
+                    AssessmentFlow.id == flow_id,
+                    AssessmentFlow.master_flow_id == flow_id,
+                )
+            )
         )
 
         # Add tenant scoping filters if provided

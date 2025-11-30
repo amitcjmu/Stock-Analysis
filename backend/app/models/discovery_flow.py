@@ -146,6 +146,7 @@ class DiscoveryFlow(Base):
     recommendations = relationship(
         "DataCleansingRecommendation",
         primaryjoin="DiscoveryFlow.flow_id == DataCleansingRecommendation.flow_id",
+        back_populates="discovery_flow",
         cascade="all, delete-orphan",
         lazy="select",
     )

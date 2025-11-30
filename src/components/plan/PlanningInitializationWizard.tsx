@@ -100,50 +100,62 @@ export const PlanningInitializationWizard: React.FC<PlanningInitializationWizard
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const pageSize = 10;
 
-  // Initialize wizard state when modal opens with pre-selected applications
+  // Track if we've initialized state for the current dialog open
+  const hasInitializedRef = React.useRef(false);
+
+  // Initialize wizard state ONLY when modal first opens (not on every re-render)
+  // This fixes a bug where default [] arrays in props caused useEffect to reset state on every render
   React.useEffect(() => {
-    if (open && hasPreSelectedApps && preSelectedApplicationIds.length > 0) {
-      // Set currentStep to 2 to skip application selection
-      setCurrentStep(2);
-      // Initialize selectedIds for consistency (though not used when skipping Step 1)
-      setSelectedIds(new Set(preSelectedApplicationIds));
-      // Ensure formData has the pre-selected apps
-      setFormData({
-        selected_application_ids: preSelectedApplicationIds,
-        selected_applications: preSelectedApplications,
-        max_apps_per_wave: 50,
-        wave_duration_limit_days: 90,
-        contingency_percentage: 20,
-      });
-    } else if (open && !hasPreSelectedApps) {
-      // Reset to Step 1 when opening without pre-selected apps
-      setCurrentStep(1);
-      setSelectedIds(new Set());
+    if (open && !hasInitializedRef.current) {
+      // Mark as initialized for this dialog session
+      hasInitializedRef.current = true;
+
+      if (hasPreSelectedApps && preSelectedApplicationIds.length > 0) {
+        // Set currentStep to 2 to skip application selection
+        setCurrentStep(2);
+        // Initialize selectedIds for consistency (though not used when skipping Step 1)
+        setSelectedIds(new Set(preSelectedApplicationIds));
+        // Ensure formData has the pre-selected apps
+        setFormData({
+          selected_application_ids: preSelectedApplicationIds,
+          selected_applications: preSelectedApplications,
+          max_apps_per_wave: 50,
+          wave_duration_limit_days: 90,
+          contingency_percentage: 20,
+        });
+      } else {
+        // Reset to Step 1 when opening without pre-selected apps
+        setCurrentStep(1);
+        setSelectedIds(new Set());
+      }
+    } else if (!open) {
+      // Reset initialization flag when dialog closes
+      hasInitializedRef.current = false;
     }
   }, [open, hasPreSelectedApps, preSelectedApplicationIds, preSelectedApplications]);
 
   // Fetch applications with pagination and search (HTTP polling per CLAUDE.md - NO WebSockets)
+  // Uses assessed_only=true to filter on backend BEFORE pagination for correct counts
   const {
     data: applicationsData,
     isLoading: isLoadingApplications,
     error: applicationsError,
   } = useQuery({
-    queryKey: ['applications', currentPage, searchTerm],
+    queryKey: ['applications', currentPage, searchTerm, 'assessed_only'],
     queryFn: () =>
       applicationsApi.getApplications({
         page: currentPage,
         page_size: pageSize,
         search: searchTerm || undefined,
+        assessed_only: true, // Filter on backend - only apps with 6R strategies
       }),
     enabled: open && currentStep === 1, // Only fetch when dialog is open and on Step 1
     staleTime: 30000, // Cache for 30 seconds
   });
 
-  // Filter applications to show only those with 6R strategies assigned
-  const assessedApplications = React.useMemo(() => {
-    if (!applicationsData?.applications) return [];
-    return applicationsData.applications.filter(app => app.six_r_strategy !== null && app.six_r_strategy !== '');
-  }, [applicationsData]);
+  // Applications are already filtered by backend (assessed_only=true)
+  // No need for frontend filtering - this fixes pagination counts
+  const assessedApplications = applicationsData?.applications || [];
 
   // =============================================================================
   // Handlers
@@ -322,12 +334,12 @@ export const PlanningInitializationWizard: React.FC<PlanningInitializationWizard
    * Step 1: Application Selection
    */
   const renderStep1 = () => {
-    const applications = assessedApplications; // Use filtered applications with 6R strategies only
+    const applications = assessedApplications; // Backend already filters for assessed apps
     const totalPages = applicationsData?.total_pages || 0;
     const currentPageIds = applications.map((app) => app.id);
     const allCurrentPageSelected = currentPageIds.length > 0 && currentPageIds.every((id) => selectedIds.has(id));
-    const totalApplications = applicationsData?.applications?.length || 0;
-    const assessedCount = applications.length;
+    // Total from backend represents total assessed applications (with 6R strategies)
+    const totalAssessedApplications = applicationsData?.total || 0;
 
     return (
       <div className="space-y-4">
@@ -355,7 +367,7 @@ export const PlanningInitializationWizard: React.FC<PlanningInitializationWizard
         {/* Filter Info and Selection Count */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
           <p className="text-sm text-blue-800 mb-1">
-            <strong>Showing {assessedCount} of {totalApplications} applications</strong>
+            <strong>{totalAssessedApplications} application{totalAssessedApplications !== 1 ? 's' : ''} with 6R strategies assigned</strong>
           </p>
           <p className="text-xs text-blue-700">
             Only applications with 6R strategies assigned can be included in planning
@@ -422,7 +434,8 @@ export const PlanningInitializationWizard: React.FC<PlanningInitializationWizard
                           <Checkbox
                             checked={selectedIds.has(app.id)}
                             onCheckedChange={(checked) => {
-                              if (checked) {
+                              // Handle boolean | 'indeterminate' type from Radix UI
+                              if (checked === true) {
                                 setSelectedIds((prev) => {
                                   const newSet = new Set(prev);
                                   newSet.add(app.id);
@@ -437,6 +450,7 @@ export const PlanningInitializationWizard: React.FC<PlanningInitializationWizard
                               }
                             }}
                             id={`checkbox-${app.id}`}
+                            aria-label={`Select ${app.application_name || app.asset_name || 'application'}`}
                           />
                         </TableCell>
                         <TableCell className="font-medium">
@@ -651,8 +665,8 @@ export const PlanningInitializationWizard: React.FC<PlanningInitializationWizard
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl" hideCloseButton={isLoading}>
-        <DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col" hideCloseButton={isLoading}>
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle>Initialize Planning Flow</DialogTitle>
           <DialogDescription>
             {hasPreSelectedApps && (
@@ -669,15 +683,15 @@ export const PlanningInitializationWizard: React.FC<PlanningInitializationWizard
           </DialogDescription>
         </DialogHeader>
 
-        {/* Step Content */}
-        <div className="py-4">
+        {/* Step Content - Scrollable */}
+        <div className="py-4 flex-1 overflow-y-auto min-h-0">
           {currentStep === 1 && !hasPreSelectedApps && renderStep1()}
           {currentStep === 2 && renderStep2()}
           {currentStep === 3 && renderStep3()}
         </div>
 
-        {/* Step Progress Indicator */}
-        <div className="flex justify-center space-x-2 mb-4">
+        {/* Step Progress Indicator - Fixed at bottom */}
+        <div className="flex justify-center space-x-2 mb-4 flex-shrink-0">
           {hasPreSelectedApps ? (
             // 2-step indicator when apps are pre-selected
             [2, 3].map((step) => (
@@ -709,8 +723,8 @@ export const PlanningInitializationWizard: React.FC<PlanningInitializationWizard
           )}
         </div>
 
-        {/* Footer Actions */}
-        <DialogFooter>
+        {/* Footer Actions - Fixed at bottom */}
+        <DialogFooter className="flex-shrink-0">
           <div className="flex justify-between w-full">
             <div>
               {/* Show Back button only if we can go back (not on first step) */}

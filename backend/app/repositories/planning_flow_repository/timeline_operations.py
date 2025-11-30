@@ -292,9 +292,8 @@ class TimelineOperationsMixin:
         client_account_id: uuid.UUID,
         engagement_id: uuid.UUID,
         timeline_id: uuid.UUID,
-        milestone_number: int,
         milestone_name: str,
-        planned_date: datetime,
+        target_date: datetime,
         **kwargs,
     ) -> TimelineMilestone:
         """
@@ -304,9 +303,8 @@ class TimelineOperationsMixin:
             client_account_id: Client account UUID (per migration 115)
             engagement_id: Engagement UUID (per migration 115)
             timeline_id: Timeline UUID
-            milestone_number: Milestone sequence number
             milestone_name: Milestone name
-            planned_date: Planned milestone date
+            target_date: Target milestone date (DB column name)
             **kwargs: Additional milestone fields
 
         Returns:
@@ -320,9 +318,8 @@ class TimelineOperationsMixin:
                 client_account_id=client_account_id,
                 engagement_id=engagement_id,
                 timeline_id=timeline_id,
-                milestone_number=milestone_number,
                 milestone_name=milestone_name,
-                planned_date=planned_date,
+                target_date=target_date,
                 **kwargs,
             )
 
@@ -330,7 +327,7 @@ class TimelineOperationsMixin:
             await self.db.flush()
 
             logger.info(
-                f"Created milestone: {milestone_name} (#{milestone_number}) for timeline_id={timeline_id}"
+                f"Created milestone: {milestone_name} for timeline_id={timeline_id}"
             )
 
             return milestone
@@ -366,7 +363,7 @@ class TimelineOperationsMixin:
                         TimelineMilestone.engagement_id == engagement_id,
                     )
                 )
-                .order_by(TimelineMilestone.milestone_number)
+                .order_by(TimelineMilestone.target_date)
             )
 
             result = await self.db.execute(stmt)

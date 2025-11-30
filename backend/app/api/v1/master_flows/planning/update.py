@@ -98,13 +98,28 @@ async def _sync_waves_to_timeline(
     await repo.db.execute(delete_stmt)
     logger.debug(f"Deleted existing phases for timeline {timeline.id}")
 
+    # Map wave status to timeline phase status (constraint: not_started, in_progress, on_hold, completed, cancelled)
+    # Wave statuses: Planned, In Progress, Completed, Blocked
+    wave_to_phase_status = {
+        "planned": "not_started",
+        "Planned": "not_started",
+        "in_progress": "in_progress",
+        "In Progress": "in_progress",
+        "completed": "completed",
+        "Completed": "completed",
+        "blocked": "on_hold",
+        "Blocked": "on_hold",
+    }
+
     # Sync waves to timeline phases
     for wave in waves:
         wave_number = wave.get("wave_number", 1)
         phase_name = wave.get("wave_name", f"Wave {wave_number}")
         start_date_str = wave.get("start_date")
         end_date_str = wave.get("end_date")
-        status = wave.get("status", "planned")
+        wave_status = wave.get("status", "planned")
+        # Map wave status to valid timeline phase status
+        status = wave_to_phase_status.get(wave_status, "not_started")
 
         if not start_date_str or not end_date_str:
             logger.warning(
@@ -113,6 +128,7 @@ async def _sync_waves_to_timeline(
             continue
 
         # Create timeline phase for this wave
+        # Note: phase_number is set to wave_number (wave_id would need the actual UUID)
         await repo.create_timeline_phase(
             client_account_id=client_account_id,
             engagement_id=engagement_id,
@@ -121,7 +137,6 @@ async def _sync_waves_to_timeline(
             phase_name=phase_name,
             planned_start_date=datetime.fromisoformat(start_date_str),
             planned_end_date=datetime.fromisoformat(end_date_str),
-            wave_number=wave_number,
             status=status,  # Use status from wave data
         )
         logger.debug(f"Created timeline phase for wave {wave_number}: {phase_name}")

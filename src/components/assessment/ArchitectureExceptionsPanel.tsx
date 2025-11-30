@@ -16,6 +16,10 @@ export const ArchitectureExceptionsPanel: React.FC<ArchitectureExceptionsPanelPr
   standards,
   printMode = false
 }) => {
+  // Safely handle undefined/null props
+  const exceptions = decision?.architecture_exceptions || [];
+  const safeStandards = standards || [];
+
   return (
     <Card className="print:shadow-none print:border-2">
       <CardHeader>
@@ -28,7 +32,7 @@ export const ArchitectureExceptionsPanel: React.FC<ArchitectureExceptionsPanelPr
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {decision.architecture_exceptions.length === 0 ? (
+        {exceptions.length === 0 ? (
           <div className="text-center py-6">
             <Shield className="h-8 w-8 mx-auto text-green-600 mb-2" />
             <p className="text-sm text-green-700 font-medium">Fully Compliant</p>
@@ -39,12 +43,12 @@ export const ArchitectureExceptionsPanel: React.FC<ArchitectureExceptionsPanelPr
             <div className="flex items-center space-x-2">
               <AlertTriangle className="h-4 w-4 text-orange-600" />
               <span className="text-sm font-medium text-orange-700">
-                {decision.architecture_exceptions.length} Exception(s) Required
+                {exceptions.length} Exception(s) Required
               </span>
             </div>
 
             <div className="space-y-2">
-              {decision.architecture_exceptions.map((exception, index) => (
+              {exceptions.map((exception, index) => (
                 <div key={index} className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
                   <p className="text-sm text-orange-700">{exception}</p>
                 </div>
@@ -57,7 +61,7 @@ export const ArchitectureExceptionsPanel: React.FC<ArchitectureExceptionsPanelPr
         <div className="pt-4 border-t border-gray-200">
           <h4 className="text-sm font-medium text-gray-700 mb-2">Applied Standards</h4>
           <div className="grid grid-cols-2 gap-2">
-            {standards.slice(0, 6).map((standard, index) => (
+            {safeStandards.slice(0, 6).map((standard, index) => (
               <div key={index} className="flex items-center justify-between text-xs">
                 <span className="text-gray-600 truncate">{standard.requirement_type}</span>
                 <Badge variant={standard.mandatory ? "default" : "outline"} className="text-xs">
@@ -65,9 +69,9 @@ export const ArchitectureExceptionsPanel: React.FC<ArchitectureExceptionsPanelPr
                 </Badge>
               </div>
             ))}
-            {standards.length > 6 && (
+            {safeStandards.length > 6 && (
               <p className="text-xs text-gray-500 col-span-2">
-                +{standards.length - 6} more standards
+                +{safeStandards.length - 6} more standards
               </p>
             )}
           </div>

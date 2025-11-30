@@ -30,7 +30,11 @@ class AssessmentFlowState(BaseModel):
     client_account_id: UUID = Field(..., description="Client account UUID")
     engagement_id: UUID = Field(..., description="Engagement UUID")
     selected_application_ids: List[UUID] = Field(
-        ..., description="Selected application UUIDs"
+        ..., description="Selected application UUIDs (legacy - may contain asset UUIDs)"
+    )
+    selected_canonical_application_ids: List[UUID] = Field(
+        default_factory=list,
+        description="Selected canonical application UUIDs (preferred over selected_application_ids)",
     )
 
     # Architecture requirements

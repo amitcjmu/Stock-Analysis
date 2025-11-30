@@ -93,25 +93,51 @@ export interface WavePlanData {
 }
 
 /**
+ * Application data within a wave (from backend wave_logic.py).
+ */
+export interface WaveApplication {
+  /** Application UUID */
+  application_id: string;
+  /** Human-readable application name */
+  application_name: string;
+  /** Agent rationale for wave assignment */
+  rationale?: string;
+  /** Business criticality (high/medium/low) */
+  criticality?: string;
+  /** Technical complexity (high/medium/low) */
+  complexity?: string;
+  /** 6R migration strategy (Rehost, Replatform, Refactor, etc.) */
+  migration_strategy?: string;
+  /** Dependency depth for ordering */
+  dependency_depth?: number;
+}
+
+/**
  * Single wave definition.
  */
 export interface Wave {
+  /** Wave ID (e.g., "wave_1") */
+  wave_id?: string;
   /** Wave number (1-based) */
   wave_number: number;
   /** Human-readable wave name */
   wave_name: string;
   /** Number of applications in this wave */
   application_count: number;
-  /** Array of application UUIDs assigned to this wave */
-  applications?: string[];
+  /** Array of application objects with full metadata */
+  applications?: WaveApplication[];
   /** Optional start date (ISO format) */
   start_date?: string;
   /** Optional end date (ISO format) */
   end_date?: string;
+  /** Duration in days */
+  duration_days?: number;
   /** Wave status */
   status: 'planned' | 'in_progress' | 'completed' | 'blocked';
   /** Optional wave description */
   description?: string;
+  /** Risk level assessment */
+  risk_level?: string;
   /** Optional dependencies on other waves */
   dependencies?: number[];
   /** Optional group metadata from CrewAI agent */
@@ -120,6 +146,7 @@ export interface Wave {
     group_name: string;
     application_count: number;
     migration_strategy?: string;
+    parallel_execution?: boolean;
   }>;
 }
 

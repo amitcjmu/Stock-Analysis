@@ -12,12 +12,19 @@ if git diff --cached -U0 -- '*.py' | grep -E "^\+.*(from|import)\s+(backend\.arc
 fi
 
 # Check for direct Crew() instantiation (filter out comments, docstrings, and approved exceptions)
-# Exceptions: decommission agent pool has architectural justification (see crew_factory.py docstring)
+# Exceptions:
+#   - decommission agent pool: domain-specific requirements (see crew_factory.py docstring)
+#   - wave planning service: uses persistent agents from TenantScopedAgentPool (ADR-015 compliant)
 # Process file by file to respect exemptions
 CREW_VIOLATIONS=""
 for file in $(git diff --cached --name-only -- '*.py'); do
   # Skip decommission agent pool files (architecturally justified)
   if echo "$file" | grep -q "app/services/agents/decommission/agent_pool"; then
+    continue
+  fi
+
+  # Skip wave planning service (uses TenantScopedAgentPool for persistent agents, ADR-015 compliant)
+  if echo "$file" | grep -q "app/services/planning/wave_planning_service"; then
     continue
   fi
 

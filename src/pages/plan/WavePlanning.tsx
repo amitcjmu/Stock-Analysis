@@ -21,8 +21,20 @@ import Sidebar from '@/components/Sidebar';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { useToast } from '@/hooks/use-toast';
 import ContextBreadcrumbs from '@/components/context/ContextBreadcrumbs';
+import PlanNavigation from '@/components/plan/PlanNavigation';
 import { apiCall } from '@/config/api';
-import { Loader2, AlertCircle, Calendar, ChevronRight } from 'lucide-react';
+import {
+  Loader2,
+  AlertCircle,
+  Calendar,
+  ChevronRight,
+  Layers,
+  AppWindow,
+  ClipboardList,
+  CheckCircle2,
+  Plus,
+  RefreshCw
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 
@@ -104,23 +116,41 @@ export default function WavePlanningPage(): JSX.Element {
       setWaves(planningStatus.wave_plan_data.waves);
 
       // Build applications map from all waves
-      // TODO: Fetch actual application details from backend
-      // For now, create placeholder entries based on application IDs in waves
+      // Backend returns objects with application_id, application_name, migration_strategy, etc.
+      // The map is used as a fallback for legacy string-based application arrays
       const appMap = new Map<string, { id: string; name: string }>();
       planningStatus.wave_plan_data.waves.forEach((wave) => {
-        wave.applications?.forEach((appId) => {
-          if (!appMap.has(appId)) {
-            // Placeholder until we fetch real application data
-            appMap.set(appId, {
-              id: appId,
-              name: `Application ${appId.substring(0, 8)}...`,
-            });
+        wave.applications?.forEach((app: unknown) => {
+          // Handle new object format from backend (with application_id)
+          if (typeof app === 'object' && app !== null && 'application_id' in app) {
+            const appObj = app as { application_id: string; application_name?: string };
+            if (!appMap.has(appObj.application_id)) {
+              appMap.set(appObj.application_id, {
+                id: appObj.application_id,
+                name: appObj.application_name || `App ${appObj.application_id.substring(0, 8)}...`,
+              });
+            }
+          }
+          // Handle legacy string format (UUID only)
+          else if (typeof app === 'string') {
+            if (!appMap.has(app)) {
+              appMap.set(app, {
+                id: app,
+                name: `Application ${app.substring(0, 8)}...`,
+              });
+            }
           }
         });
       });
       setApplicationsMap(appMap);
     }
   }, [planningStatus]);
+
+  // Calculate statistics
+  const totalWaves = waves.length;
+  const totalApplications = waves.reduce((sum, wave) => sum + (wave.applications?.length || 0), 0);
+  const plannedWaves = waves.filter(w => w.status === 'planned' || w.status === 'in_progress').length;
+  const completedWaves = waves.filter(w => w.status === 'completed').length;
 
   /**
    * Handle selecting a planning flow from the list
@@ -442,46 +472,130 @@ export default function WavePlanningPage(): JSX.Element {
     <SidebarProvider>
       <div className="min-h-screen bg-gray-50 flex">
         <Sidebar />
-        <div className="flex-1 ml-64 p-8">
-          {/* Context Breadcrumbs */}
-          <ContextBreadcrumbs showContextSelector={true} />
+        <div className="flex-1 ml-64">
+          <main className="p-8">
+            {/* Context Breadcrumbs */}
+            <ContextBreadcrumbs showContextSelector={true} />
 
-          {/* Header */}
-          <div className="mb-6">
-            <h1 className="text-3xl font-bold text-gray-900">Wave Planning</h1>
-            <p className="text-gray-600 mt-2">
-              Organize applications into migration waves for phased execution
-            </p>
-          </div>
+            {/* Plan Navigation Tabs */}
+            <PlanNavigation />
 
-          {/* Actions */}
-          <div className="mb-6 flex gap-3">
-            <Button onClick={handleCreateWave}>
-              + Create Wave
-            </Button>
-            <Button onClick={() => refetchPlanningData()} variant="outline">
-              Refresh
-            </Button>
-          </div>
+            {/* Header */}
+            <div className="mb-8">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900 mb-2">Wave Planning</h1>
+                  <p className="text-lg text-gray-600">
+                    Organize applications into migration waves for phased execution
+                  </p>
+                </div>
+                <div className="flex space-x-3">
+                  <Button
+                    onClick={() => refetchPlanningData()}
+                    variant="outline"
+                    className="bg-white"
+                  >
+                    <RefreshCw className="h-5 w-5 mr-2" />
+                    Refresh
+                  </Button>
+                  <Button onClick={handleCreateWave}>
+                    <Plus className="h-5 w-5 mr-2" />
+                    Create Wave
+                  </Button>
+                </div>
+              </div>
+            </div>
 
-          {/* Wave Dashboard */}
-          <WaveDashboard
-            waves={waves}
-            applications={applicationsMap}
-            onEditWave={handleEditWave}
-            onDeleteWave={handleDeleteWave}
-            onApplicationMoved={handleApplicationMoved}
-            isDragEnabled={true}
-          />
+            {/* Gradient Statistics Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+              {/* Total Waves - Blue Gradient */}
+              <Card className="relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-blue-600" />
+                <div className="relative p-6 text-white">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-blue-100 text-sm font-medium">Total Waves</p>
+                      <p className="text-3xl font-bold mt-1">{totalWaves}</p>
+                      <p className="text-blue-100 text-sm mt-1">configured</p>
+                    </div>
+                    <div className="bg-white/20 rounded-full p-3">
+                      <Layers className="h-8 w-8 text-white" />
+                    </div>
+                  </div>
+                </div>
+              </Card>
 
-          {/* Wave Modal */}
-          {isModalOpen && (
-            <WaveModal
-              wave={selectedWave}
-              onSave={handleSaveWave}
-              onClose={() => setIsModalOpen(false)}
+              {/* Applications - Orange Gradient */}
+              <Card className="relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-orange-400 to-orange-500" />
+                <div className="relative p-6 text-white">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-orange-100 text-sm font-medium">Applications</p>
+                      <p className="text-3xl font-bold mt-1">{totalApplications}</p>
+                      <p className="text-orange-100 text-sm mt-1">assigned</p>
+                    </div>
+                    <div className="bg-white/20 rounded-full p-3">
+                      <AppWindow className="h-8 w-8 text-white" />
+                    </div>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Planned - Green Gradient */}
+              <Card className="relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-emerald-500 to-emerald-600" />
+                <div className="relative p-6 text-white">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-emerald-100 text-sm font-medium">Planned</p>
+                      <p className="text-3xl font-bold mt-1">{plannedWaves}</p>
+                      <p className="text-emerald-100 text-sm mt-1">waves</p>
+                    </div>
+                    <div className="bg-white/20 rounded-full p-3">
+                      <ClipboardList className="h-8 w-8 text-white" />
+                    </div>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Completed - Gray Gradient */}
+              <Card className="relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-gray-500 to-gray-600" />
+                <div className="relative p-6 text-white">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-gray-200 text-sm font-medium">Completed</p>
+                      <p className="text-3xl font-bold mt-1">{completedWaves}</p>
+                      <p className="text-gray-200 text-sm mt-1">waves</p>
+                    </div>
+                    <div className="bg-white/20 rounded-full p-3">
+                      <CheckCircle2 className="h-8 w-8 text-white" />
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            </div>
+
+            {/* Wave Dashboard */}
+            <WaveDashboard
+              waves={waves}
+              applications={applicationsMap}
+              onEditWave={handleEditWave}
+              onDeleteWave={handleDeleteWave}
+              onApplicationMoved={handleApplicationMoved}
+              isDragEnabled={true}
             />
-          )}
+
+            {/* Wave Modal */}
+            {isModalOpen && (
+              <WaveModal
+                wave={selectedWave}
+                onSave={handleSaveWave}
+                onClose={() => setIsModalOpen(false)}
+              />
+            )}
+          </main>
         </div>
       </div>
     </SidebarProvider>

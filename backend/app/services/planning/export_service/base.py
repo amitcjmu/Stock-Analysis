@@ -173,7 +173,7 @@ class BaseExportService:
                             == self.context.engagement_id,
                         )
                     )
-                    .order_by(TimelineMilestone.planned_date)
+                    .order_by(TimelineMilestone.target_date)
                 )
 
                 milestones_result = await self.db.execute(milestones_stmt)
@@ -182,9 +182,9 @@ class BaseExportService:
                 milestones_data = [
                     {
                         "name": milestone.milestone_name,
-                        "planned_date": (
-                            milestone.planned_date.isoformat()
-                            if milestone.planned_date
+                        "target_date": (
+                            milestone.target_date.isoformat()
+                            if milestone.target_date
                             else None
                         ),
                         "actual_date": (

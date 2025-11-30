@@ -1,37 +1,279 @@
 """
 Roadmap and timeline endpoints for migration planning.
+
+ARCHITECTURE NOTE:
+Timeline data is DERIVED from wave_plan_data in planning_flows table.
+This ensures Timeline and Wave Planning pages show consistent data from single source of truth.
 """
 
-from typing import Any, Dict
+import logging
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import get_current_context
 from app.core.database import get_db
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
+
+
+def _calculate_wave_progress(wave: Dict[str, Any]) -> float:
+    """Calculate progress percentage based on wave status."""
+    status = wave.get("status", "planned").lower()
+    if status == "completed":
+        return 100.0
+    elif status in ("in_progress", "in-progress"):
+        return 50.0
+    elif status == "blocked":
+        return 25.0
+    return 0.0
+
+
+def _map_wave_status_to_phase_status(status: str) -> str:
+    """Map wave status to timeline phase status."""
+    status_lower = status.lower() if status else "planned"
+    mapping = {
+        "completed": "Completed",
+        "in_progress": "In Progress",
+        "in-progress": "In Progress",
+        "blocked": "Delayed",
+        "planned": "Not Started",
+    }
+    return mapping.get(status_lower, "Not Started")
+
+
+def _generate_wave_milestones(wave: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Generate milestones for a wave (start, go-live)."""
+    milestones = []
+    wave_name = wave.get("wave_name", f"Wave {wave.get('wave_number', 1)}")
+    status = wave.get("status", "planned").lower()
+
+    # Wave Start milestone
+    if wave.get("start_date"):
+        milestone_status = (
+            "Completed"
+            if status in ("completed", "in_progress", "in-progress")
+            else "Pending"
+        )
+        milestones.append(
+            {
+                "name": f"{wave_name} Start",
+                "date": wave.get("start_date"),
+                "status": milestone_status,
+                "description": f"Kick-off for {wave_name}",
+            }
+        )
+
+    # Wave Go-Live milestone
+    if wave.get("end_date"):
+        milestone_status = "Completed" if status == "completed" else "Pending"
+        if status == "blocked":
+            milestone_status = "At Risk"
+        milestones.append(
+            {
+                "name": f"{wave_name} Go-Live",
+                "date": wave.get("end_date"),
+                "status": milestone_status,
+                "description": f"Production deployment for {wave_name}",
+            }
+        )
+
+    return milestones
+
+
+def _derive_phases_from_waves(waves: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Derive timeline phases from wave_plan_data.waves.
+
+    Each wave becomes a timeline phase with:
+    - Dates from wave start_date/end_date
+    - Milestones for start and go-live
+    - Dependencies based on wave_number sequence
+    """
+    phases = []
+
+    for i, wave in enumerate(waves):
+        wave_number = wave.get("wave_number", i + 1)
+        wave_id = wave.get("wave_id", f"wave-{wave_number}")
+
+        # Calculate dependencies (previous wave must complete first)
+        dependencies = []
+        if i > 0:
+            prev_wave = waves[i - 1]
+            prev_id = prev_wave.get(
+                "wave_id", f"wave-{prev_wave.get('wave_number', i)}"
+            )
+            dependencies.append(prev_id)
+
+        # Generate milestones for this wave
+        milestones = _generate_wave_milestones(wave)
+
+        # Extract risks from wave risk_level
+        risks = []
+        risk_level = wave.get("risk_level", "low")
+        if risk_level and risk_level.lower() in ("high", "medium"):
+            risks.append(
+                {
+                    "description": f"Wave {wave_number} has {risk_level} risk level",
+                    "impact": risk_level.title(),
+                    "mitigation": "Monitor closely and have contingency plans ready",
+                }
+            )
+
+        phase = {
+            "id": wave_id,
+            "name": wave.get("wave_name", f"Wave {wave_number}"),
+            "start_date": wave.get("start_date"),
+            "end_date": wave.get("end_date"),
+            "status": _map_wave_status_to_phase_status(wave.get("status", "planned")),
+            "progress": _calculate_wave_progress(wave),
+            "dependencies": dependencies,
+            "wave_number": wave_number,
+            "phase_number": wave_number,
+            "is_on_critical_path": i == 0
+            or wave.get("risk_level", "").lower() == "high",
+            "milestones": milestones,
+            "risks": risks,
+            # Include application count for context
+            "application_count": wave.get(
+                "application_count", len(wave.get("applications", []))
+            ),
+        }
+        phases.append(phase)
+
+    return phases
+
+
+def _calculate_timeline_metrics(
+    phases: List[Dict[str, Any]], waves: List[Dict[str, Any]]
+) -> Dict[str, Any]:
+    """Calculate timeline metrics from derived phases."""
+    if not phases:
+        return {
+            "total_duration_weeks": 0,
+            "completed_phases": 0,
+            "total_phases": 0,
+            "overall_progress": 0,
+            "delayed_milestones": 0,
+            "at_risk_milestones": 0,
+        }
+
+    # Calculate duration
+    start_dates = [p["start_date"] for p in phases if p.get("start_date")]
+    end_dates = [p["end_date"] for p in phases if p.get("end_date")]
+
+    total_duration_weeks = 0
+    if start_dates and end_dates:
+        try:
+            earliest_start = min(datetime.fromisoformat(d) for d in start_dates)
+            latest_end = max(datetime.fromisoformat(d) for d in end_dates)
+            total_duration_weeks = (latest_end - earliest_start).days // 7
+        except (ValueError, TypeError):
+            pass
+
+    # Count phases by status
+    completed_phases = sum(1 for p in phases if p["status"] == "Completed")
+    total_phases = len(phases)
+
+    # Calculate overall progress
+    if total_phases > 0:
+        overall_progress = sum(p["progress"] for p in phases) / total_phases
+    else:
+        overall_progress = 0
+
+    # Count milestone statuses
+    all_milestones = []
+    for phase in phases:
+        all_milestones.extend(phase.get("milestones", []))
+
+    delayed_milestones = sum(1 for m in all_milestones if m.get("status") == "At Risk")
+    at_risk_milestones = delayed_milestones  # Same for derived data
+
+    return {
+        "total_duration_weeks": total_duration_weeks,
+        "completed_phases": completed_phases,
+        "total_phases": total_phases,
+        "overall_progress": round(overall_progress, 1),
+        "delayed_milestones": delayed_milestones,
+        "at_risk_milestones": at_risk_milestones,
+    }
+
+
+def _identify_critical_path(phases: List[Dict[str, Any]]) -> List[str]:
+    """Identify critical path phases (sequential dependent phases)."""
+    return [p["name"] for p in phases if p.get("is_on_critical_path")]
+
+
+def _calculate_schedule_health(
+    phases: List[Dict[str, Any]], metrics: Dict[str, Any]
+) -> Dict[str, Any]:
+    """Calculate schedule health status, issues, and recommendations."""
+    issues = []
+    recommendations = []
+
+    # Check for blocked/delayed phases
+    blocked_phases = [p for p in phases if p["status"] == "Delayed"]
+    if blocked_phases:
+        issues.append(f"{len(blocked_phases)} wave(s) are blocked or delayed")
+        recommendations.append("Address blocking issues to prevent schedule slip")
+
+    # Check for at-risk milestones
+    if metrics["at_risk_milestones"] > 0:
+        issues.append(f"{metrics['at_risk_milestones']} milestone(s) at risk")
+        recommendations.append("Review at-risk milestones and assign mitigation owners")
+
+    # Check for low progress
+    if metrics["total_phases"] > 0 and metrics["overall_progress"] < 20:
+        recommendations.append("Consider accelerating initial phases to build momentum")
+
+    # Determine status
+    if len(blocked_phases) > 0:
+        status = "Delayed"
+    elif metrics["at_risk_milestones"] > 2 or len(issues) > 2:
+        status = "At Risk"
+    elif metrics["total_phases"] == 0:
+        status = "Not Started"
+    else:
+        status = "On Track"
+
+    if not recommendations:
+        recommendations.append("Continue monitoring progress against milestones")
+
+    return {
+        "status": status,
+        "issues": issues,
+        "recommendations": recommendations,
+    }
 
 
 @router.get("/roadmap")
 async def get_roadmap(
-    db: AsyncSession = Depends(get_db), context=Depends(get_current_context)
+    planning_flow_id: Optional[str] = Query(
+        None, description="Planning flow ID to derive timeline from wave data"
+    ),
+    db: AsyncSession = Depends(get_db),
+    context=Depends(get_current_context),
 ) -> Dict[str, Any]:
     """
-    Get migration roadmap with comprehensive timeline data.
+    Get migration roadmap with timeline data DERIVED from wave_plan_data.
 
-    Consolidates timeline, phases, milestones, metrics, critical path, and schedule health.
-    Replaces legacy /timeline endpoint. Retrieves data from project_timelines and
-    timeline_phases tables with multi-tenant scoping.
+    Now derives timeline phases from planning_flows.wave_plan_data to ensure
+    consistency between Timeline and Wave Planning pages.
+
+    Args:
+        planning_flow_id: Optional planning flow UUID to fetch specific wave data
 
     Returns:
-        - phases: List of timeline phases with milestones and risks
+        - phases: Timeline phases derived from waves with milestones and risks
         - metrics: Timeline summary metrics (duration, progress, delays)
         - critical_path: List of phase names on critical path
         - schedule_health: Overall health status with issues and recommendations
     """
-    from app.repositories.planning_flow_repository import PlanningFlowRepository
-    from app.models.planning import ProjectTimeline
+    from app.models.planning import PlanningFlow
     from sqlalchemy import select, and_
     from uuid import UUID
 
@@ -54,31 +296,38 @@ async def get_roadmap(
         else None
     )
 
-    # Initialize repository with tenant scoping
-    repository = PlanningFlowRepository(
-        db=db,
-        client_account_id=client_account_uuid,
-        engagement_id=engagement_uuid,
-    )
+    # Build query for planning flow with wave data
+    conditions = [
+        PlanningFlow.client_account_id == client_account_uuid,
+        PlanningFlow.engagement_id == engagement_uuid,
+    ]
 
-    # Get timelines for engagement (directly query with tenant scoping)
-    # Use UUID variables for database query consistency
+    # If planning_flow_id provided, filter by it
+    if planning_flow_id:
+        try:
+            planning_flow_uuid = UUID(planning_flow_id)
+            conditions.append(PlanningFlow.planning_flow_id == planning_flow_uuid)
+        except (ValueError, TypeError):
+            logger.warning(f"Invalid planning_flow_id format: {planning_flow_id}")
+
     stmt = (
-        select(ProjectTimeline)
-        .where(
-            and_(
-                ProjectTimeline.client_account_id == client_account_uuid,
-                ProjectTimeline.engagement_id == engagement_uuid,
-            )
-        )
-        .order_by(ProjectTimeline.created_at.desc())
+        select(PlanningFlow)
+        .where(and_(*conditions))
+        .order_by(PlanningFlow.created_at.desc())
         .limit(1)
     )
 
     result = await db.execute(stmt)
-    timelines = result.scalars().all()
+    planning_flow = result.scalar_one_or_none()
 
-    if not timelines:
+    # Extract wave_plan_data
+    wave_plan_data = {}
+    if planning_flow:
+        wave_plan_data = planning_flow.wave_plan_data or {}
+
+    waves = wave_plan_data.get("waves", [])
+
+    if not waves:
         # Return empty state with complete structure for frontend compatibility
         return {
             "phases": [],
@@ -94,152 +343,36 @@ async def get_roadmap(
             "schedule_health": {
                 "status": "Not Started",
                 "issues": [],
-                "recommendations": ["Create a project timeline to begin planning"],
+                "recommendations": [
+                    "Complete wave planning to generate timeline phases"
+                ],
             },
             "roadmap_status": "not_started",
         }
 
-    latest_timeline = timelines[0]
-
-    # Get phases for this timeline
-    phases_data = await repository.get_phases_by_timeline(
-        timeline_id=latest_timeline.id,
-        client_account_id=client_account_id,
-        engagement_id=engagement_id,
-    )
-
-    # Get milestones for this timeline
-    milestones_data = await repository.get_milestones_by_timeline(
-        timeline_id=latest_timeline.id,
-        client_account_id=client_account_id,
-        engagement_id=engagement_id,
-    )
+    # Derive timeline phases from wave data
+    phases = _derive_phases_from_waves(waves)
 
     # Calculate metrics
-    total_phases = len(phases_data)
-    completed_phases = sum(1 for p in phases_data if p.status == "completed")
+    metrics = _calculate_timeline_metrics(phases, waves)
 
-    # Calculate duration in weeks
-    if latest_timeline.overall_start_date and latest_timeline.overall_end_date:
-        duration_delta = (
-            latest_timeline.overall_end_date - latest_timeline.overall_start_date
-        )
-        total_duration_weeks = duration_delta.days // 7
-    else:
-        total_duration_weeks = 0
+    # Identify critical path
+    critical_path = _identify_critical_path(phases)
 
-    # Calculate milestone statuses
-    delayed_milestones = sum(1 for m in milestones_data if m.status == "delayed")
-    at_risk_milestones = sum(1 for m in milestones_data if m.status == "at_risk")
+    # Calculate schedule health
+    schedule_health = _calculate_schedule_health(phases, metrics)
 
-    # Extract critical path from timeline data
-    critical_path_data = latest_timeline.critical_path_data or {}
-    critical_path = critical_path_data.get("phases", [])
-
-    # Group milestones by phase
-    milestones_by_phase = {}
-    for milestone in milestones_data:
-        phase_id = str(milestone.phase_id) if milestone.phase_id else "timeline"
-        if phase_id not in milestones_by_phase:
-            milestones_by_phase[phase_id] = []
-
-        # Use actual_date if available, otherwise planned_date
-        milestone_date = (
-            milestone.actual_date if milestone.actual_date else milestone.planned_date
-        )
-
-        milestones_by_phase[phase_id].append(
-            {
-                "name": milestone.milestone_name,
-                "date": milestone_date.isoformat() if milestone_date else None,
-                "status": milestone.status,
-                "description": milestone.description or "",
-            }
-        )
-
-    # Build phases response with milestones and risks
-    phases_response = []
-    for phase in phases_data:
-        phase_id = str(phase.id)
-        phase_milestones = milestones_by_phase.get(phase_id, [])
-
-        # Extract risks from blocking_issues
-        risks = []
-        if phase.blocking_issues:
-            for issue in phase.blocking_issues:
-                risks.append(
-                    {
-                        "description": issue.get("description", ""),
-                        "impact": issue.get("impact", "Medium"),
-                        "mitigation": issue.get("mitigation", ""),
-                    }
-                )
-
-        phases_response.append(
-            {
-                "id": phase_id,
-                "name": phase.phase_name,
-                "start_date": (
-                    phase.planned_start_date.isoformat()
-                    if phase.planned_start_date
-                    else None
-                ),
-                "end_date": (
-                    phase.planned_end_date.isoformat()
-                    if phase.planned_end_date
-                    else None
-                ),
-                "status": phase.status.replace(
-                    "_", " "
-                ).title(),  # Convert to display format
-                "progress": (
-                    float(phase.progress_percentage) if phase.progress_percentage else 0
-                ),
-                "dependencies": [
-                    str(pid) for pid in (phase.predecessor_phase_ids or [])
-                ],
-                "phase_number": phase.phase_number,  # Phase sequence number for ordering
-                "wave_number": None,  # TODO: Map from wave_id when wave planning integrated
-                "is_on_critical_path": phase.is_on_critical_path,  # Critical path flag from DB
-                "milestones": phase_milestones,
-                "risks": risks,
-            }
-        )
-
-    # Determine schedule health
-    ai_recommendations = latest_timeline.ai_recommendations or {}
-    schedule_issues = ai_recommendations.get("issues", [])
-    schedule_recommendations = ai_recommendations.get("recommendations", [])
-
-    # Calculate health status
-    if delayed_milestones > 0:
-        health_status = "Delayed"
-    elif at_risk_milestones > 2 or len(schedule_issues) > 3:
-        health_status = "At Risk"
-    else:
-        health_status = "On Track"
+    logger.info(
+        f"Timeline derived from wave_plan_data: {len(phases)} phases, "
+        f"{metrics['total_duration_weeks']} weeks duration"
+    )
 
     return {
-        "phases": phases_response,
-        "metrics": {
-            "total_duration_weeks": total_duration_weeks,
-            "completed_phases": completed_phases,
-            "total_phases": total_phases,
-            "overall_progress": (
-                float(latest_timeline.progress_percentage)
-                if latest_timeline.progress_percentage
-                else 0
-            ),
-            "delayed_milestones": delayed_milestones,
-            "at_risk_milestones": at_risk_milestones,
-        },
+        "phases": phases,
+        "metrics": metrics,
         "critical_path": critical_path,
-        "schedule_health": {
-            "status": health_status,
-            "issues": schedule_issues,
-            "recommendations": schedule_recommendations,
-        },
-        "roadmap_status": "active",
+        "schedule_health": schedule_health,
+        "roadmap_status": "active" if phases else "not_started",
     }
 
 

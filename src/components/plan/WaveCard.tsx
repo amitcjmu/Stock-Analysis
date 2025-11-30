@@ -14,13 +14,38 @@ import { useDroppable } from '@dnd-kit/core';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { Wave } from '@/lib/api/planningFlowService';
-import { Calendar, Package, GripVertical } from 'lucide-react';
+import {
+  Calendar,
+  Package,
+  GripVertical,
+  Info,
+  ChevronDown,
+  ChevronUp,
+  Pencil,
+  Trash2,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  Layers
+} from 'lucide-react';
+import { useState } from 'react';
+
+/** Application data from wave planning agent including rationale */
+export interface WaveApplication {
+  id: string;
+  name: string;
+  rationale?: string;
+  criticality?: string;
+  complexity?: string;
+  /** 6R migration strategy (Rehost, Replatform, Refactor, etc.) */
+  migration_strategy?: string;
+}
 
 interface WaveCardProps {
   /** Wave data to display */
   wave: Wave;
   /** Array of application details (if available) */
-  applications?: Array<{ id: string; name: string; }>;
+  applications?: WaveApplication[];
   /** Callback when user clicks edit */
   onEdit: (wave: Wave) => void;
   /** Callback when user clicks delete */
@@ -30,42 +55,138 @@ interface WaveCardProps {
 }
 
 /**
- * Get badge color based on wave status.
+ * Wave gradient colors - cycles through visually distinct colors for each wave.
  */
-const getStatusColor = (status: string): string => {
+const WAVE_GRADIENTS = [
+  'from-rose-400 to-orange-400',      // Wave 1: Coral/Orange
+  'from-blue-500 to-indigo-500',      // Wave 2: Blue
+  'from-teal-500 to-emerald-500',     // Wave 3: Teal
+  'from-violet-500 to-purple-500',    // Wave 4: Purple
+  'from-pink-500 to-rose-500',        // Wave 5: Pink
+  'from-cyan-500 to-blue-500',        // Wave 6: Cyan
+  'from-amber-500 to-yellow-500',     // Wave 7: Amber
+  'from-green-500 to-emerald-500',    // Wave 8: Green
+];
+
+/**
+ * Get gradient color based on wave number (cycles through colors).
+ */
+const getWaveGradient = (waveNumber: number): string => {
+  const index = (waveNumber - 1) % WAVE_GRADIENTS.length;
+  return WAVE_GRADIENTS[index];
+};
+
+/**
+ * Get status config for badges and icons.
+ */
+const getStatusConfig = (status: string) => {
   switch (status) {
     case 'planned':
-      return 'bg-blue-100 text-blue-800';
+      return {
+        badge: 'bg-blue-100 text-blue-700 border-blue-200',
+        icon: Clock,
+        label: 'Planned'
+      };
     case 'in_progress':
-      return 'bg-yellow-100 text-yellow-800';
+      return {
+        badge: 'bg-amber-100 text-amber-700 border-amber-200',
+        icon: Layers,
+        label: 'In Progress'
+      };
     case 'completed':
-      return 'bg-green-100 text-green-800';
+      return {
+        badge: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+        icon: CheckCircle2,
+        label: 'Completed'
+      };
     case 'blocked':
-      return 'bg-red-100 text-red-800';
+      return {
+        badge: 'bg-red-100 text-red-700 border-red-200',
+        icon: AlertCircle,
+        label: 'Blocked'
+      };
     default:
-      return 'bg-gray-100 text-gray-800';
+      return {
+        badge: 'bg-slate-100 text-slate-700 border-slate-200',
+        icon: Clock,
+        label: status.replace('_', ' ')
+      };
   }
 };
 
 /**
- * Format status text for display.
+ * Get badge color based on criticality level.
  */
-const formatStatus = (status: string): string => {
-  return status.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+const getCriticalityColor = (criticality?: string): string => {
+  switch (criticality?.toLowerCase()) {
+    case 'high':
+      return 'bg-red-50 text-red-700 border border-red-200';
+    case 'medium':
+      return 'bg-amber-50 text-amber-700 border border-amber-200';
+    case 'low':
+      return 'bg-emerald-50 text-emerald-700 border border-emerald-200';
+    default:
+      return 'bg-slate-50 text-slate-600 border border-slate-200';
+  }
+};
+
+/**
+ * Get badge color based on complexity level.
+ */
+const getComplexityColor = (complexity?: string): string => {
+  switch (complexity?.toLowerCase()) {
+    case 'high':
+      return 'bg-purple-50 text-purple-700 border border-purple-200';
+    case 'medium':
+      return 'bg-blue-50 text-blue-700 border border-blue-200';
+    case 'low':
+      return 'bg-teal-50 text-teal-700 border border-teal-200';
+    default:
+      return 'bg-slate-50 text-slate-600 border border-slate-200';
+  }
+};
+
+/**
+ * Get badge color and display text based on 6R migration strategy.
+ */
+const getMigrationStrategyConfig = (strategy?: string): { color: string; label: string } => {
+  const normalizedStrategy = strategy?.toLowerCase().replace(/[-_\s]/g, '');
+  switch (normalizedStrategy) {
+    case 'rehost':
+      return { color: 'bg-sky-50 text-sky-700 border border-sky-200', label: 'Rehost' };
+    case 'replatform':
+      return { color: 'bg-violet-50 text-violet-700 border border-violet-200', label: 'Replatform' };
+    case 'refactor':
+    case 'rearchitect':
+      return { color: 'bg-fuchsia-50 text-fuchsia-700 border border-fuchsia-200', label: 'Refactor' };
+    case 'repurchase':
+    case 'replace':
+      return { color: 'bg-orange-50 text-orange-700 border border-orange-200', label: 'Repurchase' };
+    case 'retire':
+      return { color: 'bg-rose-50 text-rose-700 border border-rose-200', label: 'Retire' };
+    case 'retain':
+    case 'revisit':
+      return { color: 'bg-amber-50 text-amber-700 border border-amber-200', label: 'Retain' };
+    default:
+      return { color: 'bg-slate-50 text-slate-600 border border-slate-200', label: strategy || 'Unknown' };
+  }
 };
 
 /**
  * Draggable Application Item within a wave.
+ * Displays application name with expandable rationale from agent.
  */
 function ApplicationItem({
   app,
   waveNumber,
   isDragEnabled
 }: {
-  app: { id: string; name: string };
+  app: WaveApplication;
   waveNumber: number;
   isDragEnabled?: boolean;
 }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
   const {
     attributes,
     listeners,
@@ -89,21 +210,78 @@ function ApplicationItem({
     opacity: isDragging ? 0.5 : 1,
   };
 
+  const hasDetails = app.rationale || app.criticality || app.complexity || app.migration_strategy;
+
   return (
     <div
       ref={setNodeRef}
       style={style}
       className={`
-        flex items-center gap-2 p-2 bg-gray-50 rounded border border-gray-200
-        ${isDragEnabled ? 'cursor-grab active:cursor-grabbing hover:bg-gray-100' : ''}
-        ${isDragging ? 'shadow-lg' : ''}
+        bg-gradient-to-r from-slate-50 to-white rounded-lg border border-slate-200
+        ${isDragEnabled ? 'cursor-grab active:cursor-grabbing hover:border-blue-300 hover:shadow-sm' : ''}
+        ${isDragging ? 'shadow-lg border-blue-400 ring-2 ring-blue-200' : ''}
+        transition-all duration-200
       `}
-      {...attributes}
-      {...listeners}
     >
-      {isDragEnabled && <GripVertical className="h-4 w-4 text-gray-400" />}
-      <Package className="h-4 w-4 text-gray-500" />
-      <span className="text-sm text-gray-700 truncate">{app.name}</span>
+      {/* Main row with drag handle and app name */}
+      <div
+        className="flex items-center gap-2 p-2.5"
+        {...attributes}
+        {...listeners}
+      >
+        {isDragEnabled && <GripVertical className="h-4 w-4 text-slate-400 flex-shrink-0" />}
+        <div className="p-1.5 bg-slate-100 rounded">
+          <Package className="h-3.5 w-3.5 text-slate-500" />
+        </div>
+        <span className="text-sm text-slate-700 truncate flex-1 font-medium">{app.name}</span>
+
+        {/* Badges for 6R strategy and complexity */}
+        <div className="flex items-center gap-1.5">
+          {/* Show 6R strategy if available, otherwise fall back to criticality */}
+          {app.migration_strategy ? (
+            <span className={`text-xs px-2 py-0.5 rounded-full ${getMigrationStrategyConfig(app.migration_strategy).color}`}>
+              {getMigrationStrategyConfig(app.migration_strategy).label}
+            </span>
+          ) : app.criticality && (
+            <span className={`text-xs px-2 py-0.5 rounded-full ${getCriticalityColor(app.criticality)}`}>
+              {app.criticality}
+            </span>
+          )}
+          {app.complexity && (
+            <span className={`text-xs px-2 py-0.5 rounded-full ${getComplexityColor(app.complexity)}`}>
+              {app.complexity}
+            </span>
+          )}
+        </div>
+
+        {/* Expand/collapse button for rationale */}
+        {hasDetails && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsExpanded(!isExpanded);
+            }}
+            className="p-1.5 hover:bg-slate-100 rounded-full transition-colors flex-shrink-0"
+            title={isExpanded ? 'Hide details' : 'Show agent rationale'}
+          >
+            {isExpanded ? (
+              <ChevronUp className="h-4 w-4 text-slate-500" />
+            ) : (
+              <Info className="h-4 w-4 text-blue-500" />
+            )}
+          </button>
+        )}
+      </div>
+
+      {/* Expanded rationale section */}
+      {isExpanded && app.rationale && (
+        <div className="px-2.5 pb-2.5 pt-0">
+          <div className="text-xs text-slate-600 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-lg p-3 ml-6">
+            <span className="font-semibold text-blue-700">Agent Rationale:</span>{' '}
+            {app.rationale}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -127,134 +305,149 @@ export default function WaveCard({
     },
   });
 
+  const statusConfig = getStatusConfig(wave.status);
+  const StatusIcon = statusConfig.icon;
+
+  // Calculate duration
+  const duration = wave.start_date && wave.end_date
+    ? Math.ceil((new Date(wave.end_date).getTime() - new Date(wave.start_date).getTime()) / (1000 * 60 * 60 * 24))
+    : null;
+
   return (
     <div
       ref={setNodeRef}
       className={`
-        border border-gray-200 rounded-lg p-6 bg-white
-        transition-all duration-200
-        ${isOver ? 'ring-2 ring-blue-500 shadow-lg' : 'hover:shadow-lg'}
+        rounded-xl overflow-hidden bg-white shadow-md
+        transition-all duration-300
+        ${isOver ? 'ring-2 ring-blue-500 shadow-xl scale-[1.02]' : 'hover:shadow-lg'}
       `}
     >
-      {/* Header */}
-      <div className="flex justify-between items-start mb-4">
-        <div className="flex-1">
-          <h3 className="text-xl font-semibold text-gray-900">
-            {wave.wave_name}
-          </h3>
-          <p className="text-sm text-gray-500 mt-1">Wave {wave.wave_number}</p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => onEdit(wave)}
-            className="text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors"
-            title="Edit wave"
-          >
-            Edit
-          </button>
-          <button
-            onClick={() => onDelete(wave)}
-            className="text-red-600 hover:text-red-800 text-sm font-medium transition-colors"
-            title="Delete wave"
-          >
-            Delete
-          </button>
+      {/* Header with wave-number-based gradient */}
+      <div className={`bg-gradient-to-r ${getWaveGradient(wave.wave_number)} p-4`}>
+        <div className="flex justify-between items-start">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+              <StatusIcon className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-white">
+                {wave.wave_name}
+              </h3>
+              <p className="text-sm text-white/80">Wave {wave.wave_number}</p>
+            </div>
+          </div>
+          <div className="flex gap-1">
+            <button
+              onClick={() => onEdit(wave)}
+              className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+              title="Edit wave"
+            >
+              <Pencil className="h-4 w-4 text-white" />
+            </button>
+            <button
+              onClick={() => onDelete(wave)}
+              className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+              title="Delete wave"
+            >
+              <Trash2 className="h-4 w-4 text-white" />
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Description */}
-      {wave.description && (
-        <p className="text-sm text-gray-600 mb-4 line-clamp-2">
-          {wave.description}
-        </p>
-      )}
+      <div className="p-4 space-y-4">
+        {/* Description */}
+        {wave.description && (
+          <p className="text-sm text-slate-600 line-clamp-2">
+            {wave.description}
+          </p>
+        )}
 
-      {/* Wave Metadata */}
-      <div className="space-y-2 mb-4">
-        {/* Application Count */}
-        <div className="flex justify-between items-center text-sm">
-          <span className="text-gray-600">Applications:</span>
-          <span className="font-semibold text-gray-900">
-            {applications.length || wave.application_count || 0}
-          </span>
+        {/* Wave Metadata */}
+        <div className="grid grid-cols-2 gap-3">
+          {/* Application Count */}
+          <div className="flex items-center gap-2 p-2.5 bg-slate-50 rounded-lg">
+            <Package className="h-4 w-4 text-slate-400" />
+            <div>
+              <p className="text-xs text-slate-500">Applications</p>
+              <p className="text-sm font-semibold text-slate-800">
+                {applications.length || wave.application_count || 0}
+              </p>
+            </div>
+          </div>
+
+          {/* Duration */}
+          {duration && (
+            <div className="flex items-center gap-2 p-2.5 bg-slate-50 rounded-lg">
+              <Clock className="h-4 w-4 text-slate-400" />
+              <div>
+                <p className="text-xs text-slate-500">Duration</p>
+                <p className="text-sm font-semibold text-slate-800">{duration} days</p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Dates */}
         {(wave.start_date || wave.end_date) && (
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <Calendar className="h-4 w-4" />
-            <span>
+          <div className="flex items-center gap-2 p-2.5 bg-gradient-to-r from-slate-50 to-white rounded-lg border border-slate-100">
+            <Calendar className="h-4 w-4 text-slate-400" />
+            <span className="text-sm text-slate-600">
               {wave.start_date && new Date(wave.start_date).toLocaleDateString()}
-              {wave.start_date && wave.end_date && ' - '}
+              {wave.start_date && wave.end_date && ' → '}
               {wave.end_date && new Date(wave.end_date).toLocaleDateString()}
             </span>
           </div>
         )}
 
-        {/* Duration */}
-        {wave.start_date && wave.end_date && (
-          <div className="flex justify-between items-center text-sm">
-            <span className="text-gray-600">Duration:</span>
-            <span className="font-medium text-gray-900">
-              {Math.ceil(
-                (new Date(wave.end_date).getTime() -
-                  new Date(wave.start_date).getTime()) /
-                  (1000 * 60 * 60 * 24)
-              )}{' '}
-              days
-            </span>
+        {/* Status Badge */}
+        <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+          <span className="text-xs text-slate-500">Status</span>
+          <span className={`px-3 py-1 rounded-full text-xs font-medium border ${statusConfig.badge}`}>
+            {statusConfig.label}
+          </span>
+        </div>
+
+        {/* Applications List (Draggable) */}
+        {applications.length > 0 && (
+          <div className="pt-3 border-t border-slate-100">
+            <h4 className="text-sm font-medium text-slate-700 mb-3 flex items-center gap-2">
+              <Package className="h-4 w-4 text-slate-400" />
+              Assigned Applications
+            </h4>
+            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+              {applications.map((app) => (
+                <ApplicationItem
+                  key={app.id}
+                  app={app}
+                  waveNumber={wave.wave_number}
+                  isDragEnabled={isDragEnabled}
+                />
+              ))}
+            </div>
           </div>
         )}
 
-        {/* Status Badge */}
-        <div className="flex justify-between items-center text-sm pt-2 border-t border-gray-100">
-          <span className="text-gray-600">Status:</span>
-          <span
-            className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(
-              wave.status
-            )}`}
-          >
-            {formatStatus(wave.status)}
-          </span>
-        </div>
+        {/* Drop Zone Indicator */}
+        {isOver && applications.length === 0 && (
+          <div className="pt-3 border-t border-slate-100">
+            <div className="border-2 border-dashed border-blue-300 bg-blue-50 rounded-lg p-4 text-center">
+              <Package className="h-6 w-6 text-blue-400 mx-auto mb-2" />
+              <p className="text-sm font-medium text-blue-600">Drop application here</p>
+            </div>
+          </div>
+        )}
+
+        {/* Empty State for Applications */}
+        {!isOver && applications.length === 0 && (
+          <div className="pt-3 border-t border-slate-100">
+            <div className="text-center py-4 bg-slate-50 rounded-lg">
+              <Package className="h-6 w-6 text-slate-300 mx-auto mb-2" />
+              <p className="text-sm text-slate-500">No applications assigned</p>
+            </div>
+          </div>
+        )}
       </div>
-
-      {/* Applications List (Draggable) */}
-      {applications.length > 0 && (
-        <div className="mt-4 pt-4 border-t border-gray-100">
-          <h4 className="text-sm font-medium text-gray-700 mb-2">
-            Assigned Applications
-          </h4>
-          <div className="space-y-2 max-h-48 overflow-y-auto">
-            {applications.map((app) => (
-              <ApplicationItem
-                key={app.id}
-                app={app}
-                waveNumber={wave.wave_number}
-                isDragEnabled={isDragEnabled}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Drop Zone Indicator */}
-      {isOver && applications.length === 0 && (
-        <div className="mt-4 pt-4 border-t border-gray-100">
-          <div className="border-2 border-dashed border-blue-300 rounded-lg p-4 text-center">
-            <p className="text-sm text-blue-600">Drop application here</p>
-          </div>
-        </div>
-      )}
-
-      {/* Empty State for Applications */}
-      {!isOver && applications.length === 0 && (
-        <div className="mt-4 pt-4 border-t border-gray-100">
-          <div className="text-center text-sm text-gray-500">
-            No applications assigned yet
-          </div>
-        </div>
-      )}
     </div>
   );
 }

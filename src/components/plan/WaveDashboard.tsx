@@ -16,6 +16,9 @@
  */
 
 import React, { useState, useCallback } from 'react';
+import type {
+  DragStartEvent,
+  DragEndEvent} from '@dnd-kit/core';
 import {
   DndContext,
   DragOverlay,
@@ -23,16 +26,14 @@ import {
   KeyboardSensor,
   PointerSensor,
   useSensor,
-  useSensors,
-  DragStartEvent,
-  DragEndEvent,
+  useSensors
 } from '@dnd-kit/core';
 import {
   SortableContext,
   sortableKeyboardCoordinates,
 } from '@dnd-kit/sortable';
 import type { Wave } from '@/lib/api/planningFlowService';
-import WaveCard from './WaveCard';
+import WaveCard, { type WaveApplication } from './WaveCard';
 import { Package } from 'lucide-react';
 
 interface WaveDashboardProps {
@@ -131,48 +132,82 @@ export default function WaveDashboard({
     [onApplicationMoved]
   );
 
+  /** Agent application format with full metadata */
+  interface AgentApplication {
+    application_id: string;
+    application_name: string;
+    rationale?: string;
+    criticality?: string;
+    complexity?: string;
+    dependency_depth?: number;
+    /** 6R migration strategy (Rehost, Replatform, Refactor, etc.) */
+    migration_strategy?: string;
+  }
+
   /**
    * Get applications assigned to a specific wave.
+   * Handles both legacy format (string IDs) and new agent format (objects with rationale).
    */
   const getWaveApplications = useCallback(
-    (wave: Wave): Array<{ id: string; name: string }> => {
+    (wave: Wave): WaveApplication[] => {
       if (!wave.applications || wave.applications.length === 0) {
         return [];
       }
 
       return wave.applications
-        .map((appId) => applications.get(appId))
-        .filter((app): app is { id: string; name: string } => app !== undefined);
+        .map((app: string | AgentApplication) => {
+          // New format: app is an object with application_id and rationale
+          if (typeof app === 'object' && app !== null && 'application_id' in app) {
+            return {
+              id: app.application_id,
+              name: app.application_name || `App ${app.application_id.substring(0, 8)}...`,
+              rationale: app.rationale,
+              criticality: app.criticality,
+              complexity: app.complexity,
+              migration_strategy: app.migration_strategy,
+            };
+          }
+          // Legacy format: app is a string (UUID)
+          if (typeof app === 'string') {
+            const legacyApp = applications.get(app);
+            if (legacyApp) {
+              return {
+                id: legacyApp.id,
+                name: legacyApp.name,
+              };
+            }
+          }
+          return undefined;
+        })
+        .filter((app): app is WaveApplication => app !== undefined);
     },
     [applications]
   );
 
   // Collect all application IDs for sortable context
+  // Handles both legacy format (string IDs) and new agent format (objects)
   const allAppIds = waves.flatMap((wave) =>
-    (wave.applications || []).map((appId) => `app-${appId}`)
+    (wave.applications || []).map((app: string | { application_id: string }) => {
+      const appId = typeof app === 'object' && 'application_id' in app ? app.application_id : app;
+      return `app-${appId}`;
+    })
   );
 
   // Empty state
   if (waves.length === 0) {
     return (
-      <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
-        <svg
-          className="mx-auto h-12 w-12 text-gray-400 mb-4"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-          />
-        </svg>
-        <p className="text-gray-500 text-lg font-medium">No waves created yet</p>
-        <p className="text-gray-400 text-sm mt-2">
-          Click "Create Wave" to organize applications into migration waves
-        </p>
+      <div className="border-2 border-dashed border-slate-200 rounded-xl p-12 text-center bg-gradient-to-br from-slate-50 via-white to-slate-50">
+        <div className="max-w-md mx-auto space-y-4">
+          <div className="p-4 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-2xl w-fit mx-auto">
+            <Package className="h-10 w-10 text-white" />
+          </div>
+          <div>
+            <h3 className="text-xl font-semibold text-slate-800 mb-2">No waves created yet</h3>
+            <p className="text-slate-500">
+              Click "Create Wave" to organize applications into migration waves for phased execution
+            </p>
+          </div>
+        </div>
       </div>
     );
   }
@@ -206,9 +241,11 @@ export default function WaveDashboard({
         {/* Drag Overlay */}
         <DragOverlay>
           {activeApp ? (
-            <div className="flex items-center gap-2 p-2 bg-white rounded border-2 border-blue-500 shadow-xl">
-              <Package className="h-4 w-4 text-gray-500" />
-              <span className="text-sm text-gray-700">{activeApp.name}</span>
+            <div className="flex items-center gap-2 p-3 bg-white rounded-lg border-2 border-blue-500 shadow-2xl ring-4 ring-blue-100">
+              <div className="p-1.5 bg-blue-50 rounded">
+                <Package className="h-4 w-4 text-blue-500" />
+              </div>
+              <span className="text-sm font-medium text-slate-700">{activeApp.name}</span>
             </div>
           ) : null}
         </DragOverlay>
@@ -216,11 +253,16 @@ export default function WaveDashboard({
 
       {/* Moving Indicator */}
       {isMoving && (
-        <div className="fixed inset-0 bg-black bg-opacity-20 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl p-6">
-            <div className="flex items-center gap-3">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-              <span className="text-gray-700">Moving application...</span>
+        <div className="fixed inset-0 bg-slate-900/30 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl p-6 border border-slate-200">
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <div className="w-10 h-10 border-4 border-blue-200 rounded-full animate-pulse" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Package className="h-5 w-5 text-blue-600 animate-bounce" />
+                </div>
+              </div>
+              <span className="text-slate-700 font-medium">Moving application...</span>
             </div>
           </div>
         </div>
