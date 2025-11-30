@@ -146,7 +146,7 @@ def memory_monitor():
             self.snapshots[name] = {
                 "rss": memory_info.rss,
                 "vms": memory_info.vms,
-                "timestamp": asyncio.get_event_loop().time(),
+                "timestamp": asyncio.get_running_loop().time(),
             }
 
         def get_memory_diff(
