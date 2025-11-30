@@ -78,14 +78,14 @@ class TestMasterFlowEnrichment:
         # Create a mock result object for SELECT queries
         mock_result = MagicMock()
         mock_result.scalar_one_or_none = MagicMock(return_value=mock_flow)
-        
+
         # For update statements, create a result with rowcount
         mock_update_result = MagicMock()
         mock_update_result.rowcount = 1
-        
+
         # Track call count using a list (mutable) to share across calls
         call_count = [0]
-        
+
         def execute_side_effect(*args, **kwargs):
             call_count[0] += 1
             # Odd calls are SELECT (with_for_update), return mock_result
@@ -94,7 +94,7 @@ class TestMasterFlowEnrichment:
                 return mock_result
             else:
                 return mock_update_result
-        
+
         mock_db.execute = AsyncMock(side_effect=execute_side_effect)
         return mock_db
 
@@ -301,12 +301,12 @@ class TestMasterFlowEnrichment:
         # Setup mock for repository operations
         mock_flow = MagicMock(spec=CrewAIFlowStateExtensions)
         mock_flow.flow_metadata = {}
-        
+
         mock_result = MagicMock()
         mock_result.scalar_one_or_none = MagicMock(return_value=mock_flow)
         mock_update_result = MagicMock()
         mock_update_result.rowcount = 1
-        
+
         call_count = [0]
         def execute_side_effect(*args, **kwargs):
             call_count[0] += 1
@@ -314,20 +314,20 @@ class TestMasterFlowEnrichment:
                 return mock_result
             else:
                 return mock_update_result
-        
+
         mock_db.execute = AsyncMock(side_effect=execute_side_effect)
         mock_db.commit = AsyncMock()
 
         tracker = FlowProgressTracker(flow_id, mock_context)
 
         with patch(
-            "app.services.crewai_flows.flow_progress_tracker.AsyncSessionLocal"
+            "app.core.database.AsyncSessionLocal"
         ) as mock_session:
             mock_session.return_value.__aenter__.return_value = mock_db
 
             # Mock PostgresFlowStateStore
             with patch(
-                "app.services.crewai_flows.flow_progress_tracker.PostgresFlowStateStore"
+                "app.services.crewai_flows.persistence.postgres_store.PostgresFlowStateStore"
             ) as mock_store_class:
                 mock_store = MagicMock()
                 mock_store.update_flow_status = AsyncMock()
@@ -450,16 +450,16 @@ class TestProgressTrackerFixes:
 
         mock_db = AsyncMock(spec=AsyncSession)
         mock_db.commit = AsyncMock()
-        
+
         # Setup mock for repository operations
         mock_flow = MagicMock(spec=CrewAIFlowStateExtensions)
         mock_flow.flow_metadata = {}
-        
+
         mock_result = MagicMock()
         mock_result.scalar_one_or_none = MagicMock(return_value=mock_flow)
         mock_update_result = MagicMock()
         mock_update_result.rowcount = 1
-        
+
         call_count = [0]
         def execute_side_effect(*args, **kwargs):
             call_count[0] += 1
@@ -467,17 +467,17 @@ class TestProgressTrackerFixes:
                 return mock_result
             else:
                 return mock_update_result
-        
+
         mock_db.execute = AsyncMock(side_effect=execute_side_effect)
 
         with patch(
-            "app.services.crewai_flows.flow_progress_tracker.AsyncSessionLocal"
+            "app.core.database.AsyncSessionLocal"
         ) as mock_session:
             mock_session.return_value.__aenter__.return_value = mock_db
 
             # Mock PostgresFlowStateStore
             with patch(
-                "app.services.crewai_flows.flow_progress_tracker.PostgresFlowStateStore"
+                "app.services.crewai_flows.persistence.postgres_store.PostgresFlowStateStore"
             ) as mock_store_class:
                 mock_store = MagicMock()
                 mock_store.update_flow_status = AsyncMock()

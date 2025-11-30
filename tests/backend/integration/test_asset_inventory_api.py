@@ -2,6 +2,9 @@
 Asset Inventory API Integration Tests.
 
 Tests asset inventory API with enhanced features.
+
+Updated to match new API response format which returns a wrapped object:
+{'success': bool, 'flows': list, 'count': int, 'timestamp': str}
 """
 
 import pytest
@@ -43,7 +46,7 @@ class TestAssetInventoryAPI:
         assert "success" in data
         assert "flows" in data
         assert isinstance(data["flows"], list)
-        
+
         # If there are flows, verify their structure
         if len(data["flows"]) > 0:
             flow = data["flows"][0]
