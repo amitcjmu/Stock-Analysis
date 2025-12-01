@@ -40,6 +40,8 @@ class PatternTypeDB(str, Enum):
     VULNERABILITY_ANALYSIS = "VULNERABILITY_ANALYSIS"
     RESILIENCE_ANALYSIS = "RESILIENCE_ANALYSIS"
     DEPENDENCY_ANALYSIS = "DEPENDENCY_ANALYSIS"
+    # Wave planning pattern types (added in migration 141)
+    WAVE_PLANNING_OPTIMIZATION = "WAVE_PLANNING_OPTIMIZATION"
 
 
 # Agent pattern types → PostgreSQL enum mapping
@@ -59,6 +61,9 @@ PATTERN_TYPE_ENUM_MAP: Dict[str, PatternTypeDB] = {
     "vulnerability": PatternTypeDB.VULNERABILITY_ANALYSIS,
     "resilience": PatternTypeDB.RESILIENCE_ANALYSIS,
     "dependency": PatternTypeDB.DEPENDENCY_ANALYSIS,
+    # Wave planning pattern types (migration 141)
+    "wave_planning_optimization": PatternTypeDB.WAVE_PLANNING_OPTIMIZATION,
+    "WAVE_PLANNING_OPTIMIZATION": PatternTypeDB.WAVE_PLANNING_OPTIMIZATION,
 }
 
 # Tolerant fallback with warning (GPT-5 recommendation)

@@ -468,6 +468,59 @@ export default function WavePlanningPage(): JSX.Element {
     );
   }
 
+  // Wave planning in progress state - AI agent is generating the wave plan
+  const isWavePlanningInProgress = planningStatus?.phase_status === 'in_progress' && waves.length === 0;
+
+  if (isWavePlanningInProgress) {
+    return (
+      <SidebarProvider>
+        <div className="min-h-screen bg-gray-50 flex">
+          <Sidebar />
+          <div className="flex-1 ml-64">
+            <main className="p-8">
+              <ContextBreadcrumbs showContextSelector={true} />
+              <PlanNavigation />
+
+              <div className="mb-8">
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">Wave Planning</h1>
+                <p className="text-lg text-gray-600">
+                  Organize applications into migration waves for phased execution
+                </p>
+              </div>
+
+              {/* In-progress indicator */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-8">
+                <div className="flex flex-col items-center text-center">
+                  <div className="relative mb-6">
+                    <Loader2 className="h-16 w-16 animate-spin text-blue-600" />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Layers className="h-8 w-8 text-blue-400" />
+                    </div>
+                  </div>
+                  <h2 className="text-xl font-semibold text-blue-900 mb-2">
+                    AI Agent is Planning Your Waves
+                  </h2>
+                  <p className="text-blue-800 mb-4 max-w-lg">
+                    The wave planning specialist is analyzing your {planningStatus?.summary?.total_apps || 'selected'} applications,
+                    evaluating dependencies, and creating an optimal migration wave plan.
+                    This typically takes 2-3 minutes.
+                  </p>
+                  <div className="flex items-center space-x-2 text-sm text-blue-700">
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                    <span>Auto-refreshing every 5 seconds...</span>
+                  </div>
+                  <p className="text-xs text-blue-600 mt-4">
+                    Planning Flow ID: {planning_flow_id?.substring(0, 8)}...
+                  </p>
+                </div>
+              </div>
+            </main>
+          </div>
+        </div>
+      </SidebarProvider>
+    );
+  }
+
   return (
     <SidebarProvider>
       <div className="min-h-screen bg-gray-50 flex">

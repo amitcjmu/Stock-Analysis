@@ -95,7 +95,12 @@ def create_wave_planning_task(
         "total_dependencies": len(dependencies),
         "complexity_distribution": _calculate_complexity_distribution(applications),
         "criticality_levels": _calculate_criticality_levels(applications),
+        "sixr_strategy_distribution": _calculate_sixr_distribution(applications),
     }
+
+    # Build application list for agent (CRITICAL: agent needs actual IDs and names)
+    # Format concisely to stay within token limits
+    app_list_for_agent = _format_applications_for_agent(applications)
 
     task = Task(
         description=f"""Analyze {len(applications)} applications and their {len(dependencies)}
@@ -123,6 +128,8 @@ def create_wave_planning_task(
            - Balance resource utilization across waves
            - Account for rollback complexity and risk mitigation
            - Optimize for minimum downtime windows
+           - IMPORTANT: Balance 6R strategies across waves for resource team specialization
+             (e.g., Rehost teams, Replatform teams have finite capacity per wave)
 
         4. Risk Mitigation:
            - Identify high-risk dependencies and plan safeguards
@@ -132,6 +139,9 @@ def create_wave_planning_task(
 
         APPLICATION CONTEXT:
         {app_summary}
+
+        APPLICATIONS LIST (use these EXACT IDs and names in your output):
+        {app_list_for_agent}
 
         CONFIGURATION:
         - Max applications per wave: {max_apps_per_wave}
@@ -218,6 +228,9 @@ def create_wave_planning_task(
         4. Provide clear rationale for sequencing decisions
         5. Include risk mitigation strategies for each wave
         6. Return ONLY valid JSON (no markdown wrappers, no trailing commas)
+        7. USE THE EXACT application_id AND application_name FROM THE APPLICATIONS LIST PROVIDED
+           DO NOT make up generic names like "Application 1" - use the real names!
+        8. Balance 6R strategies across waves to optimize resource team capacity
         """,
         agent=(agent._agent if hasattr(agent, "_agent") else agent),
         context=[],  # No dependent tasks for initial wave planning
@@ -255,6 +268,83 @@ def _calculate_criticality_levels(applications: List[Dict[str, Any]]) -> Dict[st
             levels["unknown"] += 1
 
     return levels
+
+
+def _calculate_sixr_distribution(applications: List[Dict[str, Any]]) -> Dict[str, int]:
+    """Calculate distribution of applications by 6R migration strategy."""
+    # Standard 6R strategies
+    strategies = {
+        "rehost": 0,
+        "replatform": 0,
+        "refactor": 0,
+        "repurchase": 0,
+        "retire": 0,
+        "retain": 0,
+        "unknown": 0,
+    }
+
+    for app in applications:
+        strategy = (
+            (
+                app.get("migration_strategy", "")
+                or app.get("six_r_strategy", "")
+                or "unknown"
+            )
+            .lower()
+            .replace("-", "")
+            .replace(" ", "")
+        )
+        # Normalize strategy name (handles "re-host", "re host", etc.)
+        if strategy in strategies:
+            strategies[strategy] += 1
+        else:
+            strategies["unknown"] += 1
+
+    return strategies
+
+
+def _format_applications_for_agent(applications: List[Dict[str, Any]]) -> str:
+    """
+    Format applications list for agent prompt.
+
+    Creates a VERY concise representation to minimize token usage.
+    Uses short format: id|name|strategy|complexity|criticality
+
+    For large app lists (>20), only show first 8 chars of UUID to save tokens.
+    """
+    lines = []
+    use_short_id = len(applications) > 20
+
+    for app in applications:
+        app_id = app.get("id")
+        if not app_id:
+            logger.warning(
+                f"Skipping application with missing ID: {app.get('name', 'N/A')}"
+            )
+            continue
+
+        # Shorten UUID for large lists
+        display_id = app_id[:8] if use_short_id else app_id
+        name = app.get("name", f"App_{app_id[:8]}")
+        # Truncate long names
+        if len(name) > 30:
+            name = name[:27] + "..."
+        strategy = (
+            app.get("migration_strategy", "")
+            or app.get("six_r_strategy", "")
+            or "rehost"
+        )[
+            :10
+        ]  # Truncate strategy name
+        complexity = app.get("complexity", "medium")[:3]  # low/med/hig
+        criticality = app.get("business_criticality", "medium")[:3]
+
+        # Ultra-compact format
+        line = f"{display_id}|{name}|{strategy}|{complexity}|{criticality}"
+        lines.append(line)
+
+    header = "Format: id|name|strategy|complexity|criticality"
+    return header + "\n        " + "\n        ".join(lines)
 
 
 # Export factory function
