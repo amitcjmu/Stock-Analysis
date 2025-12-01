@@ -9,23 +9,27 @@ Related ADRs:
 - ADR-012: Two-Table Pattern (master + child flows)
 """
 
-import asyncio
 import logging
 from typing import Any, Dict, List, Optional
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext, get_current_context_dependency
-from app.core.database import AsyncSessionLocal, get_db
+from app.core.database import get_db
 from app.repositories.crewai_flow_state_extensions_repository import (
     CrewAIFlowStateExtensionsRepository,
 )
 from app.repositories.planning_flow_repository import PlanningFlowRepository
-from app.services.planning import execute_wave_planning_for_flow
 from app.utils.json_sanitization import sanitize_for_json
+
+from .shared_utils import (
+    parse_tenant_uuids,
+    parse_uuid,
+    schedule_wave_planning_task,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -52,77 +56,17 @@ class InitializePlanningRequest(BaseModel):
     )
 
 
-def _parse_tenant_uuids(
-    client_account_id: str,
-    engagement_id: str,
-) -> tuple[UUID, UUID]:
-    """Parse and validate tenant UUIDs from context."""
-    try:
-        client_account_uuid = (
-            UUID(client_account_id)
-            if isinstance(client_account_id, str)
-            else client_account_id
-        )
-        engagement_uuid = UUID(str(engagement_id)) if engagement_id else None
-
-        if not engagement_uuid:
-            raise ValueError("Engagement ID is required")
-        return client_account_uuid, engagement_uuid
-    except (ValueError, TypeError) as e:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid client_account_id or engagement_id format: {str(e)}",
-        )
-
-
 def _parse_application_uuids(application_ids: List[str]) -> List[UUID]:
     """Parse and validate application UUIDs."""
-    try:
-        return [UUID(app_id) for app_id in application_ids]
-    except ValueError as e:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid application UUID format: {str(e)}",
-        )
-
-
-async def _run_wave_planning_background(
-    planning_flow_id: UUID,
-    context: RequestContext,
-    planning_config: Dict[str, Any],
-) -> None:
-    """Background task to execute wave planning asynchronously."""
-    bg_db = None
-    try:
-        bg_db = AsyncSessionLocal()
-        logger.info(f"[Background] Starting wave planning for flow: {planning_flow_id}")
-        result = await execute_wave_planning_for_flow(
-            db=bg_db,
-            context=context,
-            planning_flow_id=planning_flow_id,
-            planning_config=planning_config,
-        )
-        if result.get("status") == "success":
-            logger.info(f"[Background] Wave planning completed: {planning_flow_id}")
-        else:
-            logger.warning(
-                f"[Background] Wave planning failed: {planning_flow_id} - "
-                f"{result.get('error')}"
-            )
-    except Exception as e:
-        logger.error(
-            f"[Background] Wave planning error for {planning_flow_id}: {e}",
-            exc_info=True,
-        )
-    finally:
-        if bg_db:
-            await bg_db.close()
+    return [
+        parse_uuid(app_id, f"application_id[{i}]")
+        for i, app_id in enumerate(application_ids)
+    ]
 
 
 @router.post("/initialize")
 async def initialize_planning_flow(
     request: InitializePlanningRequest,
-    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     context: RequestContext = Depends(get_current_context_dependency),
 ) -> Dict[str, Any]:
@@ -169,8 +113,8 @@ async def initialize_planning_flow(
         raise HTTPException(status_code=400, detail="Engagement ID required")
 
     try:
-        # Parse and validate UUIDs
-        client_account_uuid, engagement_uuid = _parse_tenant_uuids(
+        # Parse and validate UUIDs using shared utility
+        client_account_uuid, engagement_uuid = parse_tenant_uuids(
             client_account_id, engagement_id
         )
         selected_app_uuids = _parse_application_uuids(request.selected_application_ids)
@@ -194,7 +138,8 @@ async def initialize_planning_flow(
 
         # Build planning config with migration_start_date
         planning_config = request.planning_config or {}
-        if request.migration_start_date:
+        # Per Qodo Bot: Use `is not None` for consistent optional param checks
+        if request.migration_start_date is not None:
             planning_config["migration_start_date"] = request.migration_start_date
 
         # Create master flow in crewai_flow_state_extensions (MFO pattern)
@@ -227,15 +172,12 @@ async def initialize_planning_flow(
             f"engagement: {engagement_uuid})"
         )
 
-        # Launch background wave planning task (non-blocking)
-        asyncio.create_task(
-            _run_wave_planning_background(
-                planning_flow_id=planning_flow_id,
-                context=context,
-                planning_config=planning_config,
-            )
+        # Launch background wave planning task with proper lifecycle management (Qodo Bot fix)
+        schedule_wave_planning_task(
+            planning_flow_id=planning_flow_id,
+            context=context,
+            planning_config=planning_config,
         )
-        logger.info(f"Scheduled background wave planning for flow: {planning_flow_id}")
 
         return sanitize_for_json(
             {

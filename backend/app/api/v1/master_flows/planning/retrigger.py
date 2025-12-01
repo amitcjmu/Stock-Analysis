@@ -9,20 +9,22 @@ Related ADRs:
 - ADR-012: Two-Table Pattern (child flow operational state)
 """
 
-import asyncio
 import logging
 from typing import Any, Dict, Optional
-from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext, get_current_context_dependency
-from app.core.database import AsyncSessionLocal, get_db
+from app.core.database import get_db
 from app.repositories.planning_flow_repository import PlanningFlowRepository
-from app.services.planning import execute_wave_planning_for_flow
 from app.utils.json_sanitization import sanitize_for_json
+
+from .shared_utils import (
+    parse_tenant_uuids,
+    schedule_wave_planning_task,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -42,68 +44,6 @@ class RetriggerWavePlanRequest(BaseModel):
     wave_duration_limit_days: Optional[int] = Field(
         default=None, description="Wave duration in days"
     )
-
-
-def _parse_tenant_uuids(
-    planning_flow_id: str,
-    client_account_id: str,
-    engagement_id: str,
-) -> tuple[UUID, UUID, UUID]:
-    """Parse and validate UUID parameters."""
-    try:
-        planning_flow_uuid = UUID(planning_flow_id)
-        client_account_uuid = (
-            UUID(client_account_id)
-            if isinstance(client_account_id, str)
-            else client_account_id
-        )
-        engagement_uuid = (
-            UUID(engagement_id) if isinstance(engagement_id, str) else engagement_id
-        )
-        return planning_flow_uuid, client_account_uuid, engagement_uuid
-    except ValueError as e:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid UUID format: {str(e)}",
-        )
-
-
-async def _run_wave_planning_background(
-    planning_flow_id: str,
-    planning_flow_uuid: UUID,
-    context: RequestContext,
-    updated_config: Dict[str, Any],
-) -> None:
-    """Background task to execute wave planning asynchronously."""
-    bg_db = None
-    try:
-        bg_db = AsyncSessionLocal()
-        logger.info(
-            f"[Background] Retriggering wave planning for flow: {planning_flow_id}"
-        )
-        result = await execute_wave_planning_for_flow(
-            db=bg_db,
-            context=context,
-            planning_flow_id=planning_flow_uuid,
-            planning_config=updated_config,
-        )
-        if result.get("status") == "success":
-            logger.info(
-                f"[Background] Wave planning retrigger completed: {planning_flow_id}"
-            )
-        else:
-            logger.warning(
-                f"[Background] Wave planning retrigger failed: {planning_flow_id} - "
-                f"{result.get('error')}"
-            )
-    except Exception as e:
-        logger.error(
-            f"[Background] Wave planning retrigger error for {planning_flow_id}: {e}",
-            exc_info=True,
-        )
-    finally:
-        if bg_db:
-            await bg_db.close()
 
 
 @router.post("/retrigger/{planning_flow_id}")
@@ -158,9 +98,9 @@ async def retrigger_wave_planning(
         raise HTTPException(status_code=400, detail="Engagement ID required")
 
     try:
-        # Parse and validate UUIDs
-        planning_flow_uuid, client_account_uuid, engagement_uuid = _parse_tenant_uuids(
-            planning_flow_id, client_account_id, engagement_id
+        # Parse and validate UUIDs using shared utility
+        planning_flow_uuid, client_account_uuid, engagement_uuid = parse_tenant_uuids(
+            client_account_id, engagement_id, planning_flow_id
         )
 
         # Initialize repository
@@ -187,7 +127,8 @@ async def retrigger_wave_planning(
         existing_config = planning_flow.planning_config or {}
         updated_config = existing_config.copy()
 
-        if request.migration_start_date:
+        # Per Qodo Bot: Use `is not None` for consistent optional param checks
+        if request.migration_start_date is not None:
             updated_config["migration_start_date"] = request.migration_start_date
         if request.max_apps_per_wave is not None:
             updated_config["max_apps_per_wave"] = request.max_apps_per_wave
@@ -215,17 +156,11 @@ async def retrigger_wave_planning(
 
         await db.commit()
 
-        # Launch background task (non-blocking)
-        asyncio.create_task(
-            _run_wave_planning_background(
-                planning_flow_id=planning_flow_id,
-                planning_flow_uuid=planning_flow_uuid,
-                context=context,
-                updated_config=updated_config,
-            )
-        )
-        logger.info(
-            f"Scheduled background wave planning retrigger for flow: {planning_flow_id}"
+        # Launch background task with proper lifecycle management (Qodo Bot fix)
+        schedule_wave_planning_task(
+            planning_flow_id=planning_flow_uuid,
+            context=context,
+            planning_config=updated_config,
         )
 
         return sanitize_for_json(

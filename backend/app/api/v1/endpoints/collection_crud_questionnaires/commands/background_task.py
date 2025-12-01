@@ -25,6 +25,12 @@ async def _background_generate(
     context: RequestContext,
 ) -> None:
     """Background task for AI questionnaire generation with Issue #980 gap detection."""
+    # CC FIX: Ensure CrewAI environment is set up before any agent code runs
+    # Per Serena memory: Background tasks may not inherit startup env vars
+    from app.core.crewai_env_setup import ensure_crewai_environment
+
+    ensure_crewai_environment()
+
     from app.core.database import AsyncSessionLocal
     from sqlalchemy import (
         select,

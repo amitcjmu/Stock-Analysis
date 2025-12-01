@@ -287,29 +287,13 @@ def generate_fallback_wave_plan(
     waves = []
 
     # Use user-provided migration_start_date if available, otherwise default to today
+    # Per Qodo Bot: Use strict ISO 8601 parsing with timezone enforcement
+    from app.api.v1.master_flows.planning.shared_utils import parse_migration_date_safe
+
     migration_start_date_str = config.get("migration_start_date")
-    if migration_start_date_str:
-        try:
-            # Parse ISO date string (YYYY-MM-DD or full ISO timestamp)
-            if "T" in migration_start_date_str:
-                start_date = datetime.fromisoformat(
-                    migration_start_date_str.replace("Z", "+00:00")
-                )
-            else:
-                # Date-only format, add timezone
-                start_date = datetime.strptime(
-                    migration_start_date_str, "%Y-%m-%d"
-                ).replace(tzinfo=timezone.utc)
-            logger.info(f"Using user-provided migration start date: {start_date}")
-        except (ValueError, TypeError) as e:
-            logger.warning(
-                f"Invalid migration_start_date '{migration_start_date_str}': {e}, "
-                f"using current date"
-            )
-            start_date = datetime.now(timezone.utc)
-    else:
-        start_date = datetime.now(timezone.utc)
-        logger.info("No migration_start_date provided, using current date")
+    start_date = parse_migration_date_safe(
+        migration_start_date_str, fallback_to_now=True
+    )
 
     for wave_num in range(1, wave_count + 1):
         wave = _build_wave(
