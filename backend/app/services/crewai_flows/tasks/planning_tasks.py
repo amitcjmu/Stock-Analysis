@@ -285,11 +285,16 @@ def _calculate_sixr_distribution(applications: List[Dict[str, Any]]) -> Dict[str
 
     for app in applications:
         strategy = (
-            app.get("migration_strategy", "")
-            or app.get("six_r_strategy", "")
-            or "unknown"
-        ).lower()
-        # Normalize strategy name
+            (
+                app.get("migration_strategy", "")
+                or app.get("six_r_strategy", "")
+                or "unknown"
+            )
+            .lower()
+            .replace("-", "")
+            .replace(" ", "")
+        )
+        # Normalize strategy name (handles "re-host", "re host", etc.)
         if strategy in strategies:
             strategies[strategy] += 1
         else:
@@ -311,7 +316,13 @@ def _format_applications_for_agent(applications: List[Dict[str, Any]]) -> str:
     use_short_id = len(applications) > 20
 
     for app in applications:
-        app_id = app.get("id", "unknown")
+        app_id = app.get("id")
+        if not app_id:
+            logger.warning(
+                f"Skipping application with missing ID: {app.get('name', 'N/A')}"
+            )
+            continue
+
         # Shorten UUID for large lists
         display_id = app_id[:8] if use_short_id else app_id
         name = app.get("name", f"App_{app_id[:8]}")
