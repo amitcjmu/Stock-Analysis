@@ -15,6 +15,7 @@ from .initialize import router as initialize_router
 from .execute import router as execute_router
 from .status import router as status_router
 from .update import router as update_router
+from .retrigger import router as retrigger_router
 from .export import router as export_router
 
 # Create main router that combines all sub-routers
@@ -25,6 +26,7 @@ router.include_router(initialize_router)
 router.include_router(execute_router)
 router.include_router(status_router)
 router.include_router(update_router)
+router.include_router(retrigger_router)
 router.include_router(export_router)
 
 # Export for backward compatibility

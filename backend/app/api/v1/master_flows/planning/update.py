@@ -48,6 +48,10 @@ async def _sync_waves_to_timeline(
     """
     from datetime import datetime, timezone
 
+    from sqlalchemy import delete
+
+    from app.models.planning import TimelinePhase
+
     waves = wave_plan_data.get("waves", [])
     if not waves:
         logger.debug("No waves in wave_plan_data, skipping timeline sync")
@@ -91,14 +95,12 @@ async def _sync_waves_to_timeline(
 
     # Delete existing phases for this timeline to avoid duplicates
     # This is safe because phases are recreation from wave data
-    from sqlalchemy import delete
-    from app.models.planning import TimelinePhase
-
     delete_stmt = delete(TimelinePhase).where(TimelinePhase.timeline_id == timeline.id)
     await repo.db.execute(delete_stmt)
     logger.debug(f"Deleted existing phases for timeline {timeline.id}")
 
-    # Map wave status to timeline phase status (constraint: not_started, in_progress, on_hold, completed, cancelled)
+    # Map wave status to timeline phase status
+    # Constraint: not_started, in_progress, on_hold, completed, cancelled
     # Wave statuses: Planned, In Progress, Completed, Blocked
     wave_to_phase_status = {
         "planned": "not_started",
@@ -128,7 +130,6 @@ async def _sync_waves_to_timeline(
             continue
 
         # Create timeline phase for this wave
-        # Note: phase_number is set to wave_number (wave_id would need the actual UUID)
         await repo.create_timeline_phase(
             client_account_id=client_account_id,
             engagement_id=engagement_id,
@@ -137,7 +138,7 @@ async def _sync_waves_to_timeline(
             phase_name=phase_name,
             planned_start_date=datetime.fromisoformat(start_date_str),
             planned_end_date=datetime.fromisoformat(end_date_str),
-            status=status,  # Use status from wave data
+            status=status,
         )
         logger.debug(f"Created timeline phase for wave {wave_number}: {phase_name}")
 
@@ -249,7 +250,7 @@ async def update_wave_plan(
         if not planning_flow:
             raise HTTPException(
                 status_code=404,
-                detail=f"Planning flow {request.planning_flow_id} not found or access denied",
+                detail=f"Planning flow {request.planning_flow_id} not found",
             )
 
         # Build update dictionary (only include provided fields)
