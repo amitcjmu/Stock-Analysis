@@ -34,7 +34,19 @@ class DependencyAnalysisTool(BaseTool if CREWAI_TOOLS_AVAILABLE else object):
         """Analyze dependencies between assets"""
         try:
             request = json.loads(analysis_request)
-            assets = request.get("assets", [])
+            # Bug #1094 Fix: Handle both formats - list directly or dict with "assets" key
+            # Agents may pass assets as a list directly instead of wrapped in {"assets": [...]}
+            if isinstance(request, list):
+                assets = request
+            elif isinstance(request, dict) and "assets" in request:
+                assets = request["assets"]
+            else:
+                # Qodo Bot feedback: Log warning for unexpected format but don't break workflow
+                logger.warning(
+                    f"⚠️ Unexpected dependency analysis input format: {type(request).__name__}. "
+                    "Expected list or dict with 'assets' key. Processing with empty list."
+                )
+                assets = []
 
             result = DependencyAnalyzer.analyze_dependencies(assets, self._context_info)
             return json.dumps(result)
@@ -68,14 +80,27 @@ class DependencyGraphBuilderTool(BaseTool if CREWAI_TOOLS_AVAILABLE else object)
         try:
             request = json.loads(graph_request)
 
-            # If we already have analysis results, extract the graph
-            if "dependency_graph" in request:
-                graph = request["dependency_graph"]
-            else:
-                # Build graph from assets
-                assets = request.get("assets", [])
+            # Bug #1094 Fix: Handle list input format
+            if isinstance(request, list):
+                # List of assets passed directly
+                assets = request
                 analysis = DependencyAnalyzer.analyze_dependencies(assets)
                 graph = analysis.get("dependency_graph", {})
+            elif "dependency_graph" in request:
+                # If we already have analysis results, extract the graph
+                graph = request["dependency_graph"]
+            elif isinstance(request, dict) and "assets" in request:
+                # Build graph from assets in dict format
+                assets = request["assets"]
+                analysis = DependencyAnalyzer.analyze_dependencies(assets)
+                graph = analysis.get("dependency_graph", {})
+            else:
+                # Qodo Bot feedback: Log warning for unexpected format but don't break workflow
+                logger.warning(
+                    f"⚠️ Unexpected graph_request format: {type(request).__name__}. "
+                    "Expected list, dict with 'assets', or dict with 'dependency_graph'. Processing empty."
+                )
+                graph = {"nodes": [], "edges": []}
 
             # Add visualization hints
             graph["layout"] = "hierarchical"  # or "force-directed"

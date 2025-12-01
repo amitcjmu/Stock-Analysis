@@ -450,6 +450,7 @@ const AuthenticatedApp = (): JSX.Element => {
       <Route path="/plan/timeline" element={<LazyTimeline />} />
       <Route path="/plan/resource" element={<LazyResource />} />
       <Route path="/plan/export" element={<LazyExport />} />
+      <Route path="/plan/export/:flowId" element={<LazyExport />} />
       <Route path="/plan/target" element={<LazyTarget />} />
 
       {/* Execute sub-routes */}

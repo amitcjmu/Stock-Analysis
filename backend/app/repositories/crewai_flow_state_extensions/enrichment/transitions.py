@@ -1,4 +1,6 @@
+import asyncio
 import logging
+import random
 import uuid
 from datetime import datetime
 from typing import Any, Dict, Optional
@@ -8,6 +10,11 @@ from sqlalchemy import and_, select, update
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 
 logger = logging.getLogger(__name__)
+
+# Bug #1087 Fix: OCC retry configuration
+OCC_MAX_RETRIES = 3
+OCC_BASE_DELAY = 0.1  # 100ms
+OCC_MAX_DELAY = 2.0  # 2 seconds
 
 
 class TransitionsEnrichmentMixin:
@@ -56,35 +63,62 @@ class TransitionsEnrichmentMixin:
         if len(transitions) > 200:
             transitions = transitions[-200:]
 
-        prev_updated_at = flow.updated_at
-        stmt_upd = (
-            update(CrewAIFlowStateExtensions)
-            .where(
-                and_(
-                    CrewAIFlowStateExtensions.id == flow.id,
-                    CrewAIFlowStateExtensions.client_account_id == client_uuid,
-                    CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
-                    CrewAIFlowStateExtensions.updated_at == prev_updated_at,
+        # Bug #1087 Fix: OCC retry with exponential backoff
+        for attempt in range(OCC_MAX_RETRIES + 1):
+            # Re-fetch flow on retry to get updated version
+            if attempt > 0:
+                result = await self.db.execute(stmt)
+                flow = result.scalar_one_or_none()
+                if not flow:
+                    return
+                transitions = list(flow.phase_transitions or [])
+                transitions.append(entry)
+                if len(transitions) > 200:
+                    transitions = transitions[-200:]
+
+            prev_updated_at = flow.updated_at
+            stmt_upd = (
+                update(CrewAIFlowStateExtensions)
+                .where(
+                    and_(
+                        CrewAIFlowStateExtensions.id == flow.id,
+                        CrewAIFlowStateExtensions.client_account_id == client_uuid,
+                        CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
+                        CrewAIFlowStateExtensions.updated_at == prev_updated_at,
+                    )
                 )
+                .values(phase_transitions=transitions, updated_at=datetime.utcnow())
             )
-            .values(phase_transitions=transitions, updated_at=datetime.utcnow())
-        )
-        result_upd = await self.db.execute(stmt_upd)
-        if result_upd.rowcount:
-            # 🔧 CC FIX: Remove duplicate commit - transaction boundary managed by caller
-            # This ensures atomicity with the parent flow_phase_management transaction
-            # await self.db.commit()  # REMOVED to prevent double commit
-            pass
-        else:
-            # 🔧 CC FIX: Don't rollback here - let parent transaction handle it
-            # await self.db.rollback()  # REMOVED - parent manages transaction
-            logger.warning(
-                "OCC conflict updating phase_transitions for flow_id=%s, client=%s, engagement=%s "
-                "(no commit/rollback - parent manages transaction)",
-                flow_id,
-                self.client_account_id,
-                self.engagement_id,
-            )
+            result_upd = await self.db.execute(stmt_upd)
+            if result_upd.rowcount:
+                if attempt > 0:
+                    logger.info(
+                        "✅ OCC conflict resolved after %d retries for flow_id=%s (transitions)",
+                        attempt,
+                        flow_id,
+                    )
+                return  # Success
+
+            # OCC conflict - retry with exponential backoff
+            if attempt < OCC_MAX_RETRIES:
+                delay = min(OCC_BASE_DELAY * (2**attempt), OCC_MAX_DELAY)
+                delay += random.uniform(0, delay * 0.2)
+                logger.warning(
+                    "⚠️ OCC conflict updating phase_transitions for flow_id=%s (attempt %d/%d), "
+                    "retrying in %.2fs...",
+                    flow_id,
+                    attempt + 1,
+                    OCC_MAX_RETRIES,
+                    delay,
+                )
+                await asyncio.sleep(delay)
+            else:
+                logger.warning(
+                    "❌ OCC conflict updating phase_transitions for flow_id=%s after %d retries; "
+                    "update skipped.",
+                    flow_id,
+                    OCC_MAX_RETRIES,
+                )
 
     async def record_phase_execution_time(
         self, flow_id: str, phase: str, execution_time_ms: float
@@ -118,30 +152,61 @@ class TransitionsEnrichmentMixin:
             "execution_time_ms": float(execution_time_ms),
             "completed_at": datetime.utcnow().isoformat(),
         }
-        prev_updated_at = flow.updated_at
-        stmt_upd = (
-            update(CrewAIFlowStateExtensions)
-            .where(
-                and_(
-                    CrewAIFlowStateExtensions.id == flow.id,
-                    CrewAIFlowStateExtensions.client_account_id == client_uuid,
-                    CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
-                    CrewAIFlowStateExtensions.updated_at == prev_updated_at,
+
+        # Bug #1087 Fix: OCC retry with exponential backoff
+        for attempt in range(OCC_MAX_RETRIES + 1):
+            # Re-fetch flow on retry to get updated version
+            if attempt > 0:
+                result = await self.db.execute(stmt)
+                flow = result.scalar_one_or_none()
+                if not flow:
+                    return
+                times = dict(flow.phase_execution_times or {})
+                times[phase] = {
+                    "execution_time_ms": float(execution_time_ms),
+                    "completed_at": datetime.utcnow().isoformat(),
+                }
+
+            prev_updated_at = flow.updated_at
+            stmt_upd = (
+                update(CrewAIFlowStateExtensions)
+                .where(
+                    and_(
+                        CrewAIFlowStateExtensions.id == flow.id,
+                        CrewAIFlowStateExtensions.client_account_id == client_uuid,
+                        CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
+                        CrewAIFlowStateExtensions.updated_at == prev_updated_at,
+                    )
                 )
+                .values(phase_execution_times=times, updated_at=datetime.utcnow())
             )
-            .values(phase_execution_times=times, updated_at=datetime.utcnow())
-        )
-        result_upd = await self.db.execute(stmt_upd)
-        if result_upd.rowcount:
-            # 🔧 CC FIX: Remove duplicate commit - transaction boundary managed by caller
-            # await self.db.commit()  # REMOVED to prevent double commit
-            pass
-        else:
-            # 🔧 CC FIX: Don't rollback here - let parent transaction handle it
-            # await self.db.rollback()  # REMOVED - parent manages transaction
-            logger.warning(
-                "OCC conflict updating phase_execution_times for flow_id=%s, client=%s, engagement=%s",
-                flow_id,
-                self.client_account_id,
-                self.engagement_id,
-            )
+            result_upd = await self.db.execute(stmt_upd)
+            if result_upd.rowcount:
+                if attempt > 0:
+                    logger.info(
+                        "✅ OCC conflict resolved after %d retries for flow_id=%s (execution_times)",
+                        attempt,
+                        flow_id,
+                    )
+                return  # Success
+
+            # OCC conflict - retry with exponential backoff
+            if attempt < OCC_MAX_RETRIES:
+                delay = min(OCC_BASE_DELAY * (2**attempt), OCC_MAX_DELAY)
+                delay += random.uniform(0, delay * 0.2)
+                logger.warning(
+                    "⚠️ OCC conflict updating phase_execution_times for flow_id=%s (attempt %d/%d), "
+                    "retrying in %.2fs...",
+                    flow_id,
+                    attempt + 1,
+                    OCC_MAX_RETRIES,
+                    delay,
+                )
+                await asyncio.sleep(delay)
+            else:
+                logger.warning(
+                    "❌ OCC conflict updating phase_execution_times for flow_id=%s after %d retries; "
+                    "update skipped.",
+                    flow_id,
+                    OCC_MAX_RETRIES,
+                )

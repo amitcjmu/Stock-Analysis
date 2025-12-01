@@ -71,6 +71,12 @@ def classify_error(error: Exception) -> ErrorCategory:
         "transient",
         "handshake",
         "reset by peer",
+        # Bug #1087 Fix: Add OCC conflict patterns for exponential backoff retry
+        "occ conflict",
+        "optimistic concurrency",
+        "concurrent modification",
+        "row was updated",
+        "stale data",
     ]
 
     # Permanent errors - should not retry
