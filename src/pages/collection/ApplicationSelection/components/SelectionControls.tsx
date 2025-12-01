@@ -98,15 +98,16 @@ export const SelectionControls: React.FC<SelectionControlsProps> = ({
             Databases ({assetsByType.DATABASE.length})
           </Button>
 
+          {/* Bug #971 Fix: Use NETWORK instead of NETWORK_DEVICE to match normalization */}
           <Button
             variant={
-              selectedAssetTypes.has("NETWORK_DEVICE") ? "default" : "outline"
+              selectedAssetTypes.has("NETWORK") ? "default" : "outline"
             }
             size="sm"
-            onClick={() => toggleAssetType("NETWORK_DEVICE")}
+            onClick={() => toggleAssetType("NETWORK")}
           >
             <Network className="h-3 w-3 mr-1" />
-            Network ({assetsByType.NETWORK_DEVICE.length})
+            Network ({assetsByType.NETWORK.length})
           </Button>
 
           <Button

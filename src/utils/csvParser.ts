@@ -43,6 +43,37 @@ export const CSV_CLEANSING_CONFIG = {
   COMMA_REPLACEMENT: ' ' as string,
 
   /**
+   * Bug #849 Fix: Allowed file extensions for CSV import
+   * Prevents users from uploading Excel or other binary files
+   */
+  ALLOWED_EXTENSIONS: ['.csv', '.txt', '.tsv'] as readonly string[],
+
+  /**
+   * Bug #849 Fix: Allowed MIME types for CSV import
+   * Note: Some browsers may report different MIME types for CSV files
+   */
+  ALLOWED_MIME_TYPES: [
+    'text/csv',
+    'text/plain',
+    'text/tab-separated-values',
+    'application/csv',
+    'application/vnd.ms-excel', // Some browsers use this for CSV
+  ] as readonly string[],
+
+  /**
+   * Bug #849 Fix: Forbidden file signatures (magic bytes) that indicate binary files
+   * These are the first bytes of common binary formats that users might try to upload
+   */
+  FORBIDDEN_SIGNATURES: [
+    [0x50, 0x4B, 0x03, 0x04], // ZIP (and XLSX, DOCX, etc.)
+    [0xD0, 0xCF, 0x11, 0xE0], // Microsoft Compound Document (XLS, DOC)
+    [0x25, 0x50, 0x44, 0x46], // PDF (%PDF)
+    [0x89, 0x50, 0x4E, 0x47], // PNG
+    [0xFF, 0xD8, 0xFF], // JPEG
+    [0x47, 0x49, 0x46, 0x38], // GIF
+  ] as readonly number[][],
+
+  /**
    * Maximum ratio of text fields to columns before considering a field as likely text
    * Used to identify which fields are likely text descriptions vs structured data
    */
@@ -392,12 +423,98 @@ export function parseAndCleanseCSV(fileContent: string): CsvParseResult {
 }
 
 /**
+ * Bug #849 Fix: Validate file format before attempting to parse
+ * Checks extension, MIME type, and file content for binary signatures
+ *
+ * @param file - File object to validate
+ * @returns Promise resolving to validation result with error message if invalid
+ */
+export async function validateCsvFile(file: File): Promise<{ valid: boolean; error?: string }> {
+  // Check file extension
+  const fileName = file.name.toLowerCase();
+  const hasValidExtension = CSV_CLEANSING_CONFIG.ALLOWED_EXTENSIONS.some(
+    ext => fileName.endsWith(ext)
+  );
+
+  if (!hasValidExtension) {
+    const extension = fileName.includes('.') ? fileName.split('.').pop() : 'none';
+    return {
+      valid: false,
+      error: `Invalid file format: ".${extension}" is not supported. ` +
+        `Please upload a CSV file (supported formats: ${CSV_CLEANSING_CONFIG.ALLOWED_EXTENSIONS.join(', ')}). ` +
+        'If you have an Excel file (.xlsx, .xls), please export it as CSV first.'
+    };
+  }
+
+  // Check file content for binary signatures (magic bytes)
+  // This catches cases where someone renamed an Excel file to .csv
+  const firstBytes = await readFileHeader(file, 8);
+  for (const signature of CSV_CLEANSING_CONFIG.FORBIDDEN_SIGNATURES) {
+    if (matchesSignature(firstBytes, signature)) {
+      return {
+        valid: false,
+        error: 'Invalid file content: The file appears to be a binary file (such as Excel, PDF, or image) ' +
+          'that has been renamed with a .csv extension. ' +
+          'Please export your data as a proper CSV file from your spreadsheet application.'
+      };
+    }
+  }
+
+  // Check for excessive null bytes (indicates binary content)
+  const nullByteCount = firstBytes.filter(b => b === 0).length;
+  if (nullByteCount > firstBytes.length / 4) {
+    return {
+      valid: false,
+      error: 'Invalid file content: The file appears to contain binary data rather than text. ' +
+        'Please ensure you are uploading a text-based CSV file, not a binary format like Excel.'
+    };
+  }
+
+  return { valid: true };
+}
+
+/**
+ * Bug #849 Fix: Read the first N bytes of a file for signature detection
+ */
+async function readFileHeader(file: File, bytes: number): Promise<number[]> {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const arrayBuffer = e.target?.result as ArrayBuffer;
+      if (arrayBuffer) {
+        const uint8Array = new Uint8Array(arrayBuffer);
+        resolve(Array.from(uint8Array.slice(0, bytes)));
+      } else {
+        resolve([]);
+      }
+    };
+    reader.onerror = () => resolve([]);
+    reader.readAsArrayBuffer(file.slice(0, bytes));
+  });
+}
+
+/**
+ * Bug #849 Fix: Check if file bytes match a known binary signature
+ */
+function matchesSignature(bytes: number[], signature: readonly number[]): boolean {
+  if (bytes.length < signature.length) return false;
+  return signature.every((byte, index) => bytes[index] === byte);
+}
+
+/**
  * Async wrapper to parse CSV from File object
  *
  * @param file - File object containing CSV data
  * @returns Promise resolving to parsed CSV data
  */
 export async function parseCsvFile(file: File): Promise<CsvParseResult> {
+  // Bug #849 Fix: Validate file format BEFORE attempting to parse
+  // This prevents timeouts from trying to parse binary files
+  const validation = await validateCsvFile(file);
+  if (!validation.valid) {
+    throw new Error(validation.error);
+  }
+
   // Use FileReader for compatibility in test environments
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
