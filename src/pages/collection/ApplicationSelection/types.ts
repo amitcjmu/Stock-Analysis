@@ -13,8 +13,7 @@ export const ASSET_TYPE_FILTERS = {
   APPLICATION: "APPLICATION",
   SERVER: "SERVER",
   DATABASE: "DATABASE",
-  NETWORK: "NETWORK",  // Bug #971 Fix: Added NETWORK type alongside NETWORK_DEVICE
-  NETWORK_DEVICE: "NETWORK_DEVICE",
+  NETWORK: "NETWORK",  // Bug #971 Fix: Consolidated network types
   STORAGE_DEVICE: "STORAGE_DEVICE",
   SECURITY_DEVICE: "SECURITY_DEVICE",
   VIRTUALIZATION: "VIRTUALIZATION",
@@ -66,8 +65,7 @@ export interface AssetsByType {
   APPLICATION: Asset[];
   SERVER: Asset[];
   DATABASE: Asset[];
-  NETWORK: Asset[];  // Bug #971 Fix: Added NETWORK type
-  NETWORK_DEVICE: Asset[];
+  NETWORK: Asset[];  // Bug #971 Fix: Consolidated network types here
   STORAGE_DEVICE: Asset[];
   SECURITY_DEVICE: Asset[];
   VIRTUALIZATION: Asset[];

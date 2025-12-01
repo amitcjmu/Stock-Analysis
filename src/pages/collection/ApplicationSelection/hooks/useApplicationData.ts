@@ -151,16 +151,14 @@ export const useApplicationData = ({
     [applicationsData]
   );
 
-  // Group assets by type with counts
-  // Bug #971 Fix: Use normalization map to handle asset type variations (e.g., "network" → "NETWORK")
+  // Bug #971 Fix: Group assets by type with counts using normalization map
   const assetsByType = useMemo((): AssetsByType => {
     const grouped: AssetsByType = {
       ALL: allAssets,
       APPLICATION: [],
       SERVER: [],
       DATABASE: [],
-      NETWORK: [],  // Bug #971 Fix: Added NETWORK category
-      NETWORK_DEVICE: [],
+      NETWORK: [],  // Bug #971 Fix: Consolidated network types
       STORAGE_DEVICE: [],
       SECURITY_DEVICE: [],
       VIRTUALIZATION: [],
