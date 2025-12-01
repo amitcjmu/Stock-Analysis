@@ -316,6 +316,7 @@ async def execute_assessment_phase(
     stmt = select(AssessmentFlow).where(
         AssessmentFlow.master_flow_id == UUID(flow_id),
         AssessmentFlow.client_account_id == context.client_account_id,
+        AssessmentFlow.engagement_id == context.engagement_id,  # Required for multi-tenant isolation
     )
     result = await db.execute(stmt)
     child_flow = result.scalar_one_or_none()

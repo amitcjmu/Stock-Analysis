@@ -15,6 +15,9 @@ logger = logging.getLogger(__name__)
 OCC_MAX_RETRIES = 3
 OCC_BASE_DELAY = 0.1  # 100ms
 OCC_MAX_DELAY = 2.0  # 2 seconds
+OCC_MIN_DELAY = (
+    0.01  # 10ms - Qodo Bot feedback: Enforce minimum to prevent hot-spinning
+)
 
 
 class CollaborationEnrichmentMixin:
@@ -95,9 +98,11 @@ class CollaborationEnrichmentMixin:
                 delay = min(OCC_BASE_DELAY * (2**attempt), OCC_MAX_DELAY)
                 # Add jitter to prevent thundering herd
                 delay += random.uniform(0, delay * 0.2)
+                # Qodo Bot feedback: Enforce minimum backoff to prevent hot-spinning
+                delay = max(delay, OCC_MIN_DELAY)
                 logger.warning(
                     "⚠️ OCC conflict updating agent_collaboration_log for flow_id=%s (attempt %d/%d), "
-                    "retrying in %.2fs...",
+                    "retrying in %.3fs...",
                     flow_id,
                     attempt + 1,
                     OCC_MAX_RETRIES,

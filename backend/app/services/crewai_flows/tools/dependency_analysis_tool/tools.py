@@ -41,12 +41,31 @@ class DependencyAnalysisTool(BaseTool if CREWAI_TOOLS_AVAILABLE else object):
             elif isinstance(request, dict) and "assets" in request:
                 assets = request["assets"]
             else:
-                # Qodo Bot feedback: Log warning for unexpected format but don't break workflow
+                # Qodo Bot feedback: Return error for unexpected format
                 logger.warning(
                     f"⚠️ Unexpected dependency analysis input format: {type(request).__name__}. "
-                    "Expected list or dict with 'assets' key. Processing with empty list."
+                    "Expected list or dict with 'assets' key."
                 )
-                assets = []
+                return json.dumps(
+                    {
+                        "error": "Invalid input format",
+                        "expected": "list or dict with 'assets' key",
+                        "dependency_graph": {"nodes": [], "edges": []},
+                    }
+                )
+
+            # Qodo Bot feedback: Validate assets is actually a list
+            if not isinstance(assets, list):
+                logger.error(
+                    f"Invalid 'assets' type: {type(assets).__name__}; expected list"
+                )
+                return json.dumps(
+                    {
+                        "error": "Invalid 'assets' type",
+                        "expected": "list",
+                        "dependency_graph": {"nodes": [], "edges": []},
+                    }
+                )
 
             result = DependencyAnalyzer.analyze_dependencies(assets, self._context_info)
             return json.dumps(result)
@@ -79,28 +98,83 @@ class DependencyGraphBuilderTool(BaseTool if CREWAI_TOOLS_AVAILABLE else object)
         """Build dependency graph visualization data"""
         try:
             request = json.loads(graph_request)
+            assets = None
+            graph = None
 
             # Bug #1094 Fix: Handle list input format
+            # Qodo Bot feedback: Refactored to reduce code duplication
             if isinstance(request, list):
                 # List of assets passed directly
                 assets = request
-                analysis = DependencyAnalyzer.analyze_dependencies(assets)
-                graph = analysis.get("dependency_graph", {})
             elif "dependency_graph" in request:
                 # If we already have analysis results, extract the graph
                 graph = request["dependency_graph"]
+                # Qodo Bot feedback: Validate graph structure
+                if not isinstance(graph, dict):
+                    logger.error("Invalid 'dependency_graph' type; expected dict")
+                    return json.dumps(
+                        {
+                            "error": "Invalid 'dependency_graph' type",
+                            "expected": "dict",
+                            "nodes": [],
+                            "edges": [],
+                        }
+                    )
+                if not isinstance(graph.get("nodes", []), list):
+                    logger.error("Invalid 'dependency_graph.nodes' type; expected list")
+                    return json.dumps(
+                        {
+                            "error": "Invalid 'dependency_graph.nodes' type",
+                            "expected": "list",
+                            "nodes": [],
+                            "edges": [],
+                        }
+                    )
+                if not isinstance(graph.get("edges", []), list):
+                    logger.error("Invalid 'dependency_graph.edges' type; expected list")
+                    return json.dumps(
+                        {
+                            "error": "Invalid 'dependency_graph.edges' type",
+                            "expected": "list",
+                            "nodes": [],
+                            "edges": [],
+                        }
+                    )
             elif isinstance(request, dict) and "assets" in request:
                 # Build graph from assets in dict format
                 assets = request["assets"]
-                analysis = DependencyAnalyzer.analyze_dependencies(assets)
-                graph = analysis.get("dependency_graph", {})
             else:
-                # Qodo Bot feedback: Log warning for unexpected format but don't break workflow
+                # Qodo Bot feedback: Return error for unexpected format
                 logger.warning(
                     f"⚠️ Unexpected graph_request format: {type(request).__name__}. "
-                    "Expected list, dict with 'assets', or dict with 'dependency_graph'. Processing empty."
+                    "Expected list, dict with 'assets', or dict with 'dependency_graph'."
                 )
-                graph = {"nodes": [], "edges": []}
+                return json.dumps(
+                    {
+                        "error": "Invalid input format",
+                        "expected": "list, dict with 'assets', or dict with 'dependency_graph'",
+                        "nodes": [],
+                        "edges": [],
+                    }
+                )
+
+            # Qodo Bot feedback: Build graph from assets if not already provided
+            if assets is not None:
+                # Validate assets is a list
+                if not isinstance(assets, list):
+                    logger.error(
+                        f"Invalid 'assets' type: {type(assets).__name__}; expected list"
+                    )
+                    return json.dumps(
+                        {
+                            "error": "Invalid 'assets' type",
+                            "expected": "list",
+                            "nodes": [],
+                            "edges": [],
+                        }
+                    )
+                analysis = DependencyAnalyzer.analyze_dependencies(assets)
+                graph = analysis.get("dependency_graph", {})
 
             # Add visualization hints
             graph["layout"] = "hierarchical"  # or "force-directed"

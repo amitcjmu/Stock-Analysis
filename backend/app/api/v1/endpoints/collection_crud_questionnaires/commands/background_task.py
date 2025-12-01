@@ -92,11 +92,13 @@ async def _background_generate(
                         f"✅ No TRUE gaps found for flow {flow_id} - marking questionnaire as completed (asset ready)"
                     )
                     # Mark questionnaire as "completed" with empty questions (no collection needed)
+                    # Qodo Bot feedback: Don't commit yet - combine with flow update for atomic transaction
                     await update_questionnaire_status(
                         questionnaire_id,
                         "completed",  # ✅ "completed" not "failed" - the asset is ready for assessment
                         [],  # Empty questions list - no questions needed
                         db=db,
+                        commit=False,  # Qodo Bot: Skip commit for atomic transaction
                     )
 
                     # Progress flow to completed state (collection not needed, asset is ready)
@@ -240,11 +242,13 @@ async def _background_generate(
                     logger.info(
                         f"✅ No questions extracted for flow {flow_id} - marking questionnaire as completed"
                     )
+                    # Qodo Bot feedback: Don't commit yet - combine with flow update for atomic transaction
                     await update_questionnaire_status(
                         questionnaire_id,
                         "completed",  # Bug #1096: No questions = completed (not "ready")
                         [],
                         db=db,
+                        commit=False,  # Qodo Bot: Skip commit for atomic transaction
                     )
 
                     # Update flow status similar to no_gaps case
@@ -286,10 +290,14 @@ async def _background_generate(
                                 updated_at=datetime.now(timezone.utc),
                             )
                         )
+                        # Qodo Bot: Single commit for both questionnaire and flow updates
                         await db.commit()
                         logger.info(
                             f"✅ Bug #1096 Fix: Flow {flow_id} completed - no questions to collect"
                         )
+                    else:
+                        # No flow found, commit questionnaire update only
+                        await db.commit()
                     return  # Exit early - nothing more to do
 
                 # Update questionnaire with generated questions AND progress flow status
