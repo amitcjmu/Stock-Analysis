@@ -77,7 +77,12 @@ import dirtyjson
 
 def safe_parse_llm_json(result: Any) -> Dict[str, Any]:
     result_str = str(result)
-    json_str = re.search(r"\{.*\}", result_str, re.DOTALL).group(0)
+
+    # Safely extract JSON object - prevent crash if no match found
+    match = re.search(r"\{.*\}", result_str, re.DOTALL)
+    if not match:
+        return {"error": "No JSON object found in output", "raw_output": result_str[:500]}
+    json_str = match.group(0)
 
     # Tier 1: Standard JSON (fastest)
     try:
@@ -126,16 +131,9 @@ def _safe_sanitize(json_str: str) -> str:
 if isinstance(result_str, str):
     result_str = result_str.strip()
 
-    # Remove opening wrapper
-    if result_str.startswith("```json"):
-        result_str = result_str[7:]
-    elif result_str.startswith("```"):
-        result_str = result_str[3:]
-
-    # Remove closing wrapper
-    if result_str.endswith("```"):
-        result_str = result_str[:-3]
-
+    # Remove markdown code fences (handles ```json, ```JSON, ```json5, plain ```, etc.)
+    result_str = re.sub(r"^```[a-zA-Z0-9]*\s*\n?", "", result_str)  # Opening fence
+    result_str = re.sub(r"\n?```\s*$", "", result_str)  # Closing fence
     result_str = result_str.strip()
 
 parsed = json.loads(result_str)
@@ -358,14 +356,10 @@ async def handle_agent_result(result: Any) -> Dict[str, Any]:
     else:
         result_str = str(result) if not isinstance(result, str) else result
 
-    # 2. Strip markdown wrappers
+    # 2. Strip markdown wrappers (handles ```json, ```JSON, ```json5, plain ```, etc.)
     result_str = result_str.strip()
-    if result_str.startswith("```json"):
-        result_str = result_str[7:]
-    elif result_str.startswith("```"):
-        result_str = result_str[3:]
-    if result_str.endswith("```"):
-        result_str = result_str[:-3]
+    result_str = re.sub(r"^```[a-zA-Z0-9]*\s*\n?", "", result_str)  # Opening fence
+    result_str = re.sub(r"\n?```\s*$", "", result_str)  # Closing fence
     result_str = result_str.strip()
 
     # 3. Parse with three-tier strategy
