@@ -20,28 +20,32 @@ from app.core.database import Base
 
 
 class PatternType(str, Enum):
-    """Types of patterns that agents can discover"""
+    """Types of patterns that agents can discover.
 
-    TECHNOLOGY_CORRELATION = "technology_correlation"
-    BUSINESS_VALUE_INDICATOR = "business_value_indicator"
-    RISK_FACTOR = "risk_factor"
-    MODERNIZATION_OPPORTUNITY = "modernization_opportunity"
-    DEPENDENCY_PATTERN = "dependency_pattern"
-    SECURITY_VULNERABILITY = "security_vulnerability"
-    PERFORMANCE_BOTTLENECK = "performance_bottleneck"
-    COMPLIANCE_REQUIREMENT = "compliance_requirement"
-    FIELD_MAPPING_APPROVAL = "field_mapping_approval"
-    FIELD_MAPPING_REJECTION = "field_mapping_rejection"
-    FIELD_MAPPING_SUGGESTION = "field_mapping_suggestion"
+    IMPORTANT: Values MUST match the PostgreSQL enum exactly (UPPERCASE).
+    See migration 141 for the database enum definition.
+    """
+
+    TECHNOLOGY_CORRELATION = "TECHNOLOGY_CORRELATION"
+    BUSINESS_VALUE_INDICATOR = "BUSINESS_VALUE_INDICATOR"
+    RISK_FACTOR = "RISK_FACTOR"
+    MODERNIZATION_OPPORTUNITY = "MODERNIZATION_OPPORTUNITY"
+    DEPENDENCY_PATTERN = "DEPENDENCY_PATTERN"
+    SECURITY_VULNERABILITY = "SECURITY_VULNERABILITY"
+    PERFORMANCE_BOTTLENECK = "PERFORMANCE_BOTTLENECK"
+    COMPLIANCE_REQUIREMENT = "COMPLIANCE_REQUIREMENT"
+    FIELD_MAPPING_APPROVAL = "FIELD_MAPPING_APPROVAL"
+    FIELD_MAPPING_REJECTION = "FIELD_MAPPING_REJECTION"
+    FIELD_MAPPING_SUGGESTION = "FIELD_MAPPING_SUGGESTION"
     # Enrichment pattern types (added in migration 097)
-    PRODUCT_MATCHING = "product_matching"
-    COMPLIANCE_ANALYSIS = "compliance_analysis"
-    LICENSING_ANALYSIS = "licensing_analysis"
-    VULNERABILITY_ANALYSIS = "vulnerability_analysis"
-    RESILIENCE_ANALYSIS = "resilience_analysis"
-    DEPENDENCY_ANALYSIS = "dependency_analysis"
+    PRODUCT_MATCHING = "PRODUCT_MATCHING"
+    COMPLIANCE_ANALYSIS = "COMPLIANCE_ANALYSIS"
+    LICENSING_ANALYSIS = "LICENSING_ANALYSIS"
+    VULNERABILITY_ANALYSIS = "VULNERABILITY_ANALYSIS"
+    RESILIENCE_ANALYSIS = "RESILIENCE_ANALYSIS"
+    DEPENDENCY_ANALYSIS = "DEPENDENCY_ANALYSIS"
     # Wave planning pattern types (added in migration 141)
-    WAVE_PLANNING_OPTIMIZATION = "wave_planning_optimization"
+    WAVE_PLANNING_OPTIMIZATION = "WAVE_PLANNING_OPTIMIZATION"
 
 
 class AgentDiscoveredPattern(Base):
