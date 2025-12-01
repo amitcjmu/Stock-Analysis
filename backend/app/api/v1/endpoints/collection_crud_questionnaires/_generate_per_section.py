@@ -100,6 +100,11 @@ async def _generate_questionnaires_per_section(  # noqa: C901
         Exception: If intelligent gap scanning fails or agent calls fail
     """
     try:
+        # CC FIX: Ensure CrewAI environment is set up before any agent code runs
+        # Per Serena memory: Background tasks may not inherit startup env vars
+        from app.core.crewai_env_setup import ensure_crewai_environment
+
+        ensure_crewai_environment()
         # Step 1: Intelligent gap scanning (6 sources, cached)
         logger.info(
             f"🔍 Starting intelligent questionnaire generation for "

@@ -270,6 +270,7 @@ def generate_fallback_wave_plan(
         config: Wave planning configuration with:
             - max_apps_per_wave: Maximum applications per wave (default: 50)
             - wave_duration_limit_days: Duration per wave in days (default: 90)
+            - migration_start_date: ISO date string for migration start (default: today)
 
     Returns:
         Wave plan data structure with waves, groups, and summary
@@ -284,7 +285,15 @@ def generate_fallback_wave_plan(
     )
 
     waves = []
-    start_date = datetime.now(timezone.utc)
+
+    # Use user-provided migration_start_date if available, otherwise default to today
+    # Per Qodo Bot: Use strict ISO 8601 parsing with timezone enforcement
+    from app.api.v1.master_flows.planning.shared_utils import parse_migration_date_safe
+
+    migration_start_date_str = config.get("migration_start_date")
+    start_date = parse_migration_date_safe(
+        migration_start_date_str, fallback_to_now=True
+    )
 
     for wave_num in range(1, wave_count + 1):
         wave = _build_wave(

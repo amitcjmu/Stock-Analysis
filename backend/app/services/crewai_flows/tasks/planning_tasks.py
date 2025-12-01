@@ -88,6 +88,18 @@ def create_wave_planning_task(
     wave_duration_days = config.get("wave_duration_days", 90)
     prioritize_parallel = config.get("prioritize_parallel_migration", True)
     business_criticality = config.get("consider_business_criticality", True)
+    migration_start_date = config.get("migration_start_date")
+
+    # Format migration start date info for agent
+    from datetime import datetime, timezone
+
+    if migration_start_date:
+        start_date_instruction = f"Migration start date: {migration_start_date} (use this as Wave 1 start date)"
+    else:
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        start_date_instruction = (
+            f"Migration start date: {today} (today, as no specific date was provided)"
+        )
 
     # Build application context summary
     app_summary = {
@@ -146,8 +158,12 @@ def create_wave_planning_task(
         CONFIGURATION:
         - Max applications per wave: {max_apps_per_wave}
         - Wave duration limit: {wave_duration_days} days
+        - {start_date_instruction}
         - Prioritize parallel migration: {prioritize_parallel}
         - Consider business criticality: {business_criticality}
+
+        IMPORTANT: Use the migration start date above for Wave 1 start_date, then sequence
+        subsequent waves based on wave_duration_days. All dates should be in ISO 8601 format.
 
         Provide a comprehensive wave plan with clear rationale for sequencing decisions.
         """,
