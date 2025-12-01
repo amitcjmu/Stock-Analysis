@@ -74,7 +74,8 @@ async def get_enhancement_progress(
     processed_assets = job_state.get("processed_assets", 0)
     percentage = int((processed_assets / total_assets * 100) if total_assets > 0 else 0)
 
-    return {
+    # Bug #1180 Fix: Include error details for failed jobs so frontend can display them
+    response = {
         "status": job_state.get("status", "not_started"),
         "processed": processed_assets,
         "total": total_assets,
@@ -87,3 +88,15 @@ async def get_enhancement_progress(
             "message"
         ),  # Bug #1105 Fix: Include message for better UX
     }
+
+    # Bug #1180 Fix: Add error fields when job has failed
+    if job_state.get("status") == "failed":
+        response["error"] = job_state.get("error", "Unknown error occurred")
+        response["error_type"] = job_state.get("error_type")
+        response["error_category"] = job_state.get("error_category")
+        response["user_message"] = job_state.get(
+            "user_message",
+            job_state.get("error", "AI enhancement failed. Please try again."),
+        )
+
+    return response
