@@ -24,19 +24,30 @@ async def update_questionnaire_status(
     questions: Optional[List[dict]] = None,
     error_message: Optional[str] = None,
     db: Optional[AsyncSession] = None,
+    commit: bool = True,  # Qodo Bot feedback: Allow skipping commit for atomic transactions
 ) -> None:
-    """Update questionnaire status and optionally add questions."""
+    """Update questionnaire status and optionally add questions.
+
+    Args:
+        questionnaire_id: UUID of the questionnaire to update
+        status: New status (e.g., 'completed', 'ready', 'failed')
+        questions: Optional list of generated questions
+        error_message: Optional error message for failed status
+        db: Optional database session (creates new if not provided)
+        commit: Whether to commit the transaction (default True).
+                Set to False when caller manages the transaction atomically.
+    """
     from app.core.database import AsyncSessionLocal
 
     # Use provided db session or create new one
     if db is None:
         async with AsyncSessionLocal() as session:
             await _do_update_questionnaire_status(
-                session, questionnaire_id, status, questions, error_message
+                session, questionnaire_id, status, questions, error_message, commit=True
             )
     else:
         await _do_update_questionnaire_status(
-            db, questionnaire_id, status, questions, error_message
+            db, questionnaire_id, status, questions, error_message, commit=commit
         )
 
 
@@ -46,6 +57,7 @@ async def _do_update_questionnaire_status(
     status: str,
     questions: Optional[List[dict]] = None,
     error_message: Optional[str] = None,
+    commit: bool = True,
 ) -> None:
     """Internal helper to update questionnaire status."""
     try:
@@ -70,7 +82,9 @@ async def _do_update_questionnaire_status(
             .where(AdaptiveQuestionnaire.id == questionnaire_id)
             .values(**update_data)
         )
-        await db.commit()
+        # Qodo Bot feedback: Only commit if requested (for atomic transaction support)
+        if commit:
+            await db.commit()
 
         logger.info(f"Updated questionnaire {questionnaire_id} status to {status}")
     except Exception as e:

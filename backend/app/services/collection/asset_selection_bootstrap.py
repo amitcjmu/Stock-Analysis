@@ -131,6 +131,18 @@ async def generate_asset_selection_bootstrap(
         ).isoformat()
         flow.collection_config["available_asset_count"] = len(available_assets)
 
+        # Bug #997 Fix: Store available asset metadata for later reference
+        # This allows preserving metadata when assets are selected
+        flow.collection_config["available_asset_metadata"] = {
+            asset["id"]: {
+                "name": asset.get("name"),
+                "environment": asset.get("environment"),
+                "type": asset.get("type"),
+                "criticality": asset.get("criticality"),
+            }
+            for asset in available_assets
+        }
+
         # Store questionnaire in flow config for retrieval
         flow.collection_config["bootstrap_questionnaire"] = questionnaire
 

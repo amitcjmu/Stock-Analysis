@@ -1,6 +1,6 @@
 import type React from 'react';
 import { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useParams } from 'react-router-dom';
 import { Download, FileText, FileSpreadsheet, Package, AlertCircle, Loader2 } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
 import { SidebarProvider } from '@/components/ui/sidebar';
@@ -13,11 +13,14 @@ import { planningFlowApi } from '@/lib/api/planningFlowService';
 
 const Export = (): JSX.Element => {
   const [searchParams] = useSearchParams();
+  const routeParams = useParams<{ flowId?: string }>();
   const { toast } = useToast();
   const [downloading, setDownloading] = useState<string | null>(null);
 
-  // Get planning_flow_id from URL query parameters
-  const planning_flow_id = searchParams.get('planning_flow_id');
+  // Bug #961 Fix: Support both query param and path param for flow ID
+  // Query: /plan/export?planning_flow_id=xxx
+  // Path: /plan/export/:flowId
+  const planning_flow_id = searchParams.get('planning_flow_id') || routeParams.flowId || null;
 
   /**
    * Handle export in different formats

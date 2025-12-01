@@ -92,11 +92,13 @@ async def _background_generate(
                         f"✅ No TRUE gaps found for flow {flow_id} - marking questionnaire as completed (asset ready)"
                     )
                     # Mark questionnaire as "completed" with empty questions (no collection needed)
+                    # Qodo Bot feedback: Don't commit yet - combine with flow update for atomic transaction
                     await update_questionnaire_status(
                         questionnaire_id,
                         "completed",  # ✅ "completed" not "failed" - the asset is ready for assessment
                         [],  # Empty questions list - no questions needed
                         db=db,
+                        commit=False,  # Qodo Bot: Skip commit for atomic transaction
                     )
 
                     # Progress flow to completed state (collection not needed, asset is ready)
@@ -232,6 +234,71 @@ async def _background_generate(
                     questions = deduplicated_questions
                 else:
                     logger.info("No duplicate questions found during flattening")
+
+                # Bug #1096 Fix: Don't mark questionnaires with 0 questions as "ready"
+                # If all sections had empty questions, mark as "completed" (similar to no_gaps case)
+                # "ready" implies there are questions for the user to answer
+                if len(questions) == 0:
+                    logger.info(
+                        f"✅ No questions extracted for flow {flow_id} - marking questionnaire as completed"
+                    )
+                    # Qodo Bot feedback: Don't commit yet - combine with flow update for atomic transaction
+                    await update_questionnaire_status(
+                        questionnaire_id,
+                        "completed",  # Bug #1096: No questions = completed (not "ready")
+                        [],
+                        db=db,
+                        commit=False,  # Qodo Bot: Skip commit for atomic transaction
+                    )
+
+                    # Update flow status similar to no_gaps case
+                    flow_uuid = UUID(flow_id)
+                    flow_result = await db.execute(
+                        select(CollectionFlow).where(
+                            (CollectionFlow.flow_id == flow_uuid)
+                            | (CollectionFlow.id == flow_uuid)
+                        )
+                    )
+                    current_flow = flow_result.scalar_one_or_none()
+
+                    if current_flow:
+                        flow_metadata_dict: Dict[str, Any] = (
+                            cast(Dict[str, Any], current_flow.flow_metadata)
+                            if current_flow.flow_metadata
+                            else {}
+                        )
+                        flow_metadata_dict["questionnaire_ready"] = True
+                        flow_metadata_dict["agent_questionnaire_id"] = str(
+                            questionnaire_id
+                        )
+                        flow_metadata_dict["questionnaire_generating"] = False
+                        flow_metadata_dict["no_questions_generated"] = (
+                            True  # Signal no questions
+                        )
+                        flow_metadata_dict["generation_completed_at"] = datetime.now(
+                            timezone.utc
+                        ).isoformat()
+
+                        await db.execute(
+                            sql_update(CollectionFlow)
+                            .where(CollectionFlow.id == current_flow.id)
+                            .values(
+                                current_phase="completed",
+                                status="completed",
+                                progress_percentage=100.0,
+                                flow_metadata=flow_metadata_dict,
+                                updated_at=datetime.now(timezone.utc),
+                            )
+                        )
+                        # Qodo Bot: Single commit for both questionnaire and flow updates
+                        await db.commit()
+                        logger.info(
+                            f"✅ Bug #1096 Fix: Flow {flow_id} completed - no questions to collect"
+                        )
+                    else:
+                        # No flow found, commit questionnaire update only
+                        await db.commit()
+                    return  # Exit early - nothing more to do
 
                 # Update questionnaire with generated questions AND progress flow status
                 await update_questionnaire_status(

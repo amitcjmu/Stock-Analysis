@@ -195,6 +195,10 @@ async def _update_collection_config(
     merged_metadata.update(
         {
             "selected_asset_ids": normalized_ids,  # Gap scanner expects this field
+            # Bug #997 Fix: Preserve asset selection action and timestamp for tracking
+            "asset_selection_action": action,
+            "asset_selection_count": len(normalized_ids),
+            "asset_selection_timestamp": datetime.now(timezone.utc).isoformat(),
         }
     )
     collection_flow.flow_metadata = merged_metadata

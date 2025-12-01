@@ -46,8 +46,23 @@ class FlowStateStatusCommands:
             if not master_flow:
                 raise ValueError(f"Master flow not found: {flow_id}")
 
-            # Update status
+            # Bug #1083 Fix: Completion guard - prevent invalid transitions from completed flows
+            # Completed flows can only transition to "deleted" (soft delete)
             previous_status = master_flow.flow_status
+            if previous_status == "completed" and new_status not in ["deleted"]:
+                logger.warning(
+                    f"⚠️ Bug #1083: Blocked attempt to change completed flow {flow_id} "
+                    f"to '{new_status}' - completed flows can only be deleted"
+                )
+                return {
+                    "flow_id": flow_id,
+                    "previous_status": previous_status,
+                    "new_status": previous_status,  # No change
+                    "blocked": True,
+                    "reason": "Cannot change status of completed flow except to delete it",
+                }
+
+            # Update status
             master_flow.flow_status = new_status
             master_flow.updated_at = datetime.now(timezone.utc)
 
@@ -124,8 +139,22 @@ class FlowStateStatusCommands:
             if not child_flow:
                 raise ValueError(f"Child flow not found: {flow_id}")
 
-            # Update status
+            # Bug #1083 Fix: Completion guard - prevent invalid transitions from completed flows
             previous_status = child_flow.status
+            if previous_status == "completed" and new_status not in ["deleted"]:
+                logger.warning(
+                    f"⚠️ Bug #1083: Blocked attempt to change completed child flow {flow_id} "
+                    f"to '{new_status}' - completed flows can only be deleted"
+                )
+                return {
+                    "flow_id": flow_id,
+                    "previous_status": previous_status,
+                    "new_status": previous_status,  # No change
+                    "blocked": True,
+                    "reason": "Cannot change status of completed flow except to delete it",
+                }
+
+            # Update status
             child_flow.status = new_status
             child_flow.updated_at = datetime.now(timezone.utc)
 
@@ -361,6 +390,20 @@ class FlowStateStatusCommands:
             child_flow = await child_repo.get_by_flow_id(flow_id)
             if not child_flow:
                 raise ValueError(f"Child flow not found: {flow_id}")
+
+            # Bug #1083 Fix: Completion guard - prevent phase changes on completed flows
+            if hasattr(child_flow, "status") and child_flow.status == "completed":
+                logger.warning(
+                    f"⚠️ Bug #1083: Blocked attempt to change phase of completed flow {flow_id} "
+                    f"to '{new_phase}' - completed flows cannot change phase"
+                )
+                return {
+                    "flow_id": flow_id,
+                    "previous_phase": child_flow.current_phase,
+                    "new_phase": child_flow.current_phase,  # No change
+                    "blocked": True,
+                    "reason": "Cannot change phase of completed flow",
+                }
 
             # Store previous phase
             previous_phase = child_flow.current_phase

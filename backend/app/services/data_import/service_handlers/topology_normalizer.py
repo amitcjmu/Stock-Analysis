@@ -57,6 +57,17 @@ COLUMN_ALIASES = {
     "target_component_type": "dependency_target_type",
     "status": "status",
     "source_system": "source_system",
+    # Bug #1172 Fix: Add connection count aliases for network discovery imports
+    "connection_count": "conn_count",
+    "connections": "conn_count",
+    "num_connections": "conn_count",
+    "connectioncount": "conn_count",
+    "numconnections": "conn_count",
+    # Bytes total aliases
+    "bytes": "bytes_total",
+    "total_bytes": "bytes_total",
+    "bytestotal": "bytes_total",
+    "totalbytes": "bytes_total",
 }
 
 REQUIRED_FIELDS = {"application_name", "component_name", "dependency_target"}
