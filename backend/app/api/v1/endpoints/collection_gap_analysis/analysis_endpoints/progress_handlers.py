@@ -91,12 +91,14 @@ async def get_enhancement_progress(
 
     # Bug #1180 Fix: Add error fields when job has failed
     if job_state.get("status") == "failed":
-        response["error"] = job_state.get("error", "Unknown error occurred")
+        error_message = job_state.get("error")
+        user_message = job_state.get("user_message")
+
+        response["error"] = error_message or "Unknown error occurred"
         response["error_type"] = job_state.get("error_type")
         response["error_category"] = job_state.get("error_category")
-        response["user_message"] = job_state.get(
-            "user_message",
-            job_state.get("error", "AI enhancement failed. Please try again."),
+        response["user_message"] = (
+            user_message or error_message or "AI enhancement failed. Please try again."
         )
 
     return response
