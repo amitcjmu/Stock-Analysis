@@ -205,13 +205,19 @@ if (userStr) {
   }
 }
 
-const headers = {
-  'Authorization': `Bearer ${authToken}`,
+// Build headers conditionally - never send empty auth headers
+const headers: Record<string, string> = {
   'Content-Type': 'application/json',
-  'X-Client-Account-ID': clientId || '',
-  'X-Engagement-ID': engagementId || '',
-  'X-User-ID': userId || ''
 };
+if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+if (clientId) headers['X-Client-Account-ID'] = clientId;
+if (engagementId) headers['X-Engagement-ID'] = engagementId;
+if (userId) headers['X-User-ID'] = userId;
+
+// Validate required headers before making request
+if (!clientId || !engagementId || !userId) {
+  throw new Error('Missing required tenant/user headers');
+}
 ```
 
 ### Auth Header Architecture
