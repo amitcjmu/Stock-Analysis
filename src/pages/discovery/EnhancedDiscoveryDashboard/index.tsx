@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getDiscoveryPhaseRoute } from '@/config/flowRoutes';
 import { DiscoveryErrorBoundary } from '@/components/discovery/DiscoveryErrorBoundary';
@@ -33,6 +33,9 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
   const navigate = useNavigate();
   const { client, engagement, user } = useAuth();
   const { toast } = useToast();
+
+  // Bug #972 Fix: Track active tab state for programmatic switching
+  const [activeTab, setActiveTab] = useState('overview');
 
   // Dashboard state and actions
   const {
@@ -162,6 +165,7 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
   };
 
   // Navigation handlers
+  // Bug #972 Fix: handleNewFlow kept for interface compatibility but both actions go to same page
   const handleNewFlow = (): void => {
     navigate('/discovery/cmdb-import');
   };
@@ -170,13 +174,14 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
     navigate('/discovery/cmdb-import');
   };
 
+  // Bug #972 Fix: Switch to the "flows" tab instead of toggling a non-rendered modal
   const handleViewFlows = (): void => {
-    toggleFlowManager(true);
+    setActiveTab('flows');
   };
 
+  // Bug #972 Fix: Navigate to observability page for system health monitoring
   const handleSystemHealth = (): void => {
-    // Navigate to system health page when available
-    console.log('System health navigation not yet implemented');
+    navigate('/observability');
   };
 
   // Time range change handler
@@ -220,7 +225,8 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
           )}
 
           {/* Dashboard Content */}
-          <Tabs defaultValue="overview" className="space-y-6">
+          {/* Bug #972 Fix: Track active tab state to enable programmatic switching from Quick Actions */}
+          <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="flows">Flows</TabsTrigger>

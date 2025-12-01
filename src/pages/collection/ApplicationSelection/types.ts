@@ -13,12 +13,48 @@ export const ASSET_TYPE_FILTERS = {
   APPLICATION: "APPLICATION",
   SERVER: "SERVER",
   DATABASE: "DATABASE",
+  NETWORK: "NETWORK",  // Bug #971 Fix: Added NETWORK type alongside NETWORK_DEVICE
   NETWORK_DEVICE: "NETWORK_DEVICE",
   STORAGE_DEVICE: "STORAGE_DEVICE",
   SECURITY_DEVICE: "SECURITY_DEVICE",
   VIRTUALIZATION: "VIRTUALIZATION",
   UNKNOWN: "UNKNOWN",
 } as const;
+
+/**
+ * Bug #971 Fix: Map variations of asset types to standard categories.
+ * Backend may return "network" while frontend expects "NETWORK" or "NETWORK_DEVICE".
+ */
+export const ASSET_TYPE_NORMALIZATION: Record<string, string> = {
+  // Network variations
+  NETWORK: "NETWORK",
+  NETWORKS: "NETWORK",
+  NETWORK_DEVICE: "NETWORK",  // Consolidate to NETWORK for display
+  NETWORK_DEVICES: "NETWORK",
+  // Server variations
+  SERVER: "SERVER",
+  SERVERS: "SERVER",
+  VM: "SERVER",
+  VIRTUAL_MACHINE: "SERVER",
+  // Database variations
+  DATABASE: "DATABASE",
+  DATABASES: "DATABASE",
+  DB: "DATABASE",
+  // Application variations
+  APPLICATION: "APPLICATION",
+  APPLICATIONS: "APPLICATION",
+  APP: "APPLICATION",
+  // Storage variations
+  STORAGE: "STORAGE_DEVICE",
+  STORAGE_DEVICE: "STORAGE_DEVICE",
+  // Security variations
+  SECURITY: "SECURITY_DEVICE",
+  SECURITY_DEVICE: "SECURITY_DEVICE",
+  FIREWALL: "SECURITY_DEVICE",
+  // Virtualization
+  VIRTUALIZATION: "VIRTUALIZATION",
+  HYPERVISOR: "VIRTUALIZATION",
+};
 
 export type AssetTypeFilter = typeof ASSET_TYPE_FILTERS[keyof typeof ASSET_TYPE_FILTERS];
 
@@ -30,6 +66,7 @@ export interface AssetsByType {
   APPLICATION: Asset[];
   SERVER: Asset[];
   DATABASE: Asset[];
+  NETWORK: Asset[];  // Bug #971 Fix: Added NETWORK type
   NETWORK_DEVICE: Asset[];
   STORAGE_DEVICE: Asset[];
   SECURITY_DEVICE: Asset[];

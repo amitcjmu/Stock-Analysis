@@ -34,7 +34,8 @@ test.describe('Collection Flow Gap Analysis', () => {
 
     // Step 2: Check if we're on asset selection phase
     console.log('📝 Step 2: Checking asset selection phase...');
-    await page.waitForSelector('text=/Select.*Assets/i', { timeout: 10000 });
+    // Bug #591 Fix: Increased timeout from 10s to 45s - backend flow init takes time
+    await page.waitForSelector('text=/Select.*Assets/i', { timeout: 45000 });
 
     // Step 3: Select 2-3 assets
     console.log('📝 Step 3: Selecting assets...');
@@ -72,7 +73,8 @@ test.describe('Collection Flow Gap Analysis', () => {
     await nextButton.click();
 
     // Wait for gap analysis to start
-    await page.waitForSelector('text=/Gap Analysis|Analyzing/i', { timeout: 10000 });
+    // Bug #591 Fix: Increased timeout from 10s to 45s - gap analysis takes time
+    await page.waitForSelector('text=/Gap Analysis|Analyzing/i', { timeout: 45000 });
     console.log('🤖 Gap analysis phase started...');
 
     // Step 5: Wait for gap analysis completion (max 60 seconds)

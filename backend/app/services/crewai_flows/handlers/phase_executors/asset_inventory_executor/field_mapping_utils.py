@@ -167,10 +167,19 @@ def classify_asset_type(asset_data_source: Dict[str, Any]) -> str:
         elif any(db_pattern in ci_type for db_pattern in ["database", "db"]):
             logger.debug(f"✅ Classified as 'database' via CI Type: '{ci_type}'")
             return "database"
-        # Network device detection
+        # Bug #404 Fix: Network device detection - removed generic "device" to prevent
+        # all assets with "device" in CI Type being classified as network devices
+        # Use more specific patterns to only match actual network devices
         elif any(
             net_pattern in ci_type
-            for net_pattern in ["network", "switch", "router", "firewall", "device"]
+            for net_pattern in [
+                "network",
+                "switch",
+                "router",
+                "firewall",
+                "network_device",
+                "net_device",
+            ]
         ):
             logger.debug(f"✅ Classified as 'network' via CI Type: '{ci_type}'")
             return "network"  # Use valid AssetType enum value

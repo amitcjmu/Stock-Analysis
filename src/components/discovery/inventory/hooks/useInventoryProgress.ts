@@ -42,9 +42,12 @@ export const useInventoryProgress = (assets: Asset[] = []): InventoryProgress =>
              assetType === 'oracle' ||
              assetType === 'mongo';
     }).length;
+    // Bug #404 Fix: Count remaining assets that don't fit other categories
+    // This includes network devices, storage, security, and "other" unclassified assets
     const devices = safeAssets.filter(asset => {
       const assetType = asset.asset_type?.toLowerCase();
-      return assetType?.includes('device') ||
+      // Match network-related assets
+      const isNetworkRelated = assetType?.includes('device') ||
              assetType?.includes('network') ||
              assetType?.includes('storage') ||
              assetType?.includes('security') ||
@@ -52,8 +55,10 @@ export const useInventoryProgress = (assets: Asset[] = []): InventoryProgress =>
              assetType === 'load_balancer' ||
              assetType === 'firewall' ||
              assetType === 'router' ||
-             assetType === 'switch' ||
-             assetType === 'device';
+             assetType === 'switch';
+      // Bug #404 Fix: Also count "other" and "unknown" types so no assets are hidden
+      const isOtherType = assetType === 'other' || assetType === 'unknown' || !assetType;
+      return isNetworkRelated || isOtherType;
     }).length;
 
     return {

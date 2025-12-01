@@ -13,8 +13,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface QuickActionsProps {
-  onNewFlow: () => void;
-  onDataImport: () => void;
+  onNewFlow: () => void;  // Bug #972: Kept for backward compatibility
+  onDataImport: () => void;  // Bug #972: Primary action - merged with "New Flow"
   onViewFlows: () => void;
   onSystemHealth: () => void;
   onRefreshDashboard: () => void;
@@ -39,31 +39,20 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {/* Primary Actions */}
+          {/* Bug #972 Fix: Merged "New Discovery Flow" and "Import Data" into single action */}
+          {/* Both actions previously navigated to /discovery/cmdb-import */}
           <Button
-            onClick={onNewFlow}
-            className="flex items-center justify-between p-4 h-auto bg-blue-600 hover:bg-blue-700"
+            onClick={onDataImport}
+            className="flex items-center justify-between p-4 h-auto bg-blue-600 hover:bg-blue-700 sm:col-span-2"
           >
             <div className="flex items-center space-x-2">
               <Plus className="h-4 w-4" />
-              <span>New Discovery Flow</span>
+              <span>Start New Discovery</span>
             </div>
             <ArrowRight className="h-4 w-4" />
           </Button>
 
-          <Button
-            onClick={onDataImport}
-            variant="outline"
-            className="flex items-center justify-between p-4 h-auto"
-          >
-            <div className="flex items-center space-x-2">
-              <Upload className="h-4 w-4" />
-              <span>Import Data</span>
-            </div>
-            <ArrowRight className="h-4 w-4" />
-          </Button>
-
-          {/* Secondary Actions */}
+          {/* Bug #972 Fix: Manage Flows now switches to Flows tab */}
           <Button
             onClick={onViewFlows}
             variant="outline"
@@ -76,6 +65,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
             <ArrowRight className="h-4 w-4" />
           </Button>
 
+          {/* Bug #972 Fix: System Health now navigates to /observability */}
           <Button
             onClick={onSystemHealth}
             variant="outline"

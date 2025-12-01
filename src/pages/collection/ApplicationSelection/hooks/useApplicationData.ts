@@ -10,6 +10,7 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { apiCall } from "@/config/api";
 import type { Asset } from "@/types/asset";
 import type { AssetPageData, AssetsByType, FilterOptions } from "../types";
+import { ASSET_TYPE_NORMALIZATION } from "../types";
 import type { CollectionFlowResponse } from "@/services/api/collection-flow";
 
 interface UseApplicationDataProps {
@@ -151,12 +152,14 @@ export const useApplicationData = ({
   );
 
   // Group assets by type with counts
+  // Bug #971 Fix: Use normalization map to handle asset type variations (e.g., "network" → "NETWORK")
   const assetsByType = useMemo((): AssetsByType => {
     const grouped: AssetsByType = {
       ALL: allAssets,
       APPLICATION: [],
       SERVER: [],
       DATABASE: [],
+      NETWORK: [],  // Bug #971 Fix: Added NETWORK category
       NETWORK_DEVICE: [],
       STORAGE_DEVICE: [],
       SECURITY_DEVICE: [],
@@ -165,11 +168,14 @@ export const useApplicationData = ({
     };
 
     allAssets.forEach((asset) => {
-      const type = asset.asset_type?.toUpperCase() || "UNKNOWN";
-      if (type in grouped && type !== "ALL") {
-        const assetArray = grouped[type as keyof AssetsByType];
+      const rawType = asset.asset_type?.toUpperCase() || "UNKNOWN";
+      // Bug #971 Fix: Normalize asset type using the mapping, fallback to raw type
+      const normalizedType = ASSET_TYPE_NORMALIZATION[rawType] || rawType;
+
+      if (normalizedType in grouped && normalizedType !== "ALL") {
+        const assetArray = grouped[normalizedType as keyof AssetsByType];
         assetArray.push(asset);
-      } else if (type !== "ALL") {
+      } else if (normalizedType !== "ALL") {
         grouped.UNKNOWN.push(asset);
       }
     });
