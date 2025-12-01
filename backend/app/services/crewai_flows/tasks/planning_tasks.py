@@ -302,31 +302,38 @@ def _format_applications_for_agent(applications: List[Dict[str, Any]]) -> str:
     """
     Format applications list for agent prompt.
 
-    Creates a concise but complete representation of each application
-    that the agent can use to generate the wave plan with real IDs and names.
+    Creates a VERY concise representation to minimize token usage.
+    Uses short format: id|name|strategy|complexity|criticality
 
-    Format per app (one line each to save tokens):
-    ID: <uuid> | Name: <name> | Strategy: <6R> | Complexity: <level> | Criticality: <level>
+    For large app lists (>20), only show first 8 chars of UUID to save tokens.
     """
     lines = []
+    use_short_id = len(applications) > 20
+
     for app in applications:
         app_id = app.get("id", "unknown")
+        # Shorten UUID for large lists
+        display_id = app_id[:8] if use_short_id else app_id
         name = app.get("name", f"App_{app_id[:8]}")
+        # Truncate long names
+        if len(name) > 30:
+            name = name[:27] + "..."
         strategy = (
             app.get("migration_strategy", "")
             or app.get("six_r_strategy", "")
             or "rehost"
-        )
-        complexity = app.get("complexity", "medium")
-        criticality = app.get("business_criticality", "medium")
+        )[
+            :10
+        ]  # Truncate strategy name
+        complexity = app.get("complexity", "medium")[:3]  # low/med/hig
+        criticality = app.get("business_criticality", "medium")[:3]
 
-        line = (
-            f"ID: {app_id} | Name: {name} | "
-            f"Strategy: {strategy} | Complexity: {complexity} | Criticality: {criticality}"
-        )
+        # Ultra-compact format
+        line = f"{display_id}|{name}|{strategy}|{complexity}|{criticality}"
         lines.append(line)
 
-    return "\n        ".join(lines)
+    header = "Format: id|name|strategy|complexity|criticality"
+    return header + "\n        " + "\n        ".join(lines)
 
 
 # Export factory function

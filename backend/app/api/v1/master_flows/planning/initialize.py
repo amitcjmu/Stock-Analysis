@@ -13,7 +13,9 @@ import logging
 from typing import Any, Dict, List, Optional
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Depends, HTTPException
+import asyncio
+
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -49,6 +51,7 @@ class InitializePlanningRequest(BaseModel):
 @router.post("/initialize")
 async def initialize_planning_flow(
     request: InitializePlanningRequest,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     context: RequestContext = Depends(get_current_context_dependency),
 ) -> Dict[str, Any]:
@@ -172,66 +175,64 @@ async def initialize_planning_flow(
             f"engagement: {engagement_uuid})"
         )
 
-        # Auto-trigger wave planning execution (per user expectation from wizard UI)
-        try:
+        # Schedule wave planning to run in background (async)
+        # This prevents frontend timeout - wave planning can take 2+ minutes for large app lists
+        # Frontend should poll GET /status/{planning_flow_id} for completion
+        async def run_wave_planning_background():
+            """Background task to execute wave planning asynchronously."""
+            from app.core.database import AsyncSessionLocal
             from app.services.planning import execute_wave_planning_for_flow
 
-            logger.info(f"Auto-executing wave planning for flow: {planning_flow_id}")
-
-            wave_planning_result = await execute_wave_planning_for_flow(
-                db=db,
-                context=context,
-                planning_flow_id=planning_flow_id,
-                planning_config=request.planning_config or {},
-            )
-
-            if wave_planning_result.get("status") == "success":
-                logger.info(f"Wave planning completed successfully: {planning_flow_id}")
-                return sanitize_for_json(
-                    {
-                        "master_flow_id": str(master_flow_id),
-                        "planning_flow_id": str(planning_flow.planning_flow_id),
-                        "current_phase": "wave_planning",
-                        "phase_status": "completed",
-                        "status": "completed",
-                        "message": "Planning flow initialized and wave planning completed",
-                        "wave_plan": wave_planning_result.get("wave_plan", {}),
-                    }
+            bg_db = None
+            try:
+                # Create new session for background task
+                bg_db = AsyncSessionLocal()
+                logger.info(
+                    f"[Background] Starting wave planning for flow: {planning_flow_id}"
                 )
-            else:
-                # Wave planning failed, but initialization succeeded
-                logger.warning(
-                    f"Wave planning failed for flow {planning_flow_id}: "
-                    f"{wave_planning_result.get('error')}"
+                result = await execute_wave_planning_for_flow(
+                    db=bg_db,
+                    context=context,
+                    planning_flow_id=planning_flow_id,
+                    planning_config=request.planning_config or {},
                 )
-                return sanitize_for_json(
-                    {
-                        "master_flow_id": str(master_flow_id),
-                        "planning_flow_id": str(planning_flow.planning_flow_id),
-                        "current_phase": "wave_planning",
-                        "phase_status": "failed",
-                        "status": "initialized",
-                        "message": "Planning flow initialized but wave planning failed",
-                        "error": wave_planning_result.get("error"),
-                    }
+                if result.get("status") == "success":
+                    logger.info(
+                        f"[Background] Wave planning completed: {planning_flow_id}"
+                    )
+                else:
+                    logger.warning(
+                        f"[Background] Wave planning failed: {planning_flow_id} - "
+                        f"{result.get('error')}"
+                    )
+            except Exception as e:
+                logger.error(
+                    f"[Background] Wave planning error for {planning_flow_id}: {e}",
+                    exc_info=True,
                 )
+            finally:
+                if bg_db:
+                    await bg_db.close()
 
-        except Exception as wave_error:
-            logger.error(
-                f"Failed to execute wave planning: {str(wave_error)}", exc_info=True
-            )
-            # Return initialization success even if wave planning fails
-            return sanitize_for_json(
-                {
-                    "master_flow_id": str(master_flow_id),
-                    "planning_flow_id": str(planning_flow.planning_flow_id),
-                    "current_phase": planning_flow.current_phase,
-                    "phase_status": planning_flow.phase_status,
-                    "status": "initialized",
-                    "message": "Planning flow initialized (wave planning error)",
-                    "wave_planning_error": str(wave_error),
-                }
-            )
+        # Launch background task (non-blocking)
+        asyncio.create_task(run_wave_planning_background())
+        logger.info(f"Scheduled background wave planning for flow: {planning_flow_id}")
+
+        # Return immediately with "in_progress" status
+        # Frontend should poll GET /status/{planning_flow_id} for completion
+        return sanitize_for_json(
+            {
+                "master_flow_id": str(master_flow_id),
+                "planning_flow_id": str(planning_flow.planning_flow_id),
+                "current_phase": "wave_planning",
+                "phase_status": "in_progress",
+                "status": "in_progress",
+                "message": (
+                    "Planning flow initialized. Wave planning in progress - "
+                    "poll status endpoint for completion."
+                ),
+            }
+        )
 
     except HTTPException:
         raise
