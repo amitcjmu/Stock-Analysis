@@ -643,8 +643,39 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
           ) : activeTab === "ready" ? (
             // Ready Tab Content
             readyApplications.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                No ready applications found. Complete collection flows first.
+              <div className="text-center py-8">
+                {/* Bug #1174 Fix: Show helpful guidance when no applications exist */}
+                {availableApplications.length === 0 ? (
+                  <div className="space-y-4">
+                    <div className="text-gray-500 text-lg">
+                      No canonical applications found
+                    </div>
+                    <div className="text-sm text-gray-600 max-w-md mx-auto">
+                      <p className="mb-3">
+                        Canonical applications are created during the Discovery and Collection process.
+                        To get started:
+                      </p>
+                      <ol className="list-decimal list-inside space-y-2 text-left">
+                        <li>Import your CMDB data via <strong>Discovery → Data Import</strong></li>
+                        <li>Complete the Discovery workflow to identify applications</li>
+                        <li>Run Collection Flow to gather detailed application data</li>
+                      </ol>
+                    </div>
+                    <button
+                      onClick={() => {
+                        onClose();
+                        navigate('/discovery/cmdb-import');
+                      }}
+                      className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                    >
+                      Start Discovery →
+                    </button>
+                  </div>
+                ) : (
+                  <div className="text-gray-500">
+                    No ready applications found. Check the &quot;Needs Collection&quot; tab to collect missing data.
+                  </div>
+                )}
               </div>
             ) : (
               <div className="space-y-2">
@@ -720,6 +751,30 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
             unmappedAssets.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 All assets are mapped to applications!
+              </div>
+            ) : availableApplications.length === 0 ? (
+              // Bug #1174 Fix: Show guidance when no apps exist to map to
+              <div className="text-center py-8">
+                <div className="space-y-4">
+                  <div className="text-gray-500 text-lg">
+                    No applications available to map assets to
+                  </div>
+                  <div className="text-sm text-gray-600 max-w-md mx-auto">
+                    <p>
+                      You have {unmappedAssets.length} unmapped asset(s), but no canonical applications exist yet.
+                      Complete Discovery to create applications first.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      onClose();
+                      navigate('/discovery');
+                    }}
+                    className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                  >
+                    Go to Discovery →
+                  </button>
+                </div>
               </div>
             ) : (
               <div className="space-y-3">

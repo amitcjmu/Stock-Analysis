@@ -83,4 +83,7 @@ async def get_enhancement_progress(
         "enhanced_count": job_state.get("enhanced_count", 0),
         "gaps_persisted": job_state.get("gaps_persisted", 0),
         "updated_at": job_state.get("updated_at"),
+        "message": job_state.get(
+            "message"
+        ),  # Bug #1105 Fix: Include message for better UX
     }

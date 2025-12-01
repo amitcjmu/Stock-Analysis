@@ -322,3 +322,45 @@ def get_user_id() -> Optional[str]:
 def get_flow_id() -> Optional[str]:
     """Get current flow ID."""
     return _flow_id.get()
+
+
+def require_flow_id() -> str:
+    """
+    Get current flow ID, raising an error if not set.
+
+    Bug #1161 Fix: Provides clear error messages when flow_id is None,
+    helping identify context initialization issues during testing.
+
+    Raises:
+        ValueError: If flow_id is not set in current context
+    """
+    flow_id = _flow_id.get()
+    if not flow_id:
+        # Log context details to aid debugging
+        logger.warning(
+            "require_flow_id() called but flow_id not set in context. "
+            f"client_account_id={_client_account_id.get()}, "
+            f"engagement_id={_engagement_id.get()}, "
+            f"user_id={_user_id.get()}"
+        )
+        raise ValueError(
+            "flow_id is required but not set in current context. "
+            "Ensure X-Flow-Id header is provided or context is properly initialized."
+        )
+    return flow_id
+
+
+def get_flow_id_or_default(default: str = "unknown") -> str:
+    """
+    Get current flow ID with a fallback default value.
+
+    Bug #1161 Fix: Provides safe access to flow_id with a default,
+    preventing None-related errors in string operations.
+
+    Args:
+        default: Value to return if flow_id is not set
+
+    Returns:
+        The flow_id if set, otherwise the default value
+    """
+    return _flow_id.get() or default

@@ -257,6 +257,18 @@ async def process_gap_enhancement_job(  # noqa: C901
                 f"on {len(assets_to_analyze)} assets"
             )
 
+            # Bug #1105 Fix: Update progress to show "analyzing" status before AI call
+            # This ensures users see progress even during long AI operations
+            await update_job_state(
+                collection_flow_id,
+                {
+                    "status": "analyzing",
+                    "message": f"AI analyzing {len(assets_to_analyze)} assets...",
+                    "processed_assets": 0,
+                    "total_assets": len(assets_to_analyze),
+                },
+            )
+
             # Correct - comprehensive analysis on assets only
             ai_result = await gap_service._run_tier_2_ai_analysis(
                 assets=assets_to_analyze,

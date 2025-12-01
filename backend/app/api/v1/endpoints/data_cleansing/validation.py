@@ -52,8 +52,6 @@ async def _validate_and_get_flow(
 
 async def _get_data_import_for_flow(flow_id: str, flow: Any, db: AsyncSession) -> Any:
     """Get data import for the given flow."""
-    from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
-
     # First try to get data import via discovery flow's data_import_id
     data_import = None
     if flow.data_import_id:
@@ -69,25 +67,27 @@ async def _get_data_import_for_flow(flow_id: str, flow: Any, db: AsyncSession) -
             f"Flow {flow_id} has no data_import_id, trying master flow ID lookup"
         )
 
-        # Get the database ID for this flow_id (FK references id, not flow_id)
-        db_id_query = select(CrewAIFlowStateExtensions.id).where(
-            CrewAIFlowStateExtensions.flow_id == flow_id
-        )
-        db_id_result = await db.execute(db_id_query)
-        flow_db_id = db_id_result.scalar_one_or_none()
+        # Bug #1166 Fix: Use flow.master_flow_id directly instead of querying by child flow_id
+        # The flow object (DiscoveryFlow) already has master_flow_id which is the FK to
+        # crewai_flow_state_extensions.flow_id - same column that DataImport.master_flow_id references
+        master_flow_id = getattr(flow, "master_flow_id", None)
 
-        if flow_db_id:
+        if master_flow_id:
             # Look for data imports with this master_flow_id
             import_query = (
                 select(
                     DataImport
                 )  # SKIP_TENANT_CHECK - master_flow_id FK enforces isolation
-                .where(DataImport.master_flow_id == flow_db_id)
+                .where(DataImport.master_flow_id == master_flow_id)
                 .order_by(DataImport.created_at.desc())
                 .limit(1)
             )
 
             import_result = await db.execute(import_query)
             data_import = import_result.scalar_one_or_none()
+        else:
+            logger.warning(
+                f"Flow {flow_id} has no master_flow_id - cannot lookup data import"
+            )
 
     return data_import

@@ -203,6 +203,9 @@ export const clearInvalidContextData = (): unknown => {
   localStorage.removeItem('auth_client');
   localStorage.removeItem('auth_engagement');
   localStorage.removeItem('auth_client_id');
+  localStorage.removeItem('auth_flow');  // Bug #993 Fix: Also clear flow data
+  localStorage.removeItem('currentFlowId');  // Bug #993 Fix: Clear all flow-related keys
+  localStorage.removeItem('lastActiveFlowId');  // Bug #993 Fix: Prevents stale flow IDs
   localStorage.removeItem('user_context_selection');
 };
 
@@ -213,6 +216,9 @@ export const clearAllStoredData = (): unknown => {
   localStorage.removeItem('auth_engagement');
   localStorage.removeItem('auth_session');
   localStorage.removeItem('auth_client_id');
+  localStorage.removeItem('auth_flow');  // Bug #993 Fix: Also clear flow data
+  localStorage.removeItem('currentFlowId');  // Bug #993 Fix: Clear all flow-related keys
+  localStorage.removeItem('lastActiveFlowId');  // Bug #993 Fix: Prevents stale flow IDs
   localStorage.removeItem('user_data');
   localStorage.removeItem('user_context_selection');
   localStorage.removeItem(SCHEMA_VERSION_KEY);
@@ -302,6 +308,7 @@ export const syncContextToIndividualKeys = (): boolean => {
     }
 
     // Sync flow data with individual error handling
+    // Bug #993 Fix: Also clear flow data when contextData.flow is null
     if (contextData.flow) {
       try {
         localStorage.setItem('auth_flow', JSON.stringify(contextData.flow));
@@ -310,6 +317,16 @@ export const syncContextToIndividualKeys = (): boolean => {
       } catch (flowError) {
         hasFailures = true;
         console.error('❌ Failed to sync flow data:', flowError);
+      }
+    } else {
+      // Clear stale flow data when switching context and flow is null
+      try {
+        localStorage.removeItem('auth_flow');
+        localStorage.removeItem('currentFlowId');  // Clear all flow-related keys
+        localStorage.removeItem('lastActiveFlowId');
+        console.log('🧹 Cleared stale flow data from localStorage');
+      } catch (flowError) {
+        console.warn('⚠️ Failed to clear flow data:', flowError);
       }
     }
 
