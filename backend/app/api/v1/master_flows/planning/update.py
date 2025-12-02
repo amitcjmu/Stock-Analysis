@@ -57,6 +57,19 @@ async def _sync_waves_to_timeline(
         logger.debug("No waves in wave_plan_data, skipping timeline sync")
         return
 
+    def parse_date_as_utc(date_str: str) -> datetime:
+        """Parse date string and ensure it's timezone-aware (UTC).
+
+        CC Fix: datetime.fromisoformat() creates naive datetimes from strings
+        like "2025-01-15". These can't be compared with timezone-aware datetimes,
+        causing TypeError. This helper ensures all parsed dates are UTC-aware.
+        """
+        dt = datetime.fromisoformat(date_str)
+        if dt.tzinfo is None:
+            # If no timezone info, assume UTC
+            return dt.replace(tzinfo=timezone.utc)
+        return dt
+
     # Get or create timeline for this planning flow
     timeline = await repo.get_timeline_by_planning_flow(
         planning_flow_id=planning_flow_id,
@@ -66,14 +79,12 @@ async def _sync_waves_to_timeline(
 
     if not timeline:
         # Create new timeline
-        # Calculate overall start/end dates from waves
+        # Calculate overall start/end dates from waves (all timezone-aware)
         start_dates = [
-            datetime.fromisoformat(w["start_date"])
-            for w in waves
-            if w.get("start_date")
+            parse_date_as_utc(w["start_date"]) for w in waves if w.get("start_date")
         ]
         end_dates = [
-            datetime.fromisoformat(w["end_date"]) for w in waves if w.get("end_date")
+            parse_date_as_utc(w["end_date"]) for w in waves if w.get("end_date")
         ]
 
         # Use UTC now for timezone-aware comparison
@@ -129,15 +140,15 @@ async def _sync_waves_to_timeline(
             )
             continue
 
-        # Create timeline phase for this wave
+        # Create timeline phase for this wave (use parse_date_as_utc for timezone safety)
         await repo.create_timeline_phase(
             client_account_id=client_account_id,
             engagement_id=engagement_id,
             timeline_id=timeline.id,
             phase_number=wave_number,
             phase_name=phase_name,
-            planned_start_date=datetime.fromisoformat(start_date_str),
-            planned_end_date=datetime.fromisoformat(end_date_str),
+            planned_start_date=parse_date_as_utc(start_date_str),
+            planned_end_date=parse_date_as_utc(end_date_str),
             status=status,
         )
         logger.debug(f"Created timeline phase for wave {wave_number}: {phase_name}")
