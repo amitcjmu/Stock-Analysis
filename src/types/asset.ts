@@ -7,7 +7,7 @@
 
 export interface Asset {
   // Core identification
-  id: number;
+  id: string;  // UUID from backend - Issue #1075 fix
   client_account_id: string;
   engagement_id: string;
   name: string;

@@ -70,8 +70,9 @@ export class AssetAPI {
 
   /**
    * Update an existing asset
+   * Issue #1075 fix: id is UUID string, not number
    */
-  static async updateAsset(id: number, updates: Partial<Asset>): Promise<Asset> {
+  static async updateAsset(id: string, updates: Partial<Asset>): Promise<Asset> {
     const endpoint = `${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}/${id}`;
     return await apiCall(endpoint, {
       method: 'PUT',
@@ -81,8 +82,9 @@ export class AssetAPI {
 
   /**
    * Delete an asset
+   * Issue #1075 fix: id is UUID string, not number
    */
-  static async deleteAsset(id: number): Promise<void> {
+  static async deleteAsset(id: string): Promise<void> {
     const endpoint = `${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}/${id}`;
     await apiCall(endpoint, {
       method: 'DELETE'
@@ -149,25 +151,28 @@ export class AssetAPI {
 
   /**
    * Update a single field on an asset (Issue #911: AI Grid inline editing)
+   * Issue #1075 fix: asset_id is UUID string, not number
    */
   static async updateAssetField(
-    asset_id: number,
+    asset_id: string,
     field_name: string,
     field_value: string | number | boolean | null
   ): Promise<Asset> {
     const endpoint = `${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}/${asset_id}/fields/${field_name}`;
 
+    // Issue #1190: Fix - body must be JSON stringified for Pydantic to parse
     return await apiCall(endpoint, {
       method: 'PATCH',
-      body: { value: field_value }
+      body: JSON.stringify({ value: field_value })
     });
   }
 
   /**
    * Bulk update a single field on multiple assets (Issue #911: AI Grid bulk editing)
+   * Issue #1075 fix: asset_ids are UUID strings, not numbers
    */
   static async bulkUpdateAssetField(
-    asset_ids: number[],
+    asset_ids: string[],
     field_name: string,
     field_value: string | number | boolean | null
   ): Promise<{ updated_count: number }> {
@@ -186,8 +191,9 @@ export class AssetAPI {
 
   /**
    * Soft delete an asset (Issue #912: Soft delete functionality)
+   * Issue #1075 fix: asset_id is UUID string, not number
    */
-  static async softDeleteAsset(asset_id: number): Promise<void> {
+  static async softDeleteAsset(asset_id: string): Promise<void> {
     const endpoint = `${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}/${asset_id}`;
     await apiCall(endpoint, {
       method: 'DELETE'
@@ -196,8 +202,9 @@ export class AssetAPI {
 
   /**
    * Restore a soft-deleted asset (Issue #912: Soft delete functionality)
+   * Issue #1075 fix: asset_id is UUID string, not number
    */
-  static async restoreAsset(asset_id: number): Promise<Asset> {
+  static async restoreAsset(asset_id: string): Promise<Asset> {
     const endpoint = `${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}/${asset_id}/restore`;
     return await apiCall(endpoint, {
       method: 'POST'
@@ -206,8 +213,9 @@ export class AssetAPI {
 
   /**
    * Bulk soft delete multiple assets (Issue #912: Soft delete functionality)
+   * Issue #1075 fix: asset_ids are UUID strings, not numbers
    */
-  static async bulkSoftDelete(asset_ids: number[]): Promise<{ deleted_count: number }> {
+  static async bulkSoftDelete(asset_ids: string[]): Promise<{ deleted_count: number }> {
     const endpoint = `${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}/bulk-delete`;
     return await apiCall(endpoint, {
       method: 'DELETE',

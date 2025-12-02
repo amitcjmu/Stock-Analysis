@@ -16,9 +16,10 @@ export const useAssetSoftDelete = () => {
 
   /**
    * Soft delete a single asset
+   * Issue #1075 fix: asset_id is UUID string, not number
    */
   const softDeleteMutation = useMutation({
-    mutationFn: async ({ asset_id }: { asset_id: number }) => {
+    mutationFn: async ({ asset_id }: { asset_id: string }) => {
       return AssetAPI.softDeleteAsset(asset_id);
     },
     onMutate: async ({ asset_id }) => {
@@ -49,9 +50,10 @@ export const useAssetSoftDelete = () => {
 
   /**
    * Restore a soft-deleted asset
+   * Issue #1075 fix: asset_id is UUID string, not number
    */
   const restoreMutation = useMutation({
-    mutationFn: async ({ asset_id }: { asset_id: number }) => {
+    mutationFn: async ({ asset_id }: { asset_id: string }) => {
       return AssetAPI.restoreAsset(asset_id);
     },
     onSuccess: () => {
@@ -66,9 +68,10 @@ export const useAssetSoftDelete = () => {
 
   /**
    * Bulk soft delete multiple assets
+   * Issue #1075 fix: asset_ids are UUID strings, not numbers
    */
   const bulkSoftDeleteMutation = useMutation({
-    mutationFn: async ({ asset_ids }: { asset_ids: number[] }) => {
+    mutationFn: async ({ asset_ids }: { asset_ids: string[] }) => {
       return AssetAPI.bulkSoftDelete(asset_ids);
     },
     onMutate: async ({ asset_ids }) => {
@@ -99,8 +102,9 @@ export const useAssetSoftDelete = () => {
 
   /**
    * Soft delete with confirmation dialog
+   * Issue #1075 fix: asset_id is UUID string, not number
    */
-  const softDelete = (asset_id: number, asset_name: string) => {
+  const softDelete = (asset_id: string, asset_name: string) => {
     const confirmed = window.confirm(
       `Are you sure you want to move "${asset_name}" to trash?\n\nYou can restore it later from the Trash view.`
     );
@@ -112,8 +116,9 @@ export const useAssetSoftDelete = () => {
 
   /**
    * Restore with confirmation dialog
+   * Issue #1075 fix: asset_id is UUID string, not number
    */
-  const restore = (asset_id: number, asset_name: string) => {
+  const restore = (asset_id: string, asset_name: string) => {
     const confirmed = window.confirm(
       `Are you sure you want to restore "${asset_name}"?`
     );
@@ -125,8 +130,9 @@ export const useAssetSoftDelete = () => {
 
   /**
    * Bulk soft delete with confirmation dialog
+   * Issue #1075 fix: asset_ids are UUID strings, not numbers
    */
-  const bulkSoftDelete = (asset_ids: number[], count: number) => {
+  const bulkSoftDelete = (asset_ids: string[], count: number) => {
     const confirmed = window.confirm(
       `Are you sure you want to move ${count} asset${count > 1 ? 's' : ''} to trash?\n\nYou can restore them later from the Trash view.`
     );

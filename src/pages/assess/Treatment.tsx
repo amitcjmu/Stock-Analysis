@@ -10,7 +10,7 @@ import { Loader2 } from 'lucide-react'
 
 // Hooks
 import { useAuth } from '@/contexts/AuthContext';
-import { useApplications } from '@/hooks/useApplications';
+import { useApplicationsWithContext } from '@/hooks/useApplications';
 import { useAnalysisQueue } from '@/hooks/useAnalysisQueue';
 
 // Types
@@ -42,22 +42,21 @@ export const Treatment: React.FC = () => {
   const [showGapModal, setShowGapModal] = useState(false);
   const [blockedAnalysis, setBlockedAnalysis] = useState<AssessmentFlowStatusResponse | null>(null);
 
-  // Get engagement_id from context (default to 1 for now)
-  // TODO: Replace with actual engagement context when available
-  const engagement_id = 1;
-
   // Hooks
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, client, engagement, getAuthHeaders } = useAuth();
 
-  // Query Hooks
+  // Get context headers for API calls (Issue #1191: Fix missing tenant context)
+  // Memoize to prevent re-renders causing infinite fetch loops (Qodo review feedback)
+  const contextHeaders = useMemo(() => getAuthHeaders(), [getAuthHeaders]);
+
+  // Query Hooks - Use context-aware hook to pass tenant headers (Issue #1191)
   const {
     applications = [],
     isLoading: isLoadingApps,
     error: appsError,
-    refetch: refetchApplications
-  } = useApplications();
+  } = useApplicationsWithContext(contextHeaders);
 
   // Assessment Flow state (replaces useSixRAnalysis per Migration Phase 3)
   const [parameters, setParameters] = React.useState<SixRParameters>({
