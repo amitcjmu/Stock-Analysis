@@ -260,6 +260,7 @@ async def _get_assets_from_db(
     filter_conditions = [
         Asset.client_account_id == context.client_account_id,
         Asset.engagement_id == context.engagement_id,
+        Asset.deleted_at.is_(None),  # Exclude soft-deleted assets
     ]
 
     # Add flow_id filter if provided
