@@ -79,10 +79,13 @@ class AssetListHandler:
             page = max(1, page)
             offset = (page - 1) * page_size
 
+            # Issue #1075 fix: Filter out soft-deleted assets by default
+            # Deleted assets should only appear in the Trash view, not the main inventory
             base_query = select(Asset).where(
                 and_(
                     Asset.client_account_id == self.context.client_account_id,
                     Asset.engagement_id == self.context.engagement_id,
+                    Asset.deleted_at.is_(None),  # Exclude soft-deleted assets
                 )
             )
 
@@ -201,10 +204,12 @@ class AssetListHandler:
     async def get_asset_summary(self) -> Dict[str, Any]:
         """Get asset summary statistics with tenant isolation."""
         try:
+            # Issue #1075 fix: Exclude soft-deleted assets from summary
             base_query = select(Asset).where(
                 and_(
                     Asset.client_account_id == self.context.client_account_id,
                     Asset.engagement_id == self.context.engagement_id,
+                    Asset.deleted_at.is_(None),  # Exclude soft-deleted assets
                 )
             )
 
@@ -213,12 +218,14 @@ class AssetListHandler:
             )
             total_assets = total_result.scalar() or 0
 
+            # Issue #1075 fix: Exclude soft-deleted assets from type counts
             type_query = (
                 select(Asset.asset_type, func.count(Asset.id).label("count"))
                 .where(
                     and_(
                         Asset.client_account_id == self.context.client_account_id,
                         Asset.engagement_id == self.context.engagement_id,
+                        Asset.deleted_at.is_(None),  # Exclude soft-deleted assets
                     )
                 )
                 .group_by(Asset.asset_type)
