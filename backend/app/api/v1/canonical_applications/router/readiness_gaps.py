@@ -244,6 +244,14 @@ async def get_canonical_application_readiness_gaps(  # noqa: C901
                 asset.assessment_readiness = new_readiness_status
                 # CC FIX: Also update sixr_ready for Assessment Flow UI
                 asset.sixr_ready = new_readiness_status
+                # CC FIX: If asset is ready for assessment, also mark discovery as completed
+                # This aligns with backend validation in verify_applications_ready_for_assessment()
+                # which requires BOTH discovery_status="completed" AND assessment_readiness="ready"
+                if is_ready and asset.discovery_status != "completed":
+                    asset.discovery_status = "completed"
+                    logger.debug(
+                        f"Also set discovery_status=completed for asset {asset.id}"
+                    )
                 updated_count += 1
 
                 if old_status != new_readiness_status:

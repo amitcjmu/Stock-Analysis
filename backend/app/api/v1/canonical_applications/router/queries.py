@@ -42,6 +42,8 @@ async def get_readiness_stats(
     # JOIN: CollectionFlowApplication -> Asset
     # GROUP BY: canonical_application_id
     # COUNT: total assets, ready assets
+    # CC FIX: Must check BOTH discovery_status AND assessment_readiness to match
+    # backend validation in verify_applications_ready_for_assessment()
     readiness_query = (
         select(
             CollectionFlowApplication.canonical_application_id,
@@ -49,7 +51,10 @@ async def get_readiness_stats(
             func.sum(
                 case(
                     (
-                        Asset.assessment_readiness == "ready",
+                        and_(
+                            Asset.discovery_status == "completed",
+                            Asset.assessment_readiness == "ready",
+                        ),
                         1,
                     ),
                     else_=0,
