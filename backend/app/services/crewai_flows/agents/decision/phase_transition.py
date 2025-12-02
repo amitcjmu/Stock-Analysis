@@ -397,6 +397,32 @@ class PhaseTransitionAgent(BaseDecisionAgent):
             phase_status = phase_result.get("status")
             phase_successful = phase_status == "completed"
 
+            # CRITICAL FIX: Handle "generating" status for questionnaire_generation phase
+            # When background task is generating questions, we should PAUSE and wait
+            # The background task will update flow status when complete (not PhaseTransitionAgent)
+            is_background_generating = (
+                phase_status == "generating"
+                and phase_result.get("background_task_running", False)
+            )
+            if is_background_generating:
+                logger.info(
+                    f"⏳ Phase {phase_name} has background generation in progress - pausing for completion"
+                )
+                return AgentDecision(
+                    action=PhaseAction.PAUSE,
+                    next_phase=phase_name,  # Stay on this phase until background task completes
+                    confidence=0.95,
+                    reasoning=(
+                        f"Phase {phase_name} started background questionnaire generation. "
+                        "Flow will progress when generation completes."
+                    ),
+                    metadata={
+                        "paused_for": "background_generation",
+                        "background_task_running": True,
+                        "phase_result": phase_result,
+                    },
+                )
+
             # Check if paused for user action (conflict resolution, manual review, etc.)
             crew_results = phase_result.get("crew_results", {})
             conflict_pending = crew_results.get("phase_state", {}).get(

@@ -36,10 +36,11 @@ class TestCollectionPhaseRouting:
         self, phase_transition_agent, mock_flow_state
     ):
         """
-        Test that questionnaire_generation phase routes to CollectionAnalysis,
-        not DiscoveryAnalysis.
+        Test that questionnaire_generation phase in PRE-execution returns early PROCEED.
 
-        This is the core bug from Issue #1135.
+        Bug #6 Fix: questionnaire_generation must execute FIRST before evaluation.
+        Pre-execution decision returns PROCEED immediately (doesn't call make_collection_decision).
+        Post-execution decision evaluates results via CollectionDecisionLogic.
         """
         agent_context = {
             "flow_type": "collection",  # Explicit collection flow
@@ -51,28 +52,16 @@ class TestCollectionPhaseRouting:
             "flow_state": mock_flow_state,
         }
 
-        # Mock the decision logic to verify it's called with correct flow_type
-        patch_path = (
-            "app.services.crewai_flows.agents.decision.phase_transition."
-            "CollectionDecisionLogic.make_collection_decision"
+        # Pre-execution decision returns early with PROCEED (Bug #6 fix)
+        # Does NOT call make_collection_decision - that happens in post-execution
+        decision = await phase_transition_agent.get_decision(agent_context)
+
+        # Verify decision returns PROCEED to allow phase execution
+        assert decision.action == PhaseAction.PROCEED
+        assert decision.metadata.get("pre_execution_decision") is True
+        assert (
+            "questionnaire generation phase must execute" in decision.reasoning.lower()
         )
-        with patch(patch_path) as mock_collection_decision:
-            mock_collection_decision.return_value = AgentDecision(
-                action=PhaseAction.PROCEED,
-                next_phase="manual_collection",
-                confidence=0.9,
-                reasoning="Questionnaires generated successfully",
-                metadata={},
-            )
-
-            decision = await phase_transition_agent.get_decision(agent_context)
-
-            # Verify CollectionDecisionLogic was called (not DiscoveryDecisionLogic)
-            mock_collection_decision.assert_called_once()
-
-            # Verify decision is correct
-            assert decision.action == PhaseAction.PROCEED
-            assert decision.next_phase == "manual_collection"
 
     @pytest.mark.asyncio
     async def test_collection_gap_analysis_routes_correctly(
@@ -256,18 +245,23 @@ class TestCollectionPhaseRouting:
     @pytest.mark.asyncio
     async def test_all_collection_phases_route_correctly(self, phase_transition_agent):
         """
-        Test that all collection phases route to CollectionDecisionLogic.
+        Test that collection phases route to CollectionDecisionLogic.
 
         Collection phases (ADR-037):
         - asset_selection
         - gap_analysis
-        - questionnaire_generation
+        - questionnaire_generation (has special early-return in get_decision - Bug #6)
         - finalization
+
+        Note: questionnaire_generation is excluded as it has special handling
+        in get_decision() that returns early with PROCEED (Bug #6 fix).
         """
+        # Exclude questionnaire_generation - it has special early-return handling
+        # See test_collection_questionnaire_generation_routes_correctly for that case
         collection_phases = [
             "asset_selection",
             "gap_analysis",
-            "questionnaire_generation",
+            # "questionnaire_generation" - special case, returns early in get_decision()
             "finalization",
         ]
 
@@ -301,3 +295,37 @@ class TestCollectionPhaseRouting:
                 # Verify CollectionDecisionLogic was called for this phase
                 mock_collection_decision.assert_called_once()
                 assert decision.action == PhaseAction.PROCEED
+
+    @pytest.mark.asyncio
+    async def test_background_generation_pauses_instead_of_failing(
+        self, phase_transition_agent
+    ):
+        """
+        Test that questionnaire_generation phase with 'generating' status PAUSES.
+
+        CRITICAL FIX: When background task is generating questions, the phase
+        returns status='generating'. The PhaseTransitionAgent should PAUSE
+        (not FAIL) and let the background task update flow status when complete.
+        """
+        mock_state = MagicMock()
+        mock_state.flow_type = "collection"
+
+        agent_context = {
+            "flow_type": "collection",
+            "phase_name": "questionnaire_generation",
+            "phase_result": {
+                "status": "generating",  # Background task running
+                "background_task_running": True,
+                "questionnaires_generated": 1,
+            },
+            "flow_state": mock_state,
+        }
+
+        decision = await phase_transition_agent.get_post_execution_decision(
+            agent_context
+        )
+
+        # Should PAUSE, not FAIL
+        assert decision.action == PhaseAction.PAUSE
+        assert decision.metadata.get("paused_for") == "background_generation"
+        assert "background" in decision.reasoning.lower()

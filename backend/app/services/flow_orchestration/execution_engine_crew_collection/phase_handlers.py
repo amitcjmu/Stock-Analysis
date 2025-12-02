@@ -311,12 +311,19 @@ async def execute_questionnaire_generation(
                 f"({len(existing_assets)} assets processed)"
             )
 
+            # CRITICAL FIX: Return "generating" status to indicate background task is running
+            # This prevents PhaseTransitionAgent from failing the flow before questions are ready
+            # The background task (_background_generate) will update flow status when complete
             return {
                 "phase": "questionnaire_generation",
-                "status": "completed",
+                "status": "generating",  # Changed from "completed" - background task still running
                 "questionnaires_generated": questionnaire_count,
                 "generation_method": "ai_agent",
-                "message": f"Generated {questionnaire_count} AI questionnaires for {len(existing_assets)} assets",
+                "background_task_running": True,  # Signal for PhaseTransitionAgent
+                "message": (
+                    f"Started AI questionnaire generation for {len(existing_assets)} "
+                    "assets (processing in background)"
+                ),
             }
 
     except ImportError as e:

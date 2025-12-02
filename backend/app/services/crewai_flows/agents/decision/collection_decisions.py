@@ -171,6 +171,9 @@ class CollectionDecisionLogic:
 
         Bug #1055 Fix: Uses database count if available (via collection_analysis.py),
         falls back to phase_result metadata if database query failed.
+
+        CRITICAL FIX: Also checks for background generation in progress - if questionnaires
+        are being generated asynchronously, PAUSE instead of FAIL.
         """
         questionnaire_quality = analysis.get("questionnaire_quality", {})
         questionnaires_generated = questionnaire_quality.get("questionnaires_count", 0)
@@ -184,6 +187,45 @@ class CollectionDecisionLogic:
         )
 
         if questionnaires_generated == 0:
+            # CRITICAL FIX: Check if background generation is in progress
+            # If so, PAUSE instead of FAIL - the background task will complete the generation
+            # and update flow status directly
+            state = analysis.get("state")
+            flow_metadata = None
+            if state:
+                if isinstance(state, dict):
+                    flow_metadata = state.get("flow_metadata", {})
+                else:
+                    flow_metadata = getattr(state, "flow_metadata", {}) or {}
+
+            # Check questionnaire_generating flag set by start_generation.py
+            is_generating = (
+                flow_metadata.get("questionnaire_generating", False)
+                if flow_metadata
+                else False
+            )
+
+            if is_generating:
+                logger.info(
+                    "⏳ Questionnaire generation in progress (questionnaire_generating=True) - "
+                    "pausing instead of failing"
+                )
+                return AgentDecision(
+                    action=PhaseAction.PAUSE,
+                    next_phase="questionnaire_generation",  # Stay on this phase
+                    confidence=0.9,
+                    reasoning=(
+                        "Questionnaire generation is in progress. "
+                        "Background task will update flow status when complete."
+                    ),
+                    metadata={
+                        "questionnaires_count": 0,
+                        "paused_for": "background_generation",
+                        "data_source": data_source,
+                    },
+                )
+
+            # No background generation - actually failed
             return AgentDecision(
                 action=PhaseAction.FAIL,
                 next_phase="",
