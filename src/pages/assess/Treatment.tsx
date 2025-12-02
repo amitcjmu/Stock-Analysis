@@ -48,7 +48,8 @@ export const Treatment: React.FC = () => {
   const { user, client, engagement, getAuthHeaders } = useAuth();
 
   // Get context headers for API calls (Issue #1191: Fix missing tenant context)
-  const contextHeaders = getAuthHeaders();
+  // Memoize to prevent re-renders causing infinite fetch loops (Qodo review feedback)
+  const contextHeaders = useMemo(() => getAuthHeaders(), [getAuthHeaders]);
 
   // Query Hooks - Use context-aware hook to pass tenant headers (Issue #1191)
   const {
