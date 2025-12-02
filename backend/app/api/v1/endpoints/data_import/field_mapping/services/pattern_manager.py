@@ -61,7 +61,8 @@ class PatternManager:
             patterns_updated += 1
         else:
             # Create new positive pattern
-            pattern_type_value = "field_mapping_approval"
+            # CC FIX: Must use UPPERCASE to match PostgreSQL enum patterntype
+            pattern_type_value = "FIELD_MAPPING_APPROVAL"
             logger.debug(f"Creating pattern with type: {pattern_type_value}")
             logger.info(
                 f"DEBUG: pattern_type_value = {pattern_type_value!r}, type = {type(pattern_type_value)}"
@@ -136,9 +137,10 @@ class PatternManager:
             patterns_updated += 1
         else:
             # Create new negative pattern
+            # CC FIX: Must use UPPERCASE to match PostgreSQL enum patterntype
             new_pattern = AgentDiscoveredPatterns(
                 pattern_id=pattern_id,
-                pattern_type="field_mapping_rejection",
+                pattern_type="FIELD_MAPPING_REJECTION",
                 pattern_name=f"Rejected mapping: {mapping.source_field} → {mapping.target_field}",
                 pattern_description=(
                     f"User rejected the mapping from '{mapping.source_field}' "
@@ -187,9 +189,10 @@ class PatternManager:
                 existing_alt_pattern.increment_reference_count()
                 patterns_updated += 1
             else:
+                # CC FIX: Must use UPPERCASE to match PostgreSQL enum patterntype
                 alt_pattern = AgentDiscoveredPatterns(
                     pattern_id=alt_pattern_id,
-                    pattern_type="field_mapping_suggestion",
+                    pattern_type="FIELD_MAPPING_SUGGESTION",
                     pattern_name=(
                         f"Alternative mapping: {mapping.source_field} → "
                         f"{rejection_request.alternative_suggestion}"
