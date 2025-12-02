@@ -36,13 +36,18 @@ function getQuestionAssetId(question: QuestionWithAsset): string | null {
     return question.asset_id;
   }
 
-  // From metadata.asset_ids array (take first)
+  // From metadata.asset_id (singular) - set by convertQuestionToFormField
+  if (question.metadata?.asset_id && typeof question.metadata.asset_id === 'string') {
+    return question.metadata.asset_id;
+  }
+
+  // From metadata.asset_ids array (take first) - legacy/alternative format
   if (question.metadata?.asset_ids && question.metadata.asset_ids.length > 0) {
     return question.metadata.asset_ids[0];
   }
 
-  // Extract from field_id pattern like "app_technical_<asset_id>"
-  const match = question.field_id.match(/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/);
+  // Extract from field_id pattern like "uuid__field_name" or embedded UUID
+  const match = question.field_id.match(/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/i);
   if (match) {
     return match[0];
   }
