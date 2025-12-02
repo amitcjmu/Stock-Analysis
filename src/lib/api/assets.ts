@@ -157,9 +157,10 @@ export class AssetAPI {
   ): Promise<Asset> {
     const endpoint = `${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}/${asset_id}/fields/${field_name}`;
 
+    // Issue #1190: Fix - body must be JSON stringified for Pydantic to parse
     return await apiCall(endpoint, {
       method: 'PATCH',
-      body: { value: field_value }
+      body: JSON.stringify({ value: field_value })
     });
   }
 
