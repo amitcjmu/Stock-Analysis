@@ -38,6 +38,8 @@ def register_conditional_routers(api_router: APIRouter):
         collection_gap_analysis_router,
         FLOW_PROCESSING_AVAILABLE,
         flow_processing_router,
+        DECOMMISSION_AVAILABLE,
+        decommission_router,
         DECOMMISSION_FLOW_AVAILABLE,
         decommission_flow_router,
         routers_with_flags,
@@ -212,3 +214,10 @@ def register_conditional_routers(api_router: APIRouter):
         logger.info("✅ Decommission Flow API router included at /decommission-flow")
     else:
         logger.warning("⚠️ Decommission Flow API router not available")
+
+    # Decommission API - Data retention and system retirement endpoints
+    if DECOMMISSION_AVAILABLE:
+        api_router.include_router(decommission_router, prefix="/decommission")
+        logger.info("✅ Decommission API router included at /decommission")
+    else:
+        logger.warning("⚠️ Decommission API router not available")
