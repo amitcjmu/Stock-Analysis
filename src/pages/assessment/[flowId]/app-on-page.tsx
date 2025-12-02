@@ -127,18 +127,17 @@ const AppOnPagePage: React.FC = () => {
     <AssessmentFlowLayout flowId={flowId}>
       <div className={cn("p-6 max-w-7xl mx-auto space-y-6", printMode && "print:max-w-none print:p-4")}>
         {/* Header */}
-        <div className="space-y-2 print:mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                Application Assessment Review
-              </h1>
-              <p className="text-gray-600">
-                Comprehensive review of all application assessments and migration strategies
-              </p>
-            </div>
+        <div className="space-y-4 print:mb-8">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Application Assessment Review
+            </h1>
+            <p className="text-gray-600 mt-1">
+              Comprehensive review of all application assessments and migration strategies
+            </p>
+          </div>
 
-            <div className="flex items-center space-x-2 print:hidden">
+          <div className="flex flex-wrap items-center gap-2 print:hidden">
               <Button
                 variant="outline"
                 size="sm"
@@ -181,11 +180,10 @@ const AppOnPagePage: React.FC = () => {
                   overrides: state.applicationOverrides
                 }}
               />
-            </div>
           </div>
 
           {/* Assessment Status */}
-          <div className="flex items-center space-x-4">
+          <div className="flex flex-wrap items-center gap-3">
             <Badge variant={assessmentComplete ? "default" : "secondary"} className="flex items-center space-x-1">
               {assessmentComplete ? (
                 <CheckCircle className="h-3 w-3" />

@@ -12,6 +12,7 @@ class UserStatus(str, PyEnum):
     ACTIVE = "active"
     SUSPENDED = "suspended"
     DEACTIVATED = "deactivated"
+    REJECTED = "rejected"  # Access request was denied during approval workflow
 
 
 class AccessLevel(str, PyEnum):

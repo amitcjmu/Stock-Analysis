@@ -178,6 +178,13 @@ class UserProfile(Base):
         self.status = UserStatus.DEACTIVATED
         self.updated_at = datetime.utcnow()
 
+    def reject(self, rejected_by: str, reason: str = None):
+        """Reject user access request during approval workflow."""
+        from datetime import datetime
+
+        self.status = UserStatus.REJECTED
+        self.updated_at = datetime.utcnow()
+
     def activate(self, activated_by: str, reason: str = None):
         """Activate user access."""
         from datetime import datetime
