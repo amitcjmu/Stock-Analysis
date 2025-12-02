@@ -121,6 +121,14 @@ class SectionQuestionGenerator:
         )
         questions = self._parse_llm_response(llm_content, section_name, asset_name)
 
+        # CRITICAL FIX: Inject asset_id and asset_name into each question's metadata
+        # This allows frontend to properly group questions by asset (Issue #1200)
+        for question in questions:
+            if "metadata" not in question:
+                question["metadata"] = {}
+            question["metadata"]["asset_id"] = asset_id
+            question["metadata"]["asset_name"] = asset_name
+
         logger.info(
             f"Generated {len(questions)} questions for {asset_name} in {section_name}"
         )
