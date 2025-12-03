@@ -24,6 +24,12 @@ from app.models.canonical_applications import (
 
 # AssetReadinessService moved to readiness_gaps.py
 
+from .bootstrap import (
+    bootstrap_canonical_applications_from_assets,
+    count_assets_with_application_names,
+    get_bootstrap_guidance,
+    get_canonical_apps_count,
+)
 from .models import MapAssetRequest, MapAssetResponse
 from .queries import (
     calculate_readiness_metadata,
@@ -131,6 +137,53 @@ async def list_canonical_applications(
             else context.engagement_id
         )
 
+        # Issue #1197: Check if canonical_applications table is empty for tenant
+        # If empty but assets have application_name, bootstrap canonical apps
+        canonical_apps_count = await get_canonical_apps_count(
+            db, client_account_id, engagement_id
+        )
+
+        guidance = None
+        if canonical_apps_count == 0:
+            # Check if assets have application_name values we can bootstrap from
+            assets_with_app_names = await count_assets_with_application_names(
+                db, client_account_id, engagement_id
+            )
+
+            if assets_with_app_names > 0:
+                # Bootstrap: Create real canonical applications from asset data
+                logger.info(
+                    f"[ISSUE-1197] Bootstrapping canonical applications for tenant "
+                    f"{client_account_id}/{engagement_id} from {assets_with_app_names} assets"
+                )
+
+                # Get user_id for audit trail (fallback to system UUID if not available)
+                user_id = (
+                    UUID(context.user_id)
+                    if context.user_id
+                    else UUID("00000000-0000-0000-0000-000000000000")
+                )
+
+                apps_created, junctions_created = (
+                    await bootstrap_canonical_applications_from_assets(
+                        db, client_account_id, engagement_id, user_id
+                    )
+                )
+                # Note: No manual commit needed - get_db() auto-commits after request
+                # The flush() in bootstrap function makes data visible for subsequent queries
+
+                logger.info(
+                    f"[ISSUE-1197] Bootstrap complete: {apps_created} canonical apps, "
+                    f"{junctions_created} junction records created"
+                )
+            else:
+                # No assets with application_name - provide UI guidance
+                logger.info(
+                    f"[ISSUE-1197] No canonical apps and no assets with application_name "
+                    f"for tenant {client_account_id}/{engagement_id} - returning guidance"
+                )
+                guidance = get_bootstrap_guidance()
+
         # Base query with tenant scoping (CRITICAL for security)
         base_query = select(CanonicalApplication).where(
             CanonicalApplication.client_account_id == client_account_id,
@@ -227,7 +280,7 @@ async def list_canonical_applications(
             (combined_total + page_size - 1) // page_size if combined_total > 0 else 0
         )
 
-        return {
+        response = {
             "applications": combined_data,
             "total": combined_total,
             "canonical_apps_count": len(applications_data),
@@ -236,6 +289,12 @@ async def list_canonical_applications(
             "page_size": page_size,
             "total_pages": combined_total_pages,
         }
+
+        # Issue #1197: Include guidance if no canonical apps and no bootstrappable assets
+        if guidance:
+            response["guidance"] = guidance
+
+        return response
 
     except Exception as e:
         logger.error(f"Failed to list canonical applications: {str(e)}", exc_info=True)
