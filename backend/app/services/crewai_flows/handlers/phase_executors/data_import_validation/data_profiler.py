@@ -327,8 +327,12 @@ class DataProfiler:
         warnings = [
             {
                 "severity": "warning",
-                "category": "multi_value",
-                **mv.to_dict(),
+                "field": mv.field_name,
+                "issue": f"Multi-valued field detected (delimiter: {mv.delimiter})",
+                "affected_count": mv.affected_count,
+                "delimiter": mv.delimiter,
+                "samples": mv.samples,
+                "recommendation": mv.recommendation,
             }
             for mv in multi_value_results
         ]
