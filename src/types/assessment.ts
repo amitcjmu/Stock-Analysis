@@ -75,12 +75,26 @@ export interface ReadinessSummary {
 }
 
 /**
+ * Detailed asset information for display in UI
+ * Provides asset name and readiness status for clearer visibility
+ */
+export interface AssetDetail {
+  asset_id: string;
+  asset_name: string;
+  asset_type?: string;
+  environment?: string;
+  assessment_readiness: 'ready' | 'not_ready' | 'in_progress';
+  assessment_readiness_score?: number;
+}
+
+/**
  * Application asset group with canonical application linkage
  */
 export interface ApplicationAssetGroup {
   canonical_application_id: string | null;
   canonical_application_name: string;
   asset_ids: string[];
+  assets?: AssetDetail[]; // Detailed asset info with names and readiness status
   asset_count: number;
   asset_types: string[]; // e.g., ["server", "database", "network_device"]
   readiness_summary: ReadinessSummary;

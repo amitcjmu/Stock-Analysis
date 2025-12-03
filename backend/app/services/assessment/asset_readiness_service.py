@@ -9,6 +9,9 @@ Provides methods to:
 
 Part of Issue #980: Intelligent Multi-Layer Gap Detection System
 Day 11: AssessmentFlowChildService Integration and API Endpoints
+
+Note: Some helper functions have been extracted to readiness_helpers.py
+as part of modularization (December 2025).
 """
 
 import logging
@@ -24,6 +27,7 @@ from app.models.assessment_flow import AssessmentFlow
 from app.models.canonical_applications import CollectionFlowApplication
 from app.services.gap_detection import GapAnalyzer
 from app.services.gap_detection.schemas import ComprehensiveGapReport
+from .readiness_helpers import build_ready_report, filter_assets_by_readiness
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +47,11 @@ class AssetReadinessService:
     ) -> ComprehensiveGapReport:
         """
         Analyze readiness of a single asset.
+
+        IMPORTANT: This method now respects the asset's assessment_readiness field
+        in the database. If an asset has been marked as 'ready' (e.g., after completing
+        a questionnaire), we return a ready report without re-running GapAnalyzer.
+        This ensures consistency between ApplicationGroupsWidget and ReadinessDashboardWidget.
 
         Args:
             asset_id: Asset UUID
@@ -72,12 +81,31 @@ class AssetReadinessService:
                 f"engagement_id={engagement_id})"
             )
 
+        # FIX: Check if asset is already marked as ready in the database
+        # This ensures consistency with ApplicationGroupsWidget which reads from DB field
+        # Questionnaire completion sets assessment_readiness='ready', we should respect that
+        if asset.assessment_readiness == "ready":
+            logger.info(
+                f"Asset {asset_id} already marked as ready in database, "
+                f"returning ready report without re-running GapAnalyzer",
+                extra={
+                    "asset_id": str(asset_id),
+                    "asset_name": getattr(asset, "asset_name", "unknown"),
+                    "assessment_readiness": asset.assessment_readiness,
+                    "assessment_readiness_score": getattr(
+                        asset, "assessment_readiness_score", None
+                    ),
+                },
+            )
+            return build_ready_report(asset)
+
         # Query linked application (if any)
-        # Note: Assets don't have direct canonical_application_id - they're linked via CollectionFlowApplication
+        # Note: Assets don't have direct canonical_application_id
         # For gap analysis, we don't need the application, so we skip this lookup
         application = None
 
         # Run gap analysis (GapAnalyzer orchestrates all 5 inspectors)
+        # Only runs for assets NOT already marked as ready
         logger.info(
             f"Analyzing asset readiness for asset_id={asset_id}",
             extra={
@@ -118,17 +146,8 @@ class AssetReadinessService:
             detailed: If True, include full reports per asset; if False, counts only
 
         Returns:
-            Dict with:
-            {
-                "flow_id": str,
-                "total_assets": int,
-                "ready_count": int,
-                "not_ready_count": int,
-                "overall_readiness_rate": float,  # Percentage ready (0-100)
-                "asset_reports": List[Dict],  # Only if detailed=True
-                "summary_by_type": Dict[str, Dict],  # Readiness by asset type
-                "analyzed_at": str (ISO timestamp)
-            }
+            Dict with flow_id, total_assets, ready_count, not_ready_count,
+            overall_readiness_rate, asset_reports (if detailed), summary_by_type
 
         Raises:
             ValueError: If flow not found or not in tenant scope
@@ -150,8 +169,7 @@ class AssetReadinessService:
             )
 
         # Get selected asset IDs from flow
-        # Note: selected_application_ids is deprecated and actually stores asset UUIDs
-        # Use selected_asset_ids if available, fallback to selected_application_ids for backward compatibility
+        # Use selected_asset_ids if available, fallback for backward compatibility
         selected_asset_ids = (
             flow.selected_asset_ids or flow.selected_application_ids or []
         )
@@ -197,7 +215,6 @@ class AssetReadinessService:
         )
 
         # Query canonical application mapping for all assets
-        # This provides the canonical_application_id for each asset
         canonical_mapping = {}
         if detailed and assets:
             mapping_stmt = select(
@@ -245,9 +262,7 @@ class AssetReadinessService:
 
                 # Include detailed report if requested
                 if detailed:
-                    # Get canonical application ID from mapping
                     canonical_app_id = canonical_mapping.get(asset.id)
-
                     asset_reports.append(
                         {
                             "asset_id": str(asset.id),
@@ -331,7 +346,7 @@ class AssetReadinessService:
 
         Args:
             flow_id: AssessmentFlow UUID
-            ready_only: If True, return only ready assets; if False, return not ready
+            ready_only: If True, return only ready assets; if False, not ready
             client_account_id: Tenant client account UUID
             engagement_id: Engagement UUID
             db: AsyncSession for database queries
@@ -342,104 +357,12 @@ class AssetReadinessService:
         Raises:
             ValueError: If flow not found or not in tenant scope
         """
-        # Query assessment flow with tenant scoping
-        stmt = select(AssessmentFlow).where(
-            AssessmentFlow.id == flow_id,
-            AssessmentFlow.client_account_id == UUID(client_account_id),
-            AssessmentFlow.engagement_id == UUID(engagement_id),
+        # Delegate to helper function, injecting analyze method as dependency
+        return await filter_assets_by_readiness(
+            flow_id=flow_id,
+            ready_only=ready_only,
+            client_account_id=client_account_id,
+            engagement_id=engagement_id,
+            db=db,
+            analyze_asset_func=self.analyze_asset_readiness,
         )
-        result = await db.execute(stmt)
-        flow = result.scalar_one_or_none()
-
-        if not flow:
-            raise ValueError(
-                f"Assessment flow {flow_id} not found or not in tenant scope "
-                f"(client_account_id={client_account_id}, "
-                f"engagement_id={engagement_id})"
-            )
-
-        # Get selected application IDs from flow
-        # Get selected asset IDs from flow
-        # Note: selected_application_ids is deprecated and actually stores asset UUIDs
-        # Use selected_asset_ids if available, fallback to selected_application_ids for backward compatibility
-        selected_asset_ids = (
-            flow.selected_asset_ids or flow.selected_application_ids or []
-        )
-
-        if not selected_asset_ids:
-            return []
-
-        # Query all selected assets directly by their IDs
-        # Convert asset IDs to UUIDs, filtering out invalid ones
-        asset_uuids = []
-        for asset_id in selected_asset_ids:
-            try:
-                if isinstance(asset_id, str):
-                    if asset_id.strip():  # Skip empty strings
-                        asset_uuids.append(UUID(asset_id))
-                elif asset_id is not None:
-                    asset_uuids.append(
-                        asset_id if isinstance(asset_id, UUID) else UUID(str(asset_id))
-                    )
-            except (ValueError, AttributeError) as e:
-                logger.warning(
-                    f"Invalid asset ID in selected_asset_ids: {asset_id} (error: {e})",
-                    extra={"flow_id": str(flow_id), "asset_id": str(asset_id)},
-                )
-                continue
-
-        if not asset_uuids:
-            logger.warning(
-                f"No valid asset IDs found in selected_asset_ids for flow {flow_id}",
-                extra={
-                    "flow_id": str(flow_id),
-                    "selected_asset_ids": selected_asset_ids,
-                },
-            )
-            return []
-
-        stmt = select(Asset).where(
-            Asset.id.in_(asset_uuids),
-            Asset.client_account_id == UUID(client_account_id),
-            Asset.engagement_id == UUID(engagement_id),
-        )
-        result = await db.execute(stmt)
-        assets = result.scalars().all()
-
-        # Filter by readiness status
-        filtered_asset_ids = []
-
-        for asset in assets:
-            try:
-                report = await self.analyze_asset_readiness(
-                    asset_id=asset.id,
-                    client_account_id=client_account_id,
-                    engagement_id=engagement_id,
-                    db=db,
-                )
-
-                # Apply readiness filter
-                if ready_only and report.is_ready_for_assessment:
-                    filtered_asset_ids.append(asset.id)
-                elif not ready_only and not report.is_ready_for_assessment:
-                    filtered_asset_ids.append(asset.id)
-
-            except Exception as e:
-                logger.error(
-                    f"Failed to analyze asset {asset.id} for filtering: {e}",
-                    extra={"asset_id": str(asset.id), "flow_id": str(flow_id)},
-                    exc_info=True,
-                )
-
-        logger.info(
-            f"Filtered {len(filtered_asset_ids)} assets by readiness "
-            f"(ready_only={ready_only}) for flow {flow_id}",
-            extra={
-                "flow_id": str(flow_id),
-                "total_assets": len(assets),
-                "filtered_count": len(filtered_asset_ids),
-                "ready_only": ready_only,
-            },
-        )
-
-        return filtered_asset_ids
