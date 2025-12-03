@@ -1,0 +1,14 @@
+# Test dependencies for backend
+# Install with: pip install -r requirements-test.txt
+
+# Core testing
+pytest>=8.0.0
+pytest-asyncio>=0.23.0
+pytest-cov>=4.0.0
+httpx>=0.27.0  # For async API testing
+
+# Contract testing (Issue #592)
+pact-python>=2.2.0  # Consumer-driven contract testing
+
+# Mocking
+pytest-mock>=3.12.0

@@ -7,6 +7,10 @@
  * Migration: Phase 3 of Assessment Flow MFO Migration (Issue #839)
  * Parent Issue: #611 - Assessment Flow Complete - Treatments Visible
  * Migration Plan: /docs/planning/ASSESSMENT_FLOW_MFO_MIGRATION_PLAN.md
+ *
+ * TYPE GENERATION (Issue #592):
+ * This file demonstrates usage of auto-generated types from OpenAPI schema.
+ * Run `npm run generate-types` to regenerate types from backend.
  */
 
 import { apiClient, getAuthHeaders } from '@/lib/api/apiClient';
@@ -15,9 +19,49 @@ import type {
   BatchReadinessSummary,
 } from '@/types/assessment';
 
+// Import generated types from OpenAPI schema (Issue #592)
+import type { ApiSchemas } from '@/types/generated';
+
+// =============================================================================
+// Generated Type Aliases (Issue #592 - API Contract Testing)
+// =============================================================================
+// These types are now sourced from the auto-generated OpenAPI schema.
+// Run `npm run generate-types` to regenerate from backend.
+// See: src/types/generated/api.ts for all available types.
+
+/**
+ * Assessment flow response - sourced from OpenAPI schema.
+ * @see components.schemas.AssessmentFlowResponse in generated/api.ts
+ */
+export type GeneratedAssessmentFlowResponse = ApiSchemas['AssessmentFlowResponse'];
+
+/**
+ * Assessment flow status response - sourced from OpenAPI schema.
+ * @see components.schemas.AssessmentFlowStatusResponse in generated/api.ts
+ */
+export type GeneratedAssessmentFlowStatusResponse = ApiSchemas['AssessmentFlowStatusResponse'];
+
+/**
+ * Assessment flow status enum - sourced from OpenAPI schema.
+ * Values: "initialized" | "processing" | "paused_for_user_input" | "completed" | "error"
+ */
+export type GeneratedAssessmentFlowStatus = ApiSchemas['AssessmentFlowStatus'];
+
+/**
+ * Accept recommendation request - sourced from OpenAPI schema.
+ */
+export type GeneratedAcceptRecommendationRequest = ApiSchemas['AcceptRecommendationRequest'];
+
+/**
+ * Accept recommendation response - sourced from OpenAPI schema.
+ */
+export type GeneratedAcceptRecommendationResponse = ApiSchemas['AcceptRecommendationResponse'];
+
 // =============================================================================
 // Request/Response Types (Using snake_case per CLAUDE.md field naming convention)
 // =============================================================================
+// NOTE: These manual types are kept for backward compatibility.
+// New code should prefer the Generated* type aliases above.
 
 /**
  * Request to create a new assessment flow.
@@ -47,6 +91,8 @@ export interface AssessmentFlowCreateRequest {
  *
  * CRITICAL: Uses snake_case field names to match backend.
  * NO transformation needed (api-field-transformer.ts is deprecated).
+ *
+ * @deprecated Prefer GeneratedAssessmentFlowResponse for type-safe backend alignment
  */
 export interface AssessmentFlowResponse {
   /** Master flow_id from crewai_flow_state_extensions table */
@@ -66,6 +112,8 @@ export interface AssessmentFlowResponse {
 /**
  * Detailed status response for assessment flow.
  * Includes progress tracking and phase data.
+ *
+ * @deprecated Prefer GeneratedAssessmentFlowStatusResponse for type-safe backend alignment
  */
 export interface AssessmentFlowStatusResponse {
   flow_id: string;

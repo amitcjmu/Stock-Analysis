@@ -43,7 +43,12 @@
     "lint:tolerant": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 200",
     "lint:agent-ready": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 50",
     "lint:strict": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "types:validate": "tsc --noEmit --skipLibCheck"
+    "types:validate": "tsc --noEmit --skipLibCheck",
+    "generate-types": "openapi-typescript http://localhost:8000/openapi.json -o src/types/generated/api.ts",
+    "generate-types:check": "npm run generate-types && git diff --exit-code src/types/generated/",
+    "test:contract": "vitest run tests/contract/ --config vitest.config.ts",
+    "test:contract:watch": "vitest tests/contract/ --config vitest.config.ts",
+    "test:backend:contract": "cd backend && python -m pytest tests/contract/ -v"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.1.0",
@@ -118,6 +123,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",
+    "@pact-foundation/pact": "^16.0.2",
     "@playwright/test": "^1.56.1",
     "@tailwindcss/typography": "^0.5.15",
     "@testing-library/dom": "^10.4.0",
@@ -141,6 +147,7 @@
     "globals": "^15.9.0",
     "jest-websocket-mock": "^2.5.0",
     "jsdom": "^26.1.0",
+    "openapi-typescript": "^7.10.1",
     "pg": "^8.16.3",
     "postcss": "^8.4.47",
     "prettier": "^3.6.2",
