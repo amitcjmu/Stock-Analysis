@@ -6,7 +6,7 @@ Handles getting import records, raw data, and import metadata.
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import desc, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext, get_current_context
@@ -38,52 +38,6 @@ async def get_data_imports(
             "engagement_id": context.engagement_id,
         },
     }
-
-
-@router.get("/latest")
-async def get_latest_import(
-    db: AsyncSession = Depends(get_db),
-    context: RequestContext = Depends(get_current_context),
-):
-    """Get the latest data import for the current context."""
-    try:
-        # Query for the latest import
-        query = (
-            select(DataImport)
-            .where(DataImport.client_account_id == context.client_account_id)
-            .where(DataImport.engagement_id == context.engagement_id)
-            .order_by(desc(DataImport.created_at))
-            .limit(1)
-        )
-
-        result = await db.execute(query)
-        latest_import = result.scalar_one_or_none()
-
-        if not latest_import:
-            raise HTTPException(
-                status_code=404, detail="No data imports found for the current context"
-            )
-
-        # Convert to dictionary format
-        import_dict = import_to_dict(latest_import)
-
-        # Add import metadata in the expected format
-        import_dict["import_metadata"] = {
-            "import_id": str(latest_import.id),
-            "import_name": latest_import.import_name,
-            "status": latest_import.status,
-            "filename": latest_import.filename,
-            "total_records": latest_import.total_records,
-            "processed_records": latest_import.processed_records,
-        }
-
-        return import_dict
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error getting latest import: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get latest import")
 
 
 @router.get("/imports/{import_id}/raw-records")

@@ -718,93 +718,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/agents/status": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Discovery Status
-         * @description Get comprehensive discovery status using V2 Discovery Flow architecture.
-         *     Replaces legacy session-based status checks.
-         */
-        get: operations["get_discovery_status_api_v1_agents_status_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/agents/health": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Agent Discovery Health
-         * @description Simple health check for discovery agent.
-         */
-        get: operations["agent_discovery_health_api_v1_agents_health_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/agents/monitor": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Agent Monitor
-         * @description Get enhanced agent monitor data with dynamic insights.
-         *
-         *     Returns real-time insights based on actual imported data and analysis.
-         *     Optimized for the AgentMonitor React component with AgentInsightsSection support.
-         */
-        get: operations["get_agent_monitor_api_v1_agents_monitor_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/agents/agent-status": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Agent Status
-         * @description Get comprehensive agent status information.
-         *
-         *     Combines discovery flow status, agent insights, and system health
-         *     to provide a complete view of the discovery agent's current state.
-         */
-        get: operations["get_agent_status_api_v1_agents_agent_status_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/agent-learning/learning/field-mapping": {
         parameters: {
             query?: never;
@@ -2596,26 +2509,6 @@ export interface paths {
          * @description Get list of data imports with context-aware filtering.
          */
         get: operations["get_data_imports_api_v1_data_import_imports_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/data-import/latest": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Latest Import
-         * @description Get the latest data import for the current context.
-         */
-        get: operations["get_latest_import_api_v1_data_import_latest_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -8073,14 +7966,14 @@ export interface paths {
          * @description Return records where the issue's field is empty, with suggested values populated.
          *     Uses existing data utilities/agent suggestions to infer values. The client may update these before finalizing.
          */
-        get: operations["suggest_missing_values_for_issue_api_v1_flows__flow_id__data_cleansing_quality_issues__issue_id__suggest_get"];
+        get: operations["suggest_missing_values_for_issue_api_v1_flows__flow_id__data_cleansing_quality_issues__issue_id__suggest_post"];
         put?: never;
         /**
          * Suggest values for records with missing field for a specific quality issue
          * @description Return records where the issue's field is empty, with suggested values populated.
          *     Uses existing data utilities/agent suggestions to infer values. The client may update these before finalizing.
          */
-        post: operations["suggest_missing_values_for_issue_api_v1_flows__flow_id__data_cleansing_quality_issues__issue_id__suggest_get"];
+        post: operations["suggest_missing_values_for_issue_api_v1_flows__flow_id__data_cleansing_quality_issues__issue_id__suggest_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -8308,14 +8201,14 @@ export interface paths {
          * @description Return records where the issue's field is empty, with suggested values populated.
          *     Uses existing data utilities/agent suggestions to infer values. The client may update these before finalizing.
          */
-        get: operations["suggest_missing_values_for_issue_api_v1_data_cleansing_flows__flow_id__data_cleansing_quality_issues__issue_id__suggest_get"];
+        get: operations["suggest_missing_values_for_issue_api_v1_data_cleansing_flows__flow_id__data_cleansing_quality_issues__issue_id__suggest_post"];
         put?: never;
         /**
          * Suggest values for records with missing field for a specific quality issue
          * @description Return records where the issue's field is empty, with suggested values populated.
          *     Uses existing data utilities/agent suggestions to infer values. The client may update these before finalizing.
          */
-        post: operations["suggest_missing_values_for_issue_api_v1_data_cleansing_flows__flow_id__data_cleansing_quality_issues__issue_id__suggest_get"];
+        post: operations["suggest_missing_values_for_issue_api_v1_data_cleansing_flows__flow_id__data_cleansing_quality_issues__issue_id__suggest_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -21737,86 +21630,6 @@ export interface operations {
             };
         };
     };
-    get_discovery_status_api_v1_agents_status_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-        };
-    };
-    agent_discovery_health_api_v1_agents_health_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-        };
-    };
-    get_agent_monitor_api_v1_agents_monitor_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-        };
-    };
-    get_agent_status_api_v1_agents_agent_status_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-        };
-    };
     learn_field_mapping_pattern_api_v1_agent_learning_learning_field_mapping_post: {
         parameters: {
             query?: never;
@@ -24607,26 +24420,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_latest_import_api_v1_data_import_latest_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
                 };
             };
         };
@@ -32444,7 +32237,7 @@ export interface operations {
             };
         };
     };
-    suggest_missing_values_for_issue_api_v1_flows__flow_id__data_cleansing_quality_issues__issue_id__suggest_get: {
+    suggest_missing_values_for_issue_api_v1_flows__flow_id__data_cleansing_quality_issues__issue_id__suggest_post: {
         parameters: {
             query?: {
                 /** @description Max rows to return */
@@ -32479,7 +32272,7 @@ export interface operations {
             };
         };
     };
-    suggest_missing_values_for_issue_api_v1_flows__flow_id__data_cleansing_quality_issues__issue_id__suggest_get: {
+    suggest_missing_values_for_issue_api_v1_flows__flow_id__data_cleansing_quality_issues__issue_id__suggest_post: {
         parameters: {
             query?: {
                 /** @description Max rows to return */
@@ -32818,7 +32611,7 @@ export interface operations {
             };
         };
     };
-    suggest_missing_values_for_issue_api_v1_data_cleansing_flows__flow_id__data_cleansing_quality_issues__issue_id__suggest_get: {
+    suggest_missing_values_for_issue_api_v1_data_cleansing_flows__flow_id__data_cleansing_quality_issues__issue_id__suggest_post: {
         parameters: {
             query?: {
                 /** @description Max rows to return */
@@ -32853,7 +32646,7 @@ export interface operations {
             };
         };
     };
-    suggest_missing_values_for_issue_api_v1_data_cleansing_flows__flow_id__data_cleansing_quality_issues__issue_id__suggest_get: {
+    suggest_missing_values_for_issue_api_v1_data_cleansing_flows__flow_id__data_cleansing_quality_issues__issue_id__suggest_post: {
         parameters: {
             query?: {
                 /** @description Max rows to return */
