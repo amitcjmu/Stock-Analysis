@@ -73,6 +73,7 @@ repos:
       - id: mixed-line-ending
       - id: check-added-large-files
         args: ['--maxkb=500']
+        exclude: ^src/types/generated/  # Generated types from OpenAPI schema (Issue #592)
 
   # SQL checks - Only on staged SQL files (not Python files)
   - repo: https://github.com/sqlfluff/sqlfluff
