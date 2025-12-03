@@ -481,9 +481,9 @@ const DataValidation: React.FC = () => {
             {/* Current decision */}
             {decision && (
               <div className="mt-3 p-2 bg-white rounded border">
-                <p className="text-sm font-medium text-gray-700">
-                  Selected action: <Badge>{decision.action}</Badge>
-                </p>
+                <div className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                  <span>Selected action:</span> <Badge>{decision.action}</Badge>
+                </div>
               </div>
             )}
           </div>
