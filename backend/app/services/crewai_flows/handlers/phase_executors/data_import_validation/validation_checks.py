@@ -1,12 +1,22 @@
 """
 Core validation checks for data import validation.
 Contains the main validation logic and coordination.
+
+Enhanced with intelligent data profiling per ADR-038:
+- Multi-value detection
+- Full dataset analysis
+- Field length validation against schema constraints
+- Data profile report generation
+
+Related: ADR-038, Issue #1204
 """
 
 import logging
 import re
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional
+
+from .data_profiler import DataProfiler, DataProfileReport
 
 logger = logging.getLogger(__name__)
 
@@ -389,3 +399,107 @@ class ValidationChecks:
     def _get_timestamp(self) -> str:
         """Get current timestamp in ISO format"""
         return datetime.utcnow().isoformat()
+
+    # ========================================================================
+    # ADR-038: Intelligent Data Profiling Integration
+    # ========================================================================
+
+    def generate_data_profile(
+        self,
+        schema_constraints: Optional[Dict[str, Dict[str, Any]]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Generate comprehensive data profile with intelligent analysis.
+
+        This is the main entry point for ADR-038 data profiling, which includes:
+        - Multi-value detection (comma/semicolon/pipe-separated)
+        - Full dataset analysis (all records, not samples)
+        - Field length validation against schema constraints
+        - Quality scoring and recommendations
+
+        Args:
+            schema_constraints: Optional schema constraints dict. If None,
+                               will be loaded from schema_constraints utility.
+
+        Returns:
+            Dict with full data profile report suitable for UI display
+
+        Related: ADR-038, Issue #1204
+        """
+        try:
+            logger.info("[ADR-038] Starting intelligent data profiling")
+
+            if not self.state.raw_data:
+                logger.warning("[ADR-038] No raw data available for profiling")
+                return {
+                    "error": "No data available for profiling",
+                    "profile": None,
+                }
+
+            # Create profiler and generate report
+            profiler = DataProfiler(self.state.raw_data)
+            report: DataProfileReport = profiler.generate_profile_report(
+                schema_constraints
+            )
+
+            # Convert to dict for storage and API response
+            profile_dict = report.to_dict()
+
+            logger.info(
+                f"[ADR-038] Data profiling complete: "
+                f"{report.total_records} records, "
+                f"{report.blocking_issue_count} blocking issues, "
+                f"overall score: {report.overall_quality_score}"
+            )
+
+            return profile_dict
+
+        except Exception as e:
+            logger.error(f"[ADR-038] Data profiling failed: {e}", exc_info=True)
+            return {
+                "error": f"Profiling failed: {str(e)}",
+                "profile": None,
+            }
+
+    def detect_multi_values_only(
+        self, field_name: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Detect multi-valued fields without full profiling.
+
+        Useful for quick checks during field mapping preview.
+
+        Args:
+            field_name: Optional specific field to check
+
+        Returns:
+            List of multi-value detection results
+        """
+        if not self.state.raw_data:
+            return []
+
+        profiler = DataProfiler(self.state.raw_data)
+        results = profiler.detect_multi_values(field_name)
+        return [r.to_dict() for r in results]
+
+    def check_field_lengths_only(
+        self,
+        schema_constraints: Optional[Dict[str, Dict[str, Any]]] = None,
+    ) -> List[Dict[str, Any]]:
+        """
+        Check field length violations without full profiling.
+
+        Useful for quick validation during import preview.
+
+        Args:
+            schema_constraints: Optional schema constraints
+
+        Returns:
+            List of length violation results
+        """
+        if not self.state.raw_data:
+            return []
+
+        profiler = DataProfiler(self.state.raw_data)
+        violations = profiler.check_field_length_violations(schema_constraints)
+        return [v.to_dict() for v in violations]

@@ -67,6 +67,7 @@ class APITags:
 
     # Discovery & Collection
     UNIFIED_DISCOVERY = "Unified Discovery"
+    DATA_VALIDATION = "Data Validation"
     COLLECTION_FLOW = "Collection Flow"
     COLLECTION_GAP_ANALYSIS = "Collection Gap Analysis"
     COLLECTION_BULK_OPERATIONS = "Collection Bulk Operations"
