@@ -169,7 +169,8 @@ async def list_canonical_applications(
                         db, client_account_id, engagement_id, user_id
                     )
                 )
-                await db.commit()
+                # Note: No manual commit needed - get_db() auto-commits after request
+                # The flush() in bootstrap function makes data visible for subsequent queries
 
                 logger.info(
                     f"[ISSUE-1197] Bootstrap complete: {apps_created} canonical apps, "

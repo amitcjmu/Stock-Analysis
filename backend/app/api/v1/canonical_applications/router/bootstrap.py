@@ -248,18 +248,20 @@ async def bootstrap_canonical_applications_from_assets(
                     f"[ISSUE-1197] Created canonical app: '{app_name}' (ID: {canonical_app.id})"
                 )
 
-            # Create junction records for all assets with this application_name
+            # Issue #1197: Batch query existing junctions to avoid N+1 pattern
+            asset_ids = [asset_id for asset_id, _ in asset_list]
+            existing_junctions_query = select(CollectionFlowApplication.asset_id).where(
+                CollectionFlowApplication.asset_id.in_(asset_ids),
+                CollectionFlowApplication.canonical_application_id == canonical_app.id,
+                CollectionFlowApplication.client_account_id == client_account_id,
+                CollectionFlowApplication.engagement_id == engagement_id,
+            )
+            existing_junctions_result = await db.execute(existing_junctions_query)
+            existing_asset_ids = {row.asset_id for row in existing_junctions_result}
+
+            # Create junction records for assets that don't have one
             for asset_id, asset_name in asset_list:
-                # Check if junction record already exists (idempotency)
-                existing_junction_query = select(CollectionFlowApplication.id).where(
-                    CollectionFlowApplication.asset_id == asset_id,
-                    CollectionFlowApplication.canonical_application_id
-                    == canonical_app.id,
-                    CollectionFlowApplication.client_account_id == client_account_id,
-                    CollectionFlowApplication.engagement_id == engagement_id,
-                )
-                existing_result = await db.execute(existing_junction_query)
-                if existing_result.scalar_one_or_none():
+                if asset_id in existing_asset_ids:
                     logger.debug(
                         f"[ISSUE-1197] Junction record already exists for "
                         f"asset {asset_id} → app {canonical_app.id}"
