@@ -1,6 +1,6 @@
 import React from 'react';
 import { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useUnifiedDiscoveryFlow } from '../../hooks/useUnifiedDiscoveryFlow';
 import { usePhaseAwareFlowResolver } from '../../hooks/discovery/attribute-mapping/usePhaseAwareFlowResolver';
@@ -69,7 +69,12 @@ import {
  */
 const DataValidation: React.FC = () => {
   const { user, client, engagement, isLoading: isAuthLoading } = useAuth();
-  const { flowId: urlFlowId } = useParams<{ flowId?: string }>();
+  const { flowId: pathFlowId } = useParams<{ flowId?: string }>();
+  const [searchParams] = useSearchParams();
+
+  // Support both path parameter (/discovery/data-validation/:flowId)
+  // and query parameter (/discovery/data-validation?flow_id=xxx)
+  const urlFlowId = pathFlowId || searchParams.get('flow_id') || undefined;
 
   // Use phase-aware flow resolver for data validation phase
   const {
