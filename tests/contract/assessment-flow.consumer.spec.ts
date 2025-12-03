@@ -41,7 +41,6 @@ describe('Assessment Flow API Consumer Contract', () => {
         .uponReceiving('a request for assessment flow status')
         .withRequest('GET', `/api/v1/assessment-flow/${flowId}/status`, (builder) => {
           builder.headers({
-            'Content-Type': 'application/json',
             'X-Client-Account-ID': like('1'),
             'X-Engagement-ID': like('1'),
           });
@@ -89,7 +88,6 @@ describe('Assessment Flow API Consumer Contract', () => {
         .uponReceiving('a request for non-existent assessment flow status')
         .withRequest('GET', `/api/v1/assessment-flow/${flowId}/status`, (builder) => {
           builder.headers({
-            'Content-Type': 'application/json',
             'X-Client-Account-ID': like('1'),
             'X-Engagement-ID': like('1'),
           });

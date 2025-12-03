@@ -18,6 +18,7 @@ Prerequisites:
     - Consumer pact files in ../tests/contract/pacts/
 """
 
+import re
 import pytest
 from pathlib import Path
 
@@ -56,38 +57,98 @@ class ProviderStateSetup:
     consumer expectation defined in the pact files.
     """
 
+    # Class-level mapping of state descriptions to handler method names
+    STATE_HANDLERS = {
+        # Health & Auth states
+        "the API is running": "_setup_healthy_api",
+        "a user is authenticated": "_setup_authenticated_user",
+        # Assessment Flow states
+        "an assessment flow exists": "_setup_assessment_flow",
+        "no assessment flow exists": "_setup_no_flow",
+        "no assessment flow exists": "_setup_no_flow",
+        "applications ready for assessment": "_setup_ready_applications",
+        "assessment flow with 6R decisions": "_setup_flow_with_decisions",
+        # Master Flow states
+        "a master flow exists": "_setup_master_flow",
+        "multiple master flows exist": "_setup_multiple_flows",
+        "an active master flow exists": "_setup_active_flow",
+        "a paused master flow exists": "_setup_paused_flow",
+        # Discovery Flow states
+        "ready to create discovery flow": "_setup_ready_for_discovery",
+        "a discovery flow exists": "_setup_discovery_flow",
+        "an active discovery flow exists": "_setup_active_discovery_flow",
+        "a discovery flow ready for execution": "_setup_discovery_flow",
+        "a running discovery flow": "_setup_running_discovery_flow",
+        "a paused discovery flow": "_setup_paused_discovery_flow",
+        "discovery flow has assets": "_setup_discovery_with_assets",
+        "discovery flow has field mappings": "_setup_discovery_with_mappings",
+        "discovery service is running": "_setup_healthy_api",
+        # Collection Flow states
+        "a discovery flow exists": "_setup_discovery_flow",
+        "an active collection flow exists": "_setup_active_collection_flow",
+        "collection flows exist": "_setup_collection_flows",
+        "a collection flow exists": "_setup_collection_flow",
+        "a collection flow ready for gap analysis": "_setup_collection_flow",
+        "a completed collection flow": "_setup_completed_collection_flow",
+        # Decommission Flow states
+        "systems eligible for decommission exist": "_setup_decommission_eligible",
+        "a decommission flow exists": "_setup_decommission_flow",
+        "a paused decommission flow": "_setup_paused_decommission_flow",
+        "a running decommission flow": "_setup_running_decommission_flow",
+        "an active decommission flow": "_setup_active_decommission_flow",
+        "decommission flows exist": "_setup_decommission_flows",
+        "systems exist that can be decommissioned": "_setup_decommission_eligible",
+        "a decommission flow ready for phase execution": "_setup_decommission_flow",
+        "data retention policies exist": "_setup_data_retention_policies",
+        # Data Import states
+        "data imports exist": "_setup_data_imports",
+        "at least one data import exists": "_setup_data_imports",
+        "a data import exists": "_setup_data_import",
+        "target fields are configured": "_setup_target_fields",
+        "field categories are configured": "_setup_field_categories",
+        "an import with field mappings exists": "_setup_import_with_mappings",
+        "an import ready for mapping generation": "_setup_import_for_mapping",
+        "imports with critical attributes exist": "_setup_critical_attributes",
+        "learning data exists": "_setup_learning_data",
+        "data import service is running": "_setup_healthy_api",
+        # FinOps states
+        "FinOps metrics are available": "_setup_finops_metrics",
+        "resources with costs exist": "_setup_finops_resources",
+        "cost optimization opportunities exist": "_setup_finops_opportunities",
+        "cost alerts are configured": "_setup_finops_alerts",
+        "LLM usage data exists": "_setup_llm_usage",
+        "FinOps service is running": "_setup_healthy_api",
+        # Canonical Applications states
+        "canonical applications exist": "_setup_canonical_apps",
+        "a canonical application and asset exist": "_setup_canonical_app_with_asset",
+        "a canonical application and multiple assets exist": "_setup_canonical_app_with_assets",
+        "a canonical application with assessed assets": "_setup_canonical_app_assessed",
+    }
+
     def __init__(self, test_client):
         self.client = test_client
 
-    def setup_state(self, state: str, params: dict = None) -> None:
+    def setup_state(self, state: str, **kwargs) -> None:
         """
         Set up provider state based on consumer expectation.
 
         Args:
             state: The provider state description from the pact
-            params: Optional parameters for the state
+            **kwargs: Optional parameters for the state (pact-python passes these as kwargs)
         """
-        params = params or {}
+        params = kwargs or {}
 
-        # Map state descriptions to setup functions
-        state_handlers = {
-            "the API is running": self._setup_healthy_api,
-            "a user is authenticated": self._setup_authenticated_user,
-            "an assessment flow exists": self._setup_assessment_flow,
-            "no assessment flow exists": self._setup_no_flow,
-            "applications ready for assessment": self._setup_ready_applications,
-            "assessment flow with 6R decisions": self._setup_flow_with_decisions,
-            "a master flow exists": self._setup_master_flow,
-            "multiple master flows exist": self._setup_multiple_flows,
-            "an active master flow exists": self._setup_active_flow,
-            "a paused master flow exists": self._setup_paused_flow,
-        }
-
-        handler = state_handlers.get(state)
-        if handler:
-            handler(params)
+        handler_name = self.STATE_HANDLERS.get(state)
+        if handler_name:
+            handler = getattr(self, handler_name, None)
+            if handler:
+                handler(params)
+            else:
+                print(f"Warning: Handler method '{handler_name}' not found")
         else:
             print(f"Warning: No handler for state '{state}'")
+
+    # ============== Health & Auth Handlers ==============
 
     def _setup_healthy_api(self, params: dict) -> None:
         """API is running - no setup needed."""
@@ -98,17 +159,13 @@ class ProviderStateSetup:
         # The test headers will provide tenant context
         pass
 
-    def _setup_assessment_flow(self, params: dict) -> None:
-        """
-        Set up an existing assessment flow.
+    # ============== Assessment Flow Handlers ==============
 
-        In real implementation, this would:
-        1. Create a test flow in crewai_flow_state_extensions
-        2. Create linked assessment_flows record
-        """
+    def _setup_assessment_flow(self, params: dict) -> None:
+        """Set up an existing assessment flow."""
         flow_id = params.get("flow_id", "550e8400-e29b-41d4-a716-446655440000")
-        # Mock or create test data here
         print(f"Setting up assessment flow: {flow_id}")
+        # TODO: Create test flow in database when running integration tests
 
     def _setup_no_flow(self, params: dict) -> None:
         """Ensure no flow exists - clean state."""
@@ -123,6 +180,8 @@ class ProviderStateSetup:
         flow_id = params.get("flow_id")
         app_id = params.get("app_id")
         print(f"Setting up flow {flow_id} with decisions for app {app_id}")
+
+    # ============== Master Flow Handlers ==============
 
     def _setup_master_flow(self, params: dict) -> None:
         """Set up a master flow."""
@@ -142,6 +201,176 @@ class ProviderStateSetup:
         """Set up a paused flow."""
         flow_id = params.get("flow_id")
         print(f"Setting up paused flow: {flow_id}")
+
+    # ============== Discovery Flow Handlers ==============
+
+    def _setup_ready_for_discovery(self, params: dict) -> None:
+        """Ready to create discovery flow."""
+        pass
+
+    def _setup_discovery_flow(self, params: dict) -> None:
+        """Set up a discovery flow."""
+        flow_id = params.get("flow_id", "550e8400-e29b-41d4-a716-446655440000")
+        print(f"Setting up discovery flow: {flow_id}")
+
+    def _setup_active_discovery_flow(self, params: dict) -> None:
+        """Set up an active discovery flow."""
+        pass
+
+    def _setup_running_discovery_flow(self, params: dict) -> None:
+        """Set up a running discovery flow."""
+        flow_id = params.get("flow_id")
+        print(f"Setting up running discovery flow: {flow_id}")
+
+    def _setup_paused_discovery_flow(self, params: dict) -> None:
+        """Set up a paused discovery flow."""
+        flow_id = params.get("flow_id")
+        print(f"Setting up paused discovery flow: {flow_id}")
+
+    def _setup_discovery_with_assets(self, params: dict) -> None:
+        """Set up discovery flow with assets."""
+        flow_id = params.get("flow_id")
+        print(f"Setting up discovery flow with assets: {flow_id}")
+
+    def _setup_discovery_with_mappings(self, params: dict) -> None:
+        """Set up discovery flow with field mappings."""
+        flow_id = params.get("flow_id")
+        print(f"Setting up discovery flow with mappings: {flow_id}")
+
+    # ============== Collection Flow Handlers ==============
+
+    def _setup_active_collection_flow(self, params: dict) -> None:
+        """Set up an active collection flow."""
+        pass
+
+    def _setup_collection_flows(self, params: dict) -> None:
+        """Set up multiple collection flows."""
+        pass
+
+    def _setup_collection_flow(self, params: dict) -> None:
+        """Set up a collection flow."""
+        flow_id = params.get("flow_id")
+        print(f"Setting up collection flow: {flow_id}")
+
+    def _setup_completed_collection_flow(self, params: dict) -> None:
+        """Set up a completed collection flow."""
+        flow_id = params.get("flow_id")
+        print(f"Setting up completed collection flow: {flow_id}")
+
+    # ============== Decommission Flow Handlers ==============
+
+    def _setup_decommission_eligible(self, params: dict) -> None:
+        """Set up systems eligible for decommission."""
+        pass
+
+    def _setup_decommission_flow(self, params: dict) -> None:
+        """Set up a decommission flow."""
+        flow_id = params.get("flow_id")
+        print(f"Setting up decommission flow: {flow_id}")
+
+    def _setup_paused_decommission_flow(self, params: dict) -> None:
+        """Set up a paused decommission flow."""
+        flow_id = params.get("flow_id")
+        print(f"Setting up paused decommission flow: {flow_id}")
+
+    def _setup_running_decommission_flow(self, params: dict) -> None:
+        """Set up a running decommission flow."""
+        flow_id = params.get("flow_id")
+        print(f"Setting up running decommission flow: {flow_id}")
+
+    def _setup_active_decommission_flow(self, params: dict) -> None:
+        """Set up an active decommission flow."""
+        flow_id = params.get("flow_id")
+        print(f"Setting up active decommission flow: {flow_id}")
+
+    def _setup_decommission_flows(self, params: dict) -> None:
+        """Set up multiple decommission flows."""
+        pass
+
+    def _setup_data_retention_policies(self, params: dict) -> None:
+        """Set up data retention policies."""
+        pass
+
+    # ============== Data Import Handlers ==============
+
+    def _setup_data_imports(self, params: dict) -> None:
+        """Set up data imports."""
+        pass
+
+    def _setup_data_import(self, params: dict) -> None:
+        """Set up a specific data import."""
+        import_id = params.get("import_id")
+        print(f"Setting up data import: {import_id}")
+
+    def _setup_target_fields(self, params: dict) -> None:
+        """Set up target fields configuration."""
+        pass
+
+    def _setup_field_categories(self, params: dict) -> None:
+        """Set up field categories."""
+        pass
+
+    def _setup_import_with_mappings(self, params: dict) -> None:
+        """Set up import with field mappings."""
+        import_id = params.get("import_id")
+        print(f"Setting up import with mappings: {import_id}")
+
+    def _setup_import_for_mapping(self, params: dict) -> None:
+        """Set up import ready for mapping generation."""
+        import_id = params.get("import_id")
+        print(f"Setting up import for mapping: {import_id}")
+
+    def _setup_critical_attributes(self, params: dict) -> None:
+        """Set up critical attributes."""
+        pass
+
+    def _setup_learning_data(self, params: dict) -> None:
+        """Set up learning data."""
+        pass
+
+    # ============== FinOps Handlers ==============
+
+    def _setup_finops_metrics(self, params: dict) -> None:
+        """Set up FinOps metrics."""
+        pass
+
+    def _setup_finops_resources(self, params: dict) -> None:
+        """Set up FinOps resources."""
+        pass
+
+    def _setup_finops_opportunities(self, params: dict) -> None:
+        """Set up FinOps opportunities."""
+        pass
+
+    def _setup_finops_alerts(self, params: dict) -> None:
+        """Set up FinOps alerts."""
+        pass
+
+    def _setup_llm_usage(self, params: dict) -> None:
+        """Set up LLM usage data."""
+        pass
+
+    # ============== Canonical Applications Handlers ==============
+
+    def _setup_canonical_apps(self, params: dict) -> None:
+        """Set up canonical applications."""
+        pass
+
+    def _setup_canonical_app_with_asset(self, params: dict) -> None:
+        """Set up canonical application with asset."""
+        app_id = params.get("app_id")
+        asset_id = params.get("asset_id")
+        print(f"Setting up canonical app {app_id} with asset {asset_id}")
+
+    def _setup_canonical_app_with_assets(self, params: dict) -> None:
+        """Set up canonical application with multiple assets."""
+        app_id = params.get("app_id")
+        print(f"Setting up canonical app {app_id} with multiple assets")
+
+    def _setup_canonical_app_assessed(self, params: dict) -> None:
+        """Set up canonical application with assessed assets."""
+        app_id = params.get("app_id")
+        print(f"Setting up canonical app {app_id} with assessed assets")
 
 
 @pytest.fixture
@@ -188,14 +417,13 @@ class TestProviderVerification:
             provider_base_url=PROVIDER_BASE_URL,
         )
 
-        # Configure state change handler
-        # In real usage, this would be a webhook that sets up provider states
-
         # Verify each pact file
         for pact_file in pact_files:
             print(f"\nVerifying pact: {pact_file.name}")
 
             # Run verification
+            # Note: Provider state setup requires a webhook endpoint in production
+            # For now, we verify the contract structure without state setup
             output, result = verifier.verify_pacts(
                 str(pact_file),
                 enable_pending=True,
@@ -281,17 +509,15 @@ class TestAPIEndpointContracts:
             "/api/v1/assessment-flow/{flow_id}/status",
         ]
 
-        for endpoint in required_endpoints:
-            # Check endpoint exists (may have different path parameter formats)
-            endpoint_exists = (
-                any(
-                    endpoint.replace("{flow_id}", "") in path
-                    for path in schema["paths"].keys()
-                )
-                or endpoint in schema["paths"]
-            )
+        # Normalize path parameters for robust matching
+        paths = schema["paths"].keys()
+        normalized_paths = {re.sub(r"\{.*?\}", "{param}", path) for path in paths}
 
-            assert endpoint_exists, f"Endpoint {endpoint} not found in OpenAPI schema"
+        for endpoint in required_endpoints:
+            normalized_endpoint = re.sub(r"\{.*?\}", "{param}", endpoint)
+            assert (
+                normalized_endpoint in normalized_paths
+            ), f"Endpoint {endpoint} not found in OpenAPI schema"
 
 
 # Entry point for standalone verification
