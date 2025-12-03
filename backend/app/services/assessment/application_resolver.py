@@ -28,6 +28,7 @@ from app.models.asset import AssetDependency
 from app.models.vendor_products_catalog import AssetProductLinks
 from app.schemas.assessment_flow import (
     ApplicationAssetGroup,
+    AssetDetail,
     EnrichmentStatus,
     ReadinessSummary,
 )
@@ -221,11 +222,25 @@ class AssessmentApplicationResolver:
                 "avg_completeness_score": avg_score,
             }
 
+            # Build detailed asset list for UI display
+            asset_details = [
+                AssetDetail(
+                    asset_id=a["asset_id"],
+                    asset_name=a["asset_name"] or "Unknown Asset",
+                    asset_type=a.get("asset_type"),
+                    environment=a.get("environment"),
+                    assessment_readiness=a.get("assessment_readiness") or "not_ready",
+                    assessment_readiness_score=a.get("assessment_readiness_score"),
+                )
+                for a in group_data["assets"]
+            ]
+
             groups.append(
                 ApplicationAssetGroup(
                     canonical_application_id=group_data["canonical_application_id"],
                     canonical_application_name=group_data["canonical_application_name"],
                     asset_ids=[a["asset_id"] for a in group_data["assets"]],
+                    assets=asset_details,
                     asset_count=len(group_data["assets"]),
                     asset_types=sorted(list(group_data["asset_types"])),
                     readiness_summary=readiness_summary,

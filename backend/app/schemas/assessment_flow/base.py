@@ -11,6 +11,43 @@ from uuid import UUID
 from pydantic import BaseModel, Field, ConfigDict
 
 
+class AssetDetail(BaseModel):
+    """
+    Detailed asset information for display in UI.
+
+    Provides asset name and readiness status for clearer visibility
+    in the Assessment Overview page.
+    """
+
+    asset_id: UUID = Field(..., description="Asset UUID")
+    asset_name: str = Field(..., description="Asset display name")
+    asset_type: Optional[str] = Field(
+        None, description="Asset type (server, database, etc.)"
+    )
+    environment: Optional[str] = Field(
+        None, description="Environment (prod, dev, etc.)"
+    )
+    assessment_readiness: str = Field(
+        "not_ready", description="Readiness status: ready, not_ready, in_progress"
+    )
+    assessment_readiness_score: Optional[float] = Field(
+        None, ge=0.0, le=1.0, description="Readiness score (0.0-1.0)"
+    )
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "asset_id": "c4ed088f-6658-405b-b011-8ce50c065ddf",
+                "asset_name": "Web Server 01",
+                "asset_type": "server",
+                "environment": "production",
+                "assessment_readiness": "ready",
+                "assessment_readiness_score": 0.85,
+            }
+        }
+    )
+
+
 class ApplicationAssetGroup(BaseModel):
     """
     Application group with its associated assets.
@@ -18,6 +55,8 @@ class ApplicationAssetGroup(BaseModel):
     Represents the canonical application grouping of assets for assessment purposes.
     Supports both mapped applications (with canonical_application_id) and unmapped
     assets (canonical_application_id = None).
+
+    Now includes detailed asset information for clearer UI display.
     """
 
     canonical_application_id: Optional[UUID] = Field(
@@ -28,6 +67,10 @@ class ApplicationAssetGroup(BaseModel):
     )
     asset_ids: List[UUID] = Field(
         default_factory=list, description="List of asset UUIDs in this group"
+    )
+    assets: List[AssetDetail] = Field(
+        default_factory=list,
+        description="Detailed asset information with names and readiness status",
     )
     asset_count: int = Field(0, ge=0, description="Number of assets in this group")
     asset_types: List[str] = Field(
@@ -48,6 +91,16 @@ class ApplicationAssetGroup(BaseModel):
                 "canonical_application_id": "05459507-86cb-41f9-9c2d-2a9f4a50445a",
                 "canonical_application_name": "CRM System",
                 "asset_ids": ["c4ed088f-6658-405b-b011-8ce50c065ddf"],
+                "assets": [
+                    {
+                        "asset_id": "c4ed088f-6658-405b-b011-8ce50c065ddf",
+                        "asset_name": "Web Server 01",
+                        "asset_type": "server",
+                        "environment": "production",
+                        "assessment_readiness": "ready",
+                        "assessment_readiness_score": 0.85,
+                    }
+                ],
                 "asset_count": 3,
                 "asset_types": ["server", "database", "network_device"],
                 "readiness_summary": {

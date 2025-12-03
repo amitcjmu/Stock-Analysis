@@ -11,6 +11,7 @@ Original file (assessment_flow.py) was 572 lines and exceeded the
 # Base data models (October 2025 refactor)
 from .base import (
     ApplicationAssetGroup,
+    AssetDetail,
     AssessmentApplicationInfo,
     EnrichmentStatus,
     ReadinessSummary,
@@ -68,6 +69,7 @@ from .events import (
 __all__ = [
     # Base models
     "ApplicationAssetGroup",
+    "AssetDetail",
     "AssessmentApplicationInfo",
     "EnrichmentStatus",
     "ReadinessSummary",
