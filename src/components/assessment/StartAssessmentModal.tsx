@@ -52,6 +52,13 @@ interface UnmappedAsset {
 
 type ApplicationOrAsset = CanonicalApplication | UnmappedAsset;
 
+interface BootstrapGuidance {
+  message: string;
+  action: string;
+  action_label: string;
+  action_url: string;
+}
+
 interface CanonicalApplicationsResponse {
   applications: ApplicationOrAsset[];
   total: number;
@@ -60,6 +67,7 @@ interface CanonicalApplicationsResponse {
   page: number;
   page_size: number;
   total_pages: number;
+  guidance?: BootstrapGuidance;  // Issue #1197: Guidance when no apps can be bootstrapped
 }
 
 interface StartAssessmentModalProps {
@@ -95,6 +103,7 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
   const [assetMappings, setAssetMappings] = useState<Record<string, string>>({});
   const [mappingInProgress, setMappingInProgress] = useState<string | null>(null);
   const [refreshingReadiness, setRefreshingReadiness] = useState(false);
+  const [bootstrapGuidance, setBootstrapGuidance] = useState<BootstrapGuidance | null>(null);
 
   // Fetch canonical applications and unmapped assets
   useEffect(() => {
@@ -127,6 +136,29 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
 
         console.log(`✅ Fetched ${response.applications.length} applications from database`);
         setApplications(response.applications);
+
+        // Issue #1197: Handle bootstrap guidance (when no apps can be created)
+        if (response.guidance) {
+          setBootstrapGuidance(response.guidance);
+          console.log('📋 Bootstrap guidance received:', response.guidance.message);
+        } else {
+          setBootstrapGuidance(null);
+        }
+
+        // Issue #1197: Auto-populate asset mappings from backend data
+        // When bootstrap creates junction records, assets will have mapped_to_application_id
+        const initialMappings: Record<string, string> = {};
+        response.applications.forEach((item) => {
+          if (isUnmappedAsset(item) && item.mapped_to_application_id) {
+            // Asset already has a mapping from bootstrap - pre-select it
+            initialMappings[item.asset_id] = item.mapped_to_application_id;
+          }
+        });
+
+        if (Object.keys(initialMappings).length > 0) {
+          setAssetMappings(prev => ({ ...prev, ...initialMappings }));
+          console.log(`✅ Auto-populated ${Object.keys(initialMappings).length} asset mappings from bootstrap`);
+        }
       } catch (err) {
         console.error('Failed to fetch canonical applications:', err);
         setError('Failed to load applications. Please try again.');
@@ -633,6 +665,27 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm whitespace-pre-wrap">
               {error}
+            </div>
+          )}
+
+          {/* Issue #1197: Show bootstrap guidance when no apps can be created */}
+          {bootstrapGuidance && !loading && (
+            <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
+              <div className="flex items-start gap-3">
+                <span className="text-blue-500 text-xl">💡</span>
+                <div className="flex-1">
+                  <p className="text-sm text-blue-800">{bootstrapGuidance.message}</p>
+                  <button
+                    onClick={() => {
+                      onClose();
+                      navigate(bootstrapGuidance.action_url);
+                    }}
+                    className="mt-3 px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                  >
+                    {bootstrapGuidance.action_label} →
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 

@@ -137,6 +137,9 @@ async def get_unmapped_assets(
     """
     Query for non-application assets and their mapping status.
 
+    Issue #1197: Optimized with batch queries to avoid N+1 pattern.
+    After bootstrap, assets with application_name will have junction records.
+
     Args:
         db: Database session
         client_account_id: Tenant client account ID
@@ -173,29 +176,45 @@ async def get_unmapped_assets(
     unmapped_result = await db.execute(unmapped_query)
     unmapped_assets = unmapped_result.scalars().all()
 
-    # Check mapping status for each unmapped asset
-    unmapped_assets_data = []
-    for asset in unmapped_assets:
-        # Query for mapping to canonical application
-        mapping_query = (
-            select(
-                CollectionFlowApplication.canonical_application_id,
-                CanonicalApplication.canonical_name,
-            )
-            .join(
-                CanonicalApplication,
-                CanonicalApplication.id
-                == CollectionFlowApplication.canonical_application_id,
-            )
-            .where(
-                CollectionFlowApplication.asset_id == asset.id,
-                CollectionFlowApplication.client_account_id == client_account_id,
-                CollectionFlowApplication.engagement_id == engagement_id,
-            )
+    if not unmapped_assets:
+        return [], unmapped_total
+
+    # Issue #1197: Batch query all mappings to avoid N+1 pattern
+    asset_ids = [asset.id for asset in unmapped_assets]
+
+    batch_mappings_query = (
+        select(
+            CollectionFlowApplication.asset_id,
+            CollectionFlowApplication.canonical_application_id,
+            CanonicalApplication.canonical_name,
+        )
+        .join(
+            CanonicalApplication,
+            CanonicalApplication.id
+            == CollectionFlowApplication.canonical_application_id,
+        )
+        .where(
+            CollectionFlowApplication.asset_id.in_(asset_ids),
+            CollectionFlowApplication.client_account_id == client_account_id,
+            CollectionFlowApplication.engagement_id == engagement_id,
+        )
+    )
+
+    batch_mappings_result = await db.execute(batch_mappings_query)
+    batch_mappings = batch_mappings_result.all()
+
+    # Build lookup dictionary: asset_id -> (canonical_app_id, canonical_name)
+    mappings_by_asset: Dict[UUID, Tuple[UUID, str]] = {}
+    for mapping in batch_mappings:
+        mappings_by_asset[mapping.asset_id] = (
+            mapping.canonical_application_id,
+            mapping.canonical_name,
         )
 
-        mapping_result = await db.execute(mapping_query)
-        mapping = mapping_result.first()
+    # Build response data using batch-fetched mappings
+    unmapped_assets_data = []
+    for asset in unmapped_assets:
+        mapping = mappings_by_asset.get(asset.id)
 
         unmapped_assets_data.append(
             {
@@ -203,12 +222,8 @@ async def get_unmapped_assets(
                 "asset_id": str(asset.id),
                 "asset_name": asset.name,
                 "asset_type": asset.asset_type,
-                "mapped_to_application_id": (
-                    str(mapping.canonical_application_id) if mapping else None
-                ),
-                "mapped_to_application_name": (
-                    mapping.canonical_name if mapping else None
-                ),
+                "mapped_to_application_id": (str(mapping[0]) if mapping else None),
+                "mapped_to_application_name": (mapping[1] if mapping else None),
                 "discovery_status": asset.discovery_status,
                 "assessment_readiness": asset.assessment_readiness,
             }
