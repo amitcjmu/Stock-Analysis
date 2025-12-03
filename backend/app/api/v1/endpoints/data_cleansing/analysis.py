@@ -156,24 +156,109 @@ def _analyze_raw_data_quality(
     return dict(field_stats)
 
 
+def _get_expected_format_and_examples(field_name: str, issue_type: str) -> tuple:
+    """
+    Get expected format and fix examples based on field name patterns.
+
+    Returns:
+        tuple: (expected_format: str, fix_examples: List[str])
+    """
+    field_lower = field_name.lower()
+
+    # Email field patterns
+    if "email" in field_lower:
+        return (
+            "Valid email format: user@domain.com",
+            [
+                "john.doe@example.com",
+                "admin@company.org",
+                "support+team@service.io",
+            ],
+        )
+
+    # IP address patterns
+    if "ip" in field_lower:
+        return (
+            "Valid IPv4 format: xxx.xxx.xxx.xxx (0-255 for each octet)",
+            ["192.168.1.100", "10.0.0.1", "172.16.254.1"],
+        )
+
+    # Date/timestamp patterns
+    if any(
+        kw in field_lower for kw in ["date", "created", "modified", "timestamp", "time"]
+    ):
+        return (
+            "ISO 8601 date format: YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS",
+            ["2024-01-15", "2024-03-22T14:30:00", "2024-12-01"],
+        )
+
+    # Hostname/server patterns
+    if any(kw in field_lower for kw in ["hostname", "server", "host"]):
+        return (
+            "Valid hostname: alphanumeric with hyphens, no spaces or special characters",
+            ["web-server-01", "db-prod-east", "app-frontend-2"],
+        )
+
+    # Environment field patterns
+    if any(kw in field_lower for kw in ["environment", "env"]):
+        return (
+            "Standard environment values: production, staging, development, test",
+            ["production", "staging", "development"],
+        )
+
+    # OS/platform patterns
+    if any(kw in field_lower for kw in ["os", "operating", "platform"]):
+        return (
+            "Standard OS identifiers with version",
+            ["Windows Server 2019", "RHEL 8.6", "Ubuntu 22.04 LTS"],
+        )
+
+    # Default for unknown field types
+    return (
+        "Consistent format matching existing valid values",
+        [],
+    )
+
+
 def _generate_quality_issues_from_stats(
     field_stats: Dict[str, Dict[str, Any]],
     total_records: int,
     sample_size: int,
+    validation_decisions: Optional[Dict[str, Any]] = None,
 ) -> List[DataQualityIssue]:
     """
     Generate DataQualityIssue objects from field statistics.
     Extrapolates affected record counts from sample to full dataset.
+
+    ADR-038: Enhanced to include sample values, expected format, and fix examples.
+
+    Args:
+        field_stats: Field-level quality statistics with sample_values
+        total_records: Total number of records in the dataset
+        sample_size: Number of records sampled for analysis
+        validation_decisions: Optional decisions from data validation phase
     """
     quality_issues = []
 
     if sample_size == 0:
         return []
 
+    # Build lookup for validation decisions by field name
+    decisions_by_field = {}
+    if validation_decisions and validation_decisions.get("decisions"):
+        for decision in validation_decisions["decisions"]:
+            field = decision.get("field_name")
+            if field:
+                decisions_by_field[field] = decision
+
     for field_name, stats in field_stats.items():
         total = stats["total_count"]
         missing_count = stats["missing_count"]
         invalid_count = stats["invalid_format_count"]
+        sample_values = stats.get("sample_values", [])
+
+        # Get validation decision for this field if any
+        field_decision = decisions_by_field.get(field_name)
 
         # Generate issue for missing values (if > 5%)
         if missing_count > 0 and (missing_count / total) > 0.05:
@@ -185,6 +270,14 @@ def _generate_quality_issues_from_stats(
             # Extrapolate to full dataset
             estimated_affected = int(total_records * (missing_count / sample_size))
 
+            # Get example valid values for recommendation
+            valid_samples = [str(v) for v in sample_values if v][:3]
+            sample_text = (
+                f" (existing values include: {', '.join(valid_samples)})"
+                if valid_samples
+                else ""
+            )
+
             quality_issues.append(
                 DataQualityIssue(
                     id=_generate_deterministic_issue_id(field_name, "missing_values"),
@@ -192,15 +285,24 @@ def _generate_quality_issues_from_stats(
                     issue_type="missing_values",
                     severity=severity,
                     description=(
-                        f"Field '{field_name}' has an estimated {missing_count} missing values "
-                        f"in a sample of {total} records ({(missing_count/total)*100:.1f}%)"
+                        f"Field '{field_name}' has {missing_count} missing/empty values "
+                        f"out of {total} sampled records ({(missing_count/total)*100:.1f}% null rate). "
+                        f"Estimated {estimated_affected} affected records in full dataset."
                     ),
                     affected_records=estimated_affected,
                     recommendation=(
-                        f"Consider filling missing values for '{field_name}' with "
-                        f"default values or remove incomplete records"
+                        f"Fill missing values for '{field_name}' with a default value "
+                        f"or placeholder{sample_text}, or remove incomplete records"
                     ),
                     auto_fixable=True,
+                    sample_values=valid_samples if valid_samples else None,
+                    expected_format="Non-empty value required",
+                    fix_examples=[
+                        "Use 'N/A' or 'Unknown' for missing string values",
+                        "Use 0 or -1 for missing numeric values",
+                        "Remove records with critical missing data",
+                    ],
+                    validation_decision=field_decision,
                 )
             )
 
@@ -210,6 +312,19 @@ def _generate_quality_issues_from_stats(
             # Extrapolate to full dataset
             estimated_affected = int(total_records * (invalid_count / sample_size))
 
+            # Get expected format and examples based on field type
+            expected_format, fix_examples = _get_expected_format_and_examples(
+                field_name, "invalid_format"
+            )
+
+            # Include sample problematic values in description
+            invalid_samples = [str(v) for v in sample_values if v][:3]
+            sample_text = (
+                f" Sample values: [{', '.join(repr(s) for s in invalid_samples)}]"
+                if invalid_samples
+                else ""
+            )
+
             quality_issues.append(
                 DataQualityIssue(
                     id=_generate_deterministic_issue_id(field_name, "invalid_format"),
@@ -217,27 +332,51 @@ def _generate_quality_issues_from_stats(
                     issue_type="invalid_format",
                     severity=severity,
                     description=(
-                        f"Field '{field_name}' has an estimated {invalid_count} records with "
-                        f"invalid format in a sample of {total} records ({(invalid_count/total)*100:.1f}%)"
+                        f"Field '{field_name}' has {invalid_count} records with invalid format "
+                        f"out of {total} sampled ({(invalid_count/total)*100:.1f}%).{sample_text}"
                     ),
                     affected_records=estimated_affected,
-                    recommendation=f"Standardize format for '{field_name}' to ensure data consistency",
+                    recommendation=(
+                        f"Standardize '{field_name}' to {expected_format}. "
+                        f"Transform invalid values to match the expected pattern."
+                    ),
                     auto_fixable=True,
+                    sample_values=invalid_samples if invalid_samples else None,
+                    expected_format=expected_format,
+                    fix_examples=fix_examples if fix_examples else None,
+                    validation_decision=field_decision,
                 )
             )
 
         # Generate issue for data type mismatches (if multiple types detected)
         if len(stats["data_types"]) > 1:
+            type_list = list(stats["data_types"])
+            sample_vals = [str(v) for v in sample_values if v][:5]
+
             quality_issues.append(
                 DataQualityIssue(
                     id=_generate_deterministic_issue_id(field_name, "type_mismatch"),
                     field_name=field_name,
                     issue_type="type_mismatch",
                     severity="medium",
-                    description=f"Field '{field_name}' has mixed data types: {', '.join(stats['data_types'])}",
+                    description=(
+                        f"Field '{field_name}' contains mixed data types: {', '.join(type_list)}. "
+                        f"This can cause processing errors and inconsistent behavior."
+                    ),
                     affected_records=total,
-                    recommendation=f"Convert all values in '{field_name}' to a consistent data type",
+                    recommendation=(
+                        f"Convert all values in '{field_name}' to a single consistent type. "
+                        f"Recommended type: {type_list[0]} (most common)."
+                    ),
                     auto_fixable=True,
+                    sample_values=sample_vals if sample_vals else None,
+                    expected_format=f"Consistent {type_list[0]} type for all values",
+                    fix_examples=[
+                        "Convert string numbers to integers: '123' → 123",
+                        "Convert mixed booleans: 'true'/'yes' → True",
+                        "Ensure null handling: None → appropriate default",
+                    ],
+                    validation_decision=field_decision,
                 )
             )
 
@@ -591,6 +730,43 @@ async def _perform_data_cleansing_analysis(  # noqa: C901
     field_quality_scores = {}
     field_stats = {}  # Initialize to empty dict to handle cases with no raw records
 
+    # ADR-038: Load data_validation_decisions from flow phase_state
+    validation_decisions = None
+    if include_details and db_session:
+        try:
+            # Convert flow_id to UUID if it's a string
+            flow_uuid = UUID(flow_id) if isinstance(flow_id, str) else flow_id
+
+            # Load the flow to get phase_state with validation decisions
+            flow_query = select(DiscoveryFlow).where(
+                DiscoveryFlow.flow_id == flow_uuid
+            )  # SKIP_TENANT_CHECK - flow_id validated via MFO
+            if client_account_id is not None:
+                flow_query = flow_query.where(
+                    DiscoveryFlow.client_account_id == client_account_id
+                )
+            if engagement_id is not None:
+                flow_query = flow_query.where(
+                    DiscoveryFlow.engagement_id == engagement_id
+                )
+
+            flow_result = await db_session.execute(flow_query)
+            flow_for_decisions = flow_result.scalar_one_or_none()
+
+            if flow_for_decisions and flow_for_decisions.phase_state:
+                validation_decisions = flow_for_decisions.phase_state.get(
+                    "data_validation_decisions"
+                )
+                if validation_decisions:
+                    logger.info(
+                        f"[ADR-038] Loaded {len(validation_decisions.get('decisions', []))} "
+                        f"data validation decisions for flow {flow_id}"
+                    )
+        except Exception:
+            logger.exception(
+                "[ADR-038] Failed to load data_validation_decisions from flow phase_state"
+            )
+
     # Analyze raw import records for quality issues (regardless of field_mappings)
     if include_details and data_import and db_session:
         try:
@@ -611,9 +787,13 @@ async def _perform_data_cleansing_analysis(  # noqa: C901
                 # Analyze raw data for quality issues
                 field_stats = _analyze_raw_data_quality(raw_records, total_records)
 
-                # Generate quality issues from analysis
+                # Generate quality issues from analysis with validation decisions
+                # ADR-038: Pass data_validation_decisions to include in quality issues
                 quality_issues = _generate_quality_issues_from_stats(
-                    field_stats, total_records, len(raw_records)
+                    field_stats,
+                    total_records,
+                    len(raw_records),
+                    validation_decisions=validation_decisions,
                 )
 
                 # Calculate field quality scores

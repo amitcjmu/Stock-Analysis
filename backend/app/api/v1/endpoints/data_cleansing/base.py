@@ -50,6 +50,13 @@ class DataQualityIssue(BaseModel):
     recommendation: str
     auto_fixable: bool = False
     status: Optional[str] = None  # 'pending', 'resolved', 'ignored'
+    # ADR-038: Enhanced fields for detailed issue reporting
+    sample_values: Optional[List[str]] = None  # Examples of problematic values
+    expected_format: Optional[str] = None  # What the correct format should be
+    fix_examples: Optional[List[str]] = None  # Examples of how to fix the values
+    validation_decision: Optional[Dict[str, str]] = (
+        None  # Decision from data validation phase
+    )
 
 
 class DataCleansingRecommendation(BaseModel):
