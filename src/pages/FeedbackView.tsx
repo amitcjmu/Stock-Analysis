@@ -255,6 +255,47 @@ const FeedbackView: React.FC = () => {
     setFilteredFeedback(filtered);
   }, [feedback, selectedPage, selectedRating, selectedStatus, searchTerm]);
 
+  // Helper function to calculate summary from feedback array
+  const calculateSummary = useCallback((feedbackItems: FeedbackItem[]): void => {
+    if (feedbackItems.length > 0) {
+      const total = feedbackItems.length;
+      const avgRating = feedbackItems.reduce((sum: number, f: FeedbackItem) => sum + f.rating, 0) / total;
+      const byStatus = feedbackItems.reduce((acc: Record<string, number>, f: FeedbackItem) => {
+        acc[f.status] = (acc[f.status] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      const byPage = feedbackItems.reduce((acc: Record<string, number>, f: FeedbackItem) => {
+        acc[f.page] = (acc[f.page] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      const byRating = feedbackItems.reduce((acc: Record<string, number>, f: FeedbackItem) => {
+        const rating = f.rating.toString();
+        acc[rating] = (acc[rating] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
+      setSummary({
+        total,
+        avgRating,
+        byStatus: {
+          new: byStatus['new'] || 0,
+          reviewed: byStatus['reviewed'] || 0,
+          resolved: byStatus['resolved'] || 0
+        },
+        byPage,
+        byRating
+      });
+    } else {
+      setSummary({
+        total: 0,
+        avgRating: 0,
+        byStatus: { new: 0, reviewed: 0, resolved: 0 },
+        byPage: {},
+        byRating: {}
+      });
+    }
+  }, []);
+
   // Delete feedback handler
   const handleDelete = useCallback(async (feedbackId: string): Promise<void> => {
     if (!window.confirm('Are you sure you want to delete this feedback?')) {
@@ -264,13 +305,18 @@ const FeedbackView: React.FC = () => {
       await apiCall(`chat/feedback/${feedbackId}`, {
         method: 'DELETE',
       });
-      // Remove from local state
-      setFeedback(prev => prev.filter(f => f.id !== feedbackId));
+      // Remove from local state and recalculate summary
+      setFeedback(prev => {
+        const updated = prev.filter(f => f.id !== feedbackId);
+        // Recalculate summary with updated feedback
+        calculateSummary(updated);
+        return updated;
+      });
     } catch (error) {
       console.error('Failed to delete feedback:', error);
       alert('Failed to delete feedback. Please try again.');
     }
-  }, []);
+  }, [calculateSummary]);
 
   // CC FIX: useEffect hooks AFTER the useCallback definitions they depend on
   useEffect(() => {
@@ -299,7 +345,7 @@ const FeedbackView: React.FC = () => {
     ));
   };
 
-  const getUniqueValues = (field: keyof FeedbackItem): (string | number)[] => {
+  const getUniqueValues = (field: keyof FeedbackItem): Array<string | number> => {
     const values = Array.from(new Set(feedback.map(f => f[field])));
     return values.filter(v => v !== undefined && v !== null);
   };

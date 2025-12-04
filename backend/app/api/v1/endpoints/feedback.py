@@ -209,12 +209,12 @@ async def delete_feedback(
     """
     Delete a feedback entry. Admin feature for managing feedback.
 
-    Security: Requires authentication. Only authenticated users can delete feedback.
-    In production, this should be restricted to admin roles.
+    Security: Requires authentication AND admin privileges.
     """
     try:
         from uuid import UUID as PyUUID
 
+        from app.core.middleware.auth_utils import check_platform_admin
         from app.models.feedback import Feedback
 
         # Verify user is authenticated
@@ -222,6 +222,17 @@ async def delete_feedback(
             raise HTTPException(
                 status_code=401,
                 detail="Authentication required to delete feedback",
+            )
+
+        # Verify user has admin privileges
+        is_admin = await check_platform_admin(context.user_id)
+        if not is_admin:
+            logger.warning(
+                f"Non-admin user {context.user_id} attempted to delete feedback"
+            )
+            raise HTTPException(
+                status_code=403,
+                detail="Admin privileges required to delete feedback",
             )
 
         # Parse the UUID
