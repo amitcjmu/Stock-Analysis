@@ -276,22 +276,90 @@ async def get_data_cleansing_stats(
                 data_import.total_records if data_import.total_records else 0
             )
 
-        # For now, return basic calculated stats
-        # TODO: Integrate with actual data cleansing crew results
-        clean_records = int(total_records * 0.85)  # Estimate 85% clean
-        records_with_issues = total_records - clean_records
+        # CC FIX: Count actual cleansed records instead of hardcoded 85%
+        # A record is "clean" if it has cleansed_data with mappings applied
+        try:
+            # Count records with cleansed_data that has mappings_applied > 0
+            # Using JSON extraction to check mappings_applied field
+            clean_query = select(func.count(RawImportRecord.id)).where(
+                RawImportRecord.data_import_id == data_import.id,
+                RawImportRecord.cleansed_data.isnot(None),
+                # Check that mappings_applied exists and is > 0
+                RawImportRecord.cleansed_data["mappings_applied"].as_integer() > 0,
+            )
+            clean_result = await db.execute(clean_query)
+            clean_records = clean_result.scalar() or 0
+
+            logger.info(
+                f"📊 Clean records: {clean_records}/{total_records} have cleansed_data with mappings"
+            )
+        except Exception as e:
+            logger.warning(
+                f"Failed to count cleansed records, falling back to total: {e}"
+            )
+            # Fallback: if cleansed_data query fails, assume all records are clean
+            clean_records = total_records
+
+        # CC FIX: Get actual quality issues count from database
+        records_with_issues = 0
+        issues_by_severity = {"low": 0, "medium": 0, "high": 0, "critical": 0}
+
+        try:
+            # Get quality issues from flow state
+            discovery_repo = DiscoveryFlowRepository(db)
+            discovery_flow = await discovery_repo.get_by_master_flow_id(
+                flow_id,
+                context.client_account_id,
+                context.engagement_id,
+            )
+
+            if discovery_flow and discovery_flow.master_flow_id:
+                # Get quality issues from crewai_flow_state_extensions
+                master_flow_query = select(CrewAIFlowStateExtensions).where(
+                    CrewAIFlowStateExtensions.flow_id
+                    == str(discovery_flow.master_flow_id)
+                )
+                master_result = await db.execute(master_flow_query)
+                master_flow = master_result.scalar_one_or_none()
+
+                if master_flow and master_flow.flow_persistence_data:
+                    quality_issues = master_flow.flow_persistence_data.get(
+                        "quality_issues", []
+                    )
+                    pending_issues = [
+                        q
+                        for q in quality_issues
+                        if q.get("status", "pending") == "pending"
+                    ]
+
+                    # Count affected records (sum of affected_records from each issue)
+                    for issue in pending_issues:
+                        affected = issue.get("affected_records", 0)
+                        records_with_issues += affected
+                        severity = issue.get("severity", "medium")
+                        if severity in issues_by_severity:
+                            issues_by_severity[severity] += 1
+
+                    logger.info(
+                        f"📊 Quality issues: {len(pending_issues)} pending issues "
+                        f"affecting {records_with_issues} records"
+                    )
+        except Exception as e:
+            logger.warning(f"Failed to get quality issues count: {e}")
+
+        # Calculate completion percentage based on cleansed records
+        completion_percentage = (
+            round((clean_records / total_records) * 100, 1)
+            if total_records > 0
+            else 0.0
+        )
 
         return DataCleansingStats(
             total_records=total_records,
             clean_records=clean_records,
             records_with_issues=records_with_issues,
-            issues_by_severity={
-                "low": int(records_with_issues * 0.4),
-                "medium": int(records_with_issues * 0.3),
-                "high": int(records_with_issues * 0.2),
-                "critical": int(records_with_issues * 0.1),
-            },
-            completion_percentage=85.0,
+            issues_by_severity=issues_by_severity,
+            completion_percentage=completion_percentage,
         )
 
     except HTTPException:
@@ -490,13 +558,23 @@ async def apply_recommendation(
                 try:
                     # Find the recommendation in database
                     # Apply multi-tenant scoping to prevent cross-tenant data access
-                    client_account_uuid = uuid.UUID(context.client_account_id) if isinstance(context.client_account_id, str) else context.client_account_id
-                    engagement_uuid = uuid.UUID(context.engagement_id) if isinstance(context.engagement_id, str) else context.engagement_id
+                    client_account_uuid = (
+                        uuid.UUID(context.client_account_id)
+                        if isinstance(context.client_account_id, str)
+                        else context.client_account_id
+                    )
+                    engagement_uuid = (
+                        uuid.UUID(context.engagement_id)
+                        if isinstance(context.engagement_id, str)
+                        else context.engagement_id
+                    )
                     rec_query = (
                         select(DBRecommendation)
                         .where(DBRecommendation.id == recommendation_uuid)
                         .where(DBRecommendation.flow_id == flow.flow_id)
-                        .where(DBRecommendation.client_account_id == client_account_uuid)
+                        .where(
+                            DBRecommendation.client_account_id == client_account_uuid
+                        )
                         .where(DBRecommendation.engagement_id == engagement_uuid)
                     )
                     rec_result = await db.execute(rec_query)

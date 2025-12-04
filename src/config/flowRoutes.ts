@@ -30,6 +30,12 @@ export const FLOW_PHASE_ROUTES: Record<
     data_import_validation: () => "/discovery/cmdb-import",
     data_import: () => "/discovery/cmdb-import",
 
+    // Data validation phase (ADR-038: intelligent data profiling)
+    data_validation: (flowId: string) =>
+      flowId
+        ? `/discovery/data-validation/${flowId}`
+        : "/discovery/cmdb-import",
+
     // Field mapping phases
     field_mapping: (flowId: string) =>
       flowId

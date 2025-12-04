@@ -748,9 +748,10 @@ const DataCleansing: React.FC = () => {
     (noDataToProcess && allQuestionsAnswered)
   );
 
-  // Enhanced data samples for display - extract from flow state with proper type casting
-  const rawDataSample = flow?.raw_data?.slice(0, 3) || [];
-  const cleanedDataSample = flow?.data_cleansing_results?.cleaned_data?.slice(0, 3) || [];
+  // CC FIX: Use sample data from dataCleansingAnalysis API response (ADR-038)
+  // Fall back to flow data for backward compatibility
+  const rawDataSample = dataCleansingAnalysis?.raw_data_sample || flow?.raw_data?.slice(0, 3) || [];
+  const cleanedDataSample = dataCleansingAnalysis?.cleaned_data_sample || [];
 
   // Secure debug logging for flow detection and data state
   SecureLogger.debug('DataCleansing flow detection summary', {

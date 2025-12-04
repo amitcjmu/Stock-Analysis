@@ -4,23 +4,36 @@ Asset Preview API Endpoint
 Per Issue #907: Allow users to preview and approve assets before database persistence.
 
 CC: Preview transformed assets from flow_persistence_data before creating in DB
+CC: Added regeneration capability to allow refreshing stale previews
 """
 
 import logging
 from datetime import datetime
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status, Body
+from fastapi import APIRouter, Depends, HTTPException, status, Body, Query
 from pydantic import BaseModel, Field, validator
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from app.core.database import get_db
 from app.core.context import get_request_context, RequestContext
 from app.api.v1.auth.auth_utils import get_current_user
 from app.models.client_account import User
+from app.models.data_import.core import RawImportRecord
+from app.models.discovery_flow import DiscoveryFlow
 from app.repositories.crewai_flow_state_extensions_repository import (
     CrewAIFlowStateExtensionsRepository,
+)
+from app.services.crewai_flows.handlers.phase_executors.asset_inventory_executor.transforms import (
+    transform_raw_record_to_asset,
+)
+from app.services.crewai_flows.handlers.phase_executors.asset_inventory_executor.queries import (
+    get_field_mappings,
+)
+from app.services.crewai_flows.handlers.phase_executors.asset_inventory_executor.utils import (
+    serialize_uuids_for_jsonb,
 )
 
 
@@ -57,6 +70,10 @@ logger = logging.getLogger(__name__)
 @router.get("/{flow_id}")
 async def get_asset_preview(
     flow_id: UUID,
+    regenerate: bool = Query(
+        default=False,
+        description="Force regeneration of preview from current raw_import_records data",
+    ),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
     request_context: RequestContext = Depends(get_request_context),
@@ -67,14 +84,19 @@ async def get_asset_preview(
     Per Issue #907: Returns transformed assets before database persistence,
     allowing user review and approval.
 
+    CC: Added regenerate parameter to refresh preview from current cleansed data.
+    This is useful when the preview becomes stale (e.g., after data cleansing phase).
+
     Args:
         flow_id: Master flow UUID
+        regenerate: If True, forces regeneration of preview from current raw_import_records
 
     Returns:
         Dictionary with:
         - assets_preview: List of asset data to be created
         - flow_id: Flow UUID
         - count: Number of assets
+        - regenerated: Boolean indicating if preview was regenerated (when regenerate=true)
     """
     client_account_id = UUID(request_context.client_account_id)
     engagement_id = UUID(request_context.engagement_id)
@@ -98,19 +120,52 @@ async def get_asset_preview(
 
     # Extract asset preview data from flow_persistence_data
     persistence_data = flow.flow_persistence_data or {}
-    assets_preview = persistence_data.get("assets_preview", [])
 
-    if not assets_preview:
-        logger.info(f"No asset preview data found for flow {flow_id}")
-        # Check if assets are already created
-        if persistence_data.get("assets_created"):
+    # Check if assets are already created (prevent regeneration)
+    if persistence_data.get("assets_created"):
+        return {
+            "flow_id": str(flow_id),
+            "assets_preview": [],
+            "count": 0,
+            "status": "assets_already_created",
+            "message": "Assets have already been created for this flow",
+        }
+
+    # CC: Regenerate preview if requested
+    if regenerate:
+        logger.info(f"🔄 Regenerating asset preview for flow {flow_id}")
+        assets_preview = await _regenerate_preview(
+            db=db,
+            flow_repo=flow_repo,
+            flow=flow,
+            master_flow_id=str(flow_id),
+            client_account_id=str(client_account_id),
+            engagement_id=str(engagement_id),
+        )
+
+        if assets_preview is None:
             return {
                 "flow_id": str(flow_id),
                 "assets_preview": [],
                 "count": 0,
-                "status": "assets_already_created",
-                "message": "Assets have already been created for this flow",
+                "status": "no_data",
+                "message": "No raw import records available for preview generation",
             }
+
+        return {
+            "flow_id": str(flow_id),
+            "assets_preview": assets_preview,
+            "count": len(assets_preview),
+            "status": "preview_ready",
+            "regenerated": True,
+            "message": f"Preview regenerated with {len(assets_preview)} assets from current data",
+        }
+
+    # Return cached preview
+    assets_preview = persistence_data.get("assets_preview", [])
+
+    if not assets_preview:
+        logger.info(f"No asset preview data found for flow {flow_id}")
 
     logger.info(
         f"Retrieved {len(assets_preview)} assets for preview from flow {flow_id}"
@@ -122,6 +177,125 @@ async def get_asset_preview(
         "count": len(assets_preview),
         "status": "preview_ready",
     }
+
+
+async def _regenerate_preview(
+    db: AsyncSession,
+    flow_repo: CrewAIFlowStateExtensionsRepository,
+    flow,
+    master_flow_id: str,
+    client_account_id: str,
+    engagement_id: str,
+) -> Optional[List[Dict[str, Any]]]:
+    """
+    Regenerate asset preview from current raw_import_records data.
+
+    CC: This ensures the preview reflects the latest cleansed data with mappings applied.
+
+    Args:
+        db: Database session
+        flow_repo: Flow repository
+        flow: The flow entity
+        master_flow_id: Master flow UUID string
+        client_account_id: Client account UUID string
+        engagement_id: Engagement UUID string
+
+    Returns:
+        List of asset preview data, or None if no records found
+    """
+    try:
+        # Get data_import_id from flow_persistence_data
+        persistence_data = flow.flow_persistence_data or {}
+        data_import_id = persistence_data.get("data_import_id")
+
+        # Also check discovery flow for data_import_id if not in persistence_data
+        if not data_import_id:
+            # Find discovery flow linked to this master flow
+            stmt = select(DiscoveryFlow).where(
+                DiscoveryFlow.master_flow_id == UUID(master_flow_id),
+                DiscoveryFlow.client_account_id == UUID(client_account_id),
+                DiscoveryFlow.engagement_id == UUID(engagement_id),
+            )
+            result = await db.execute(stmt)
+            discovery_flow = result.scalar_one_or_none()
+
+            if discovery_flow and discovery_flow.data_import_id:
+                data_import_id = str(discovery_flow.data_import_id)
+                logger.info(
+                    f"Found data_import_id from discovery flow: {data_import_id}"
+                )
+
+        if not data_import_id:
+            logger.warning(f"No data_import_id found for flow {master_flow_id}")
+            return None
+
+        # Get raw import records (with cleansed data)
+        stmt = select(RawImportRecord).where(
+            RawImportRecord.data_import_id == UUID(data_import_id),
+            RawImportRecord.client_account_id == UUID(client_account_id),
+            RawImportRecord.engagement_id == UUID(engagement_id),
+        )
+        result = await db.execute(stmt)
+        raw_records = result.scalars().all()
+
+        if not raw_records:
+            logger.warning(
+                f"No raw import records found for data_import_id {data_import_id}"
+            )
+            return None
+
+        logger.info(f"📊 Found {len(raw_records)} raw records for preview regeneration")
+
+        # Get field mappings
+        field_mappings = await get_field_mappings(db, data_import_id, client_account_id)
+        logger.info(f"📋 Retrieved {len(field_mappings)} field mappings")
+
+        # Transform records to asset data
+        assets_data = []
+        for record in raw_records:
+            # Get discovery_flow_id for proper association
+            discovery_flow_id = (
+                persistence_data.get("discovery_flow_id") or master_flow_id
+            )
+
+            asset_data = transform_raw_record_to_asset(
+                record, master_flow_id, discovery_flow_id, field_mappings
+            )
+            if asset_data:
+                assets_data.append(asset_data)
+
+        logger.info(f"🔄 Transformed {len(assets_data)} records to asset format")
+
+        if not assets_data:
+            return None
+
+        # Serialize and store preview
+        serialized_assets = []
+        for i, asset in enumerate(assets_data):
+            serialized_asset = serialize_uuids_for_jsonb(asset)
+            serialized_asset["id"] = f"asset-{i}"
+            serialized_assets.append(serialized_asset)
+
+        # Update flow_persistence_data with new preview
+        # CC: Use dictionary reassignment for SQLAlchemy change tracking
+        flow.flow_persistence_data = {
+            **persistence_data,
+            "assets_preview": serialized_assets,
+            "preview_generated_at": datetime.utcnow().isoformat(),
+            "preview_regenerated": True,
+        }
+
+        await db.commit()
+
+        logger.info(f"✅ Regenerated preview with {len(serialized_assets)} assets")
+        return serialized_assets
+
+    except Exception as e:
+        logger.error(f"❌ Failed to regenerate preview: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to regenerate preview: {str(e)}",
+        )
 
 
 @router.post("/{flow_id}/approve")

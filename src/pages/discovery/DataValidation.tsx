@@ -1,61 +1,87 @@
 import React from 'react';
-import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useUnifiedDiscoveryFlow } from '../../hooks/useUnifiedDiscoveryFlow';
 import { usePhaseAwareFlowResolver } from '../../hooks/discovery/attribute-mapping/usePhaseAwareFlowResolver';
-import { apiCall } from '../../config/api';
 import SecureLogger from '../../utils/secureLogger';
 import { secureNavigation } from '../../utils/secureNavigation';
+
+// Services
+import { DataValidationProfileService } from '../../services/dataValidationProfileService';
+import type {
+  DataProfileWrapper,
+  DataProfileResponse,
+  DataIssue,
+  FieldDecision,
+  FieldProfile,
+} from '../../services/dataValidationProfileService';
 
 // Components
 import Sidebar from '../../components/Sidebar';
 import { ContextBreadcrumbs } from '../../components/context/ContextBreadcrumbs';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Progress } from '../../components/ui/progress';
-import { CheckCircle, AlertTriangle, RefreshCw, Activity } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui/select';
+import { Checkbox } from '../../components/ui/checkbox';
+import { Label } from '../../components/ui/label';
+import {
+  CheckCircle,
+  AlertTriangle,
+  RefreshCw,
+  Activity,
+  AlertCircle,
+  Info,
+  ChevronDown,
+  ChevronRight,
+  Scissors,
+  FileX,
+  SkipForward,
+  Database,
+} from 'lucide-react';
 
 /**
- * Validation Issue interface
- */
-interface ValidationIssue {
-  message: string;
-  severity: 'critical' | 'warning' | 'info';
-  field?: string;
-  suggestion?: string;
-}
-
-/**
- * Validation Results interface
- */
-interface ValidationResults {
-  quality_score: number;
-  completeness_score: number;
-  validation_issues: ValidationIssue[];
-  validated_records: number;
-}
-
-/**
- * Data Validation Page Component
+ * Data Validation Page Component (Enhanced with ADR-038 Data Profiling)
  *
- * Displays data quality validation results and allows users to:
- * - View validation status and metrics
- * - See quality scores and completeness
- * - Review validation issues
- * - Navigate to next phase
+ * Displays intelligent data profiling results including:
+ * - Quality scores (completeness, consistency, constraint compliance)
+ * - Critical issues (field length violations)
+ * - Warnings (multi-value detection)
+ * - User decision controls for handling issues
+ *
+ * Related: ADR-038, Issue #1204
  */
 const DataValidation: React.FC = () => {
   const { user, client, engagement, isLoading: isAuthLoading } = useAuth();
-  const { flowId: urlFlowId } = useParams<{ flowId?: string }>();
+  const { flowId: pathFlowId } = useParams<{ flowId?: string }>();
+  const [searchParams] = useSearchParams();
+
+  // Support both path parameter (/discovery/data-validation/:flowId)
+  // and query parameter (/discovery/data-validation?flow_id=xxx)
+  const urlFlowId = pathFlowId || searchParams.get('flow_id') || undefined;
 
   // Use phase-aware flow resolver for data validation phase
   const {
     resolvedFlowId: effectiveFlowId,
     isResolving: isFlowListLoading,
     error: flowResolutionError,
-    resolutionMethod
+    resolutionMethod,
   } = usePhaseAwareFlowResolver(urlFlowId, 'data_validation');
 
   // Unified Discovery flow hook
@@ -68,89 +94,197 @@ const DataValidation: React.FC = () => {
     refreshFlow: refresh,
   } = useUnifiedDiscoveryFlow(effectiveFlowId);
 
-  // Local state for validation data
-  const [validationResults, setValidationResults] = useState<ValidationResults | null>(null);
-  const [isLoadingValidation, setIsLoadingValidation] = useState(false);
+  // Local state for data profile
+  const [dataProfile, setDataProfile] = useState<DataProfileResponse | null>(null);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
 
-  // Extract flow details
-  const progressPercentage = flow?.progress_percentage || 0;
-  const currentPhase = flow?.current_phase || '';
+  // Decision modal state
+  const [showDecisionModal, setShowDecisionModal] = useState(false);
+  const [decisions, setDecisions] = useState<Map<string, FieldDecision>>(new Map());
+  const [proceedWithWarnings, setProceedWithWarnings] = useState(false);
+  const [isSubmittingDecisions, setIsSubmittingDecisions] = useState(false);
 
-  // Fetch validation results
-  useEffect(() => {
-    const fetchValidationResults = async (): Promise<void> => {
-      if (!effectiveFlowId || !client?.id || !engagement?.id) return;
+  // Expanded sections state
+  const [expandedIssues, setExpandedIssues] = useState<Set<string>>(new Set());
 
-      setIsLoadingValidation(true);
-      try {
-        SecureLogger.info('Fetching data validation results', { flowId: effectiveFlowId });
+  // Fetch data profile
+  const fetchDataProfile = useCallback(async (): Promise<void> => {
+    if (!effectiveFlowId || !client?.id || !engagement?.id) return;
 
-        // Try to get validation results from flow state first
-        const response = await apiCall(
-          `/api/v1/flows/${effectiveFlowId}/validation-results`,
-          { method: 'GET' }
-        );
+    setIsLoadingProfile(true);
+    setProfileError(null);
+    try {
+      SecureLogger.info('[ADR-038] Fetching data profile', { flowId: effectiveFlowId });
 
-        setValidationResults(response);
-        SecureLogger.info('Data validation results fetched successfully');
-      } catch (error) {
-        SecureLogger.error('Failed to fetch validation results', error);
-        // Use flow state as fallback
-        setValidationResults(null);
-      } finally {
-        setIsLoadingValidation(false);
+      const response: DataProfileWrapper = await DataValidationProfileService.getDataProfile(
+        effectiveFlowId
+      );
+
+      if (response.success && response.data_profile) {
+        setDataProfile(response.data_profile);
+        SecureLogger.info('[ADR-038] Data profile fetched successfully', {
+          records: response.data_profile.summary.total_records,
+          criticalIssues: response.data_profile.issues.critical.length,
+          warnings: response.data_profile.issues.warnings.length,
+        });
+      } else {
+        setProfileError(response.error || 'Failed to fetch data profile');
       }
-    };
-
-    fetchValidationResults();
+    } catch (err) {
+      SecureLogger.error('[ADR-038] Failed to fetch data profile', err);
+      setProfileError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setIsLoadingProfile(false);
+    }
   }, [effectiveFlowId, client, engagement]);
 
-  // Extract validation metrics from results or flow state
-  const qualityScore = validationResults?.quality_score ||
-    flow?.data_validation_results?.quality_score ||
-    0;
+  useEffect(() => {
+    fetchDataProfile();
+  }, [fetchDataProfile]);
 
-  const completenessScore = validationResults?.completeness_score ||
-    flow?.data_validation_results?.completeness_score ||
-    0;
+  // CC FIX: Initialize decisions aggregating both critical and warning issues (Qodo suggestion)
+  // This ensures that when a field has both a critical issue and a warning,
+  // details from both are correctly aggregated into the initial decision state
+  useEffect(() => {
+    if (!dataProfile) return;
 
-  const validationIssues = validationResults?.validation_issues ||
-    flow?.data_validation_results?.validation_issues ||
-    [];
+    const newDecisions = new Map<string, FieldDecision>();
 
-  const totalRecords = flow?.import_metadata?.record_count ||
-    flow?.raw_data?.length ||
-    0;
+    // Combine all issues to process together
+    const allIssues = [
+      ...dataProfile.issues.critical,
+      ...dataProfile.issues.warnings,
+    ];
 
-  const validatedRecords = validationResults?.validated_records ||
-    Math.floor(totalRecords * (completenessScore / 100));
+    allIssues.forEach((issue) => {
+      const existingDecision = newDecisions.get(issue.field);
 
-  // Handler for triggering validation
-  const handleTriggerValidation = async (): Promise<void> => {
-    // BUG FIX (#994): Improve error message and add user-facing alert
-    if (!effectiveFlowId) {
-      const errorMsg = `No flow ID available for triggering validation. URL flow_id: ${urlFlowId || 'none'}, Resolved flow_id: ${effectiveFlowId || 'none'}`;
-      SecureLogger.error(errorMsg);
-      alert('Cannot run validation: No active discovery flow found. Please start a new discovery flow or select an existing one.');
-      return;
-    }
+      // If no decision exists, create a new one
+      if (!existingDecision) {
+        const isCritical = dataProfile.issues.critical.some(
+          (c) => c.field === issue.field
+        );
+        newDecisions.set(issue.field, {
+          field_name: issue.field,
+          action: isCritical ? 'truncate' : 'keep',
+          custom_delimiter: issue.delimiter || undefined,
+        });
+        return;
+      }
 
-    try {
-      SecureLogger.info('Triggering data validation for flow', { flowId: effectiveFlowId });
+      // If a decision exists, enrich it with info from other issues (e.g., delimiter)
+      if (issue.delimiter && !existingDecision.custom_delimiter) {
+        existingDecision.custom_delimiter = issue.delimiter;
+      }
+    });
 
-      await executeFlowPhase('data_validation', {
-        force_refresh: true,
-        include_agent_analysis: true
+    setDecisions(newDecisions);
+  }, [dataProfile]);
+
+  // Handle decision change
+  const handleDecisionChange = (fieldName: string, action: FieldDecision['action']) => {
+    setDecisions((prev) => {
+      const newDecisions = new Map(prev);
+      const existing = newDecisions.get(fieldName);
+      newDecisions.set(fieldName, {
+        field_name: fieldName,
+        action,
+        custom_delimiter: existing?.custom_delimiter,
+      });
+      return newDecisions;
+    });
+  };
+
+  // Handle submit decisions
+  const handleSubmitDecisions = async () => {
+    if (!effectiveFlowId) return;
+
+    // CC FIX: Add client-side validation before submit (Qodo suggestion)
+    if (dataProfile) {
+      const criticalFields = new Set(
+        dataProfile.issues.critical.map((i) => i.field)
+      );
+      const warningFields = new Set(
+        dataProfile.issues.warnings.map((i) => i.field)
+      );
+
+      // Ensure all critical fields have a supported decision
+      const missingCritical = Array.from(criticalFields).filter((f) => {
+        const d = decisions.get(f);
+        return !d || !['truncate', 'skip'].includes(d.action);
       });
 
-      SecureLogger.info('Data validation triggered successfully');
-    } catch (error) {
-      SecureLogger.error('Failed to trigger data validation', error);
-      alert(`Failed to run validation: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-      // Always refresh to get the latest state, even if triggering failed
-      await refresh();
+      if (missingCritical.length > 0) {
+        alert(
+          `Please select an action for critical fields: ${missingCritical.join(', ')}`
+        );
+        return;
+      }
+
+      // Validate delimiter presence when splitting multi-valued fields
+      const invalidSplit = Array.from(warningFields).some((f) => {
+        const d = decisions.get(f);
+        return (
+          d?.action === 'split' &&
+          (!d.custom_delimiter || d.custom_delimiter.trim() === '')
+        );
+      });
+      if (invalidSplit) {
+        alert('Please specify a delimiter for fields set to "Split".');
+        return;
+      }
     }
+
+    setIsSubmittingDecisions(true);
+    try {
+      SecureLogger.info('[ADR-038] Submitting data profile decisions', {
+        flowId: effectiveFlowId,
+        decisionCount: decisions.size,
+      });
+
+      const decisionList = Array.from(decisions.values());
+      await DataValidationProfileService.submitDecisions(
+        effectiveFlowId,
+        decisionList,
+        proceedWithWarnings
+      );
+
+      setShowDecisionModal(false);
+      secureNavigation.navigateToDiscoveryPhase('field-mapping', effectiveFlowId);
+    } catch (err) {
+      SecureLogger.error('[ADR-038] Failed to submit decisions', err);
+      alert(`Failed to submit decisions: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setIsSubmittingDecisions(false);
+    }
+  };
+
+  // Handle continue without issues
+  const handleContinueWithoutIssues = async () => {
+    if (!effectiveFlowId) return;
+
+    try {
+      SecureLogger.info('[ADR-038] Marking data validation complete without issues');
+      await DataValidationProfileService.markComplete(effectiveFlowId, false);
+      secureNavigation.navigateToDiscoveryPhase('field-mapping', effectiveFlowId);
+    } catch (err) {
+      SecureLogger.error('[ADR-038] Failed to mark validation complete', err);
+      alert(`Failed to continue: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    }
+  };
+
+  // Toggle issue expansion
+  const toggleIssueExpansion = (issueKey: string) => {
+    setExpandedIssues((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(issueKey)) {
+        newSet.delete(issueKey);
+      } else {
+        newSet.add(issueKey);
+      }
+      return newSet;
+    });
   };
 
   // Handler for refresh
@@ -158,50 +292,45 @@ const DataValidation: React.FC = () => {
     try {
       SecureLogger.info('Refreshing data validation data');
       await refresh();
-    } catch (error) {
-      SecureLogger.error('Failed to refresh data validation data', error);
+      await fetchDataProfile();
+    } catch (err) {
+      SecureLogger.error('Failed to refresh data validation data', err);
     }
   };
 
   // Navigation handlers
-  const handleBackToDataCleansing = (): void => {
-    secureNavigation.navigateToDiscoveryPhase('data-cleansing', effectiveFlowId);
-  };
-
-  const handleContinueToInventory = async (): void => {
-    try {
-      // Mark the data validation phase as complete
-      if (flow && !flow.phase_completion?.data_validation) {
-        SecureLogger.info('Marking data validation phase as complete');
-        await executeFlowPhase('data_validation', { complete: true });
-      }
-
-      // Navigate to inventory only on success
-      secureNavigation.navigateToDiscoveryPhase('inventory', effectiveFlowId);
-    } catch (error) {
-      SecureLogger.error('Failed to complete data validation phase', error);
-      // Do not navigate if phase completion fails to avoid inconsistent state
-      // The UI should show an error to the user
-    }
+  const handleBackToDataImport = (): void => {
+    secureNavigation.navigateToDiscoveryPhase('data-import', effectiveFlowId);
   };
 
   // Determine state conditions
-  const hasError = !!(error);
-  const errorMessage = error?.message;
-  const isLoadingData = isLoading || isFlowListLoading || isAuthLoading || isLoadingValidation;
+  const hasError = !!(error || profileError);
+  const errorMessage = error?.message || profileError;
+  const isLoadingData = isLoading || isFlowListLoading || isAuthLoading || isLoadingProfile;
   const isMissingContext = !isAuthLoading && !isLoadingData && (!client?.id || !engagement?.id);
 
-  // Check if validation is complete
-  const isValidationComplete = flow?.phase_completion?.data_validation === true;
-  const hasValidationResults = validationIssues.length > 0 || qualityScore > 0;
-  const canContinue = isValidationComplete || (hasValidationResults && qualityScore >= 80);
+  // Extract profile data
+  const qualityScores = dataProfile?.summary.quality_scores;
+  const criticalIssues = dataProfile?.issues.critical || [];
+  const warnings = dataProfile?.issues.warnings || [];
+  const infoIssues = dataProfile?.issues.info || [];
+  const totalRecords = dataProfile?.summary.total_records || 0;
+  const totalFields = dataProfile?.summary.total_fields || 0;
+  const blockingIssues = dataProfile?.blocking_issues || 0;
+  const requiresUserAction = dataProfile?.user_action_required || false;
+
+  // CC FIX: Can continue only when there are no blocking issues (Qodo suggestion)
+  // This ensures users cannot proceed if blocking issues exist
+  const canContinue = blockingIssues === 0;
 
   // Secure debug logging
-  SecureLogger.debug('DataValidation flow detection summary', {
+  SecureLogger.debug('[ADR-038] DataValidation state', {
     hasUrlFlowId: !!urlFlowId,
     hasEffectiveFlowId: !!effectiveFlowId,
     resolutionMethod,
-    flowResolutionError: !!flowResolutionError
+    hasProfile: !!dataProfile,
+    criticalCount: criticalIssues.length,
+    warningCount: warnings.length,
   });
 
   // Show loading state
@@ -214,7 +343,8 @@ const DataValidation: React.FC = () => {
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading validation data...</p>
+            <p className="text-gray-600">Analyzing data quality...</p>
+            <p className="text-sm text-gray-400 mt-2">This may take a moment for large datasets</p>
           </div>
         </div>
       </div>
@@ -249,8 +379,8 @@ const DataValidation: React.FC = () => {
                     <RefreshCw className="h-4 w-4 mr-2" />
                     Retry
                   </Button>
-                  <Button onClick={handleBackToDataCleansing} variant="secondary">
-                    Back to Data Cleansing
+                  <Button onClick={handleBackToDataImport} variant="secondary">
+                    Back to Data Import
                   </Button>
                 </div>
               </CardContent>
@@ -260,6 +390,159 @@ const DataValidation: React.FC = () => {
       </div>
     );
   }
+
+  // Render quality score card
+  const renderQualityScoreCard = (
+    label: string,
+    score: number | undefined,
+    description: string
+  ) => {
+    const scoreValue = score ?? 0;
+    const getScoreColor = (s: number) => {
+      if (s >= 90) return 'text-green-600';
+      if (s >= 70) return 'text-yellow-600';
+      return 'text-red-600';
+    };
+
+    return (
+      <Card>
+        <CardContent className="pt-6">
+          <div className="text-center">
+            <p className="text-sm text-gray-600 mb-2">{label}</p>
+            <p className={`text-3xl font-bold ${getScoreColor(scoreValue)}`}>
+              {scoreValue.toFixed(1)}%
+            </p>
+            <Progress value={scoreValue} className="mt-2" />
+            <p className="text-xs text-gray-400 mt-2">{description}</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  // Render issue card
+  const renderIssueCard = (
+    issue: DataIssue,
+    index: number,
+    type: 'critical' | 'warning' | 'info'
+  ) => {
+    // CC FIX: Use stable key based on content instead of array index (Qodo suggestion)
+    const issueKey = `${type}-${issue.field}-${issue.issue.replace(/\s/g, '-')}`;
+    const isExpanded = expandedIssues.has(issueKey);
+    const decision = decisions.get(issue.field);
+
+    const iconMap = {
+      critical: <AlertCircle className="h-5 w-5 text-red-500" />,
+      warning: <AlertTriangle className="h-5 w-5 text-yellow-500" />,
+      info: <Info className="h-5 w-5 text-blue-500" />,
+    };
+
+    const bgMap = {
+      critical: 'bg-red-50 border-red-200',
+      warning: 'bg-yellow-50 border-yellow-200',
+      info: 'bg-blue-50 border-blue-200',
+    };
+
+    return (
+      <div key={issueKey} className={`border rounded-lg p-4 ${bgMap[type]}`}>
+        <div
+          className="flex items-start gap-3 cursor-pointer"
+          onClick={() => toggleIssueExpansion(issueKey)}
+        >
+          {iconMap[type]}
+          <div className="flex-1">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-gray-900">{issue.issue}</p>
+                <p className="text-sm text-gray-600">Field: {issue.field}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                {issue.affected_count !== undefined && (
+                  <Badge variant="secondary">{issue.affected_count} affected</Badge>
+                )}
+                {isExpanded ? (
+                  <ChevronDown className="h-5 w-5 text-gray-400" />
+                ) : (
+                  <ChevronRight className="h-5 w-5 text-gray-400" />
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {isExpanded && (
+          <div className="mt-4 pl-8 space-y-3">
+            {/* Details */}
+            {issue.schema_limit !== undefined && (
+              <div className="text-sm">
+                <span className="text-gray-500">Schema limit:</span>{' '}
+                <span className="font-medium">{issue.schema_limit} characters</span>
+              </div>
+            )}
+            {issue.max_found !== undefined && (
+              <div className="text-sm">
+                <span className="text-gray-500">Maximum found:</span>{' '}
+                <span className="font-medium text-red-600">{issue.max_found} characters</span>
+                {issue.exceeds_by !== undefined && (
+                  <span className="text-red-500"> (+{issue.exceeds_by})</span>
+                )}
+              </div>
+            )}
+            {issue.delimiter && (
+              <div className="text-sm">
+                <span className="text-gray-500">Detected delimiter:</span>{' '}
+                <Badge variant="outline">{issue.delimiter}</Badge>
+              </div>
+            )}
+
+            {/* Samples */}
+            {issue.samples && issue.samples.length > 0 && (
+              <div className="mt-2">
+                <p className="text-sm font-medium text-gray-700 mb-2">Sample values:</p>
+                <div className="space-y-1">
+                  {issue.samples.slice(0, 3).map((sample, i) => (
+                    <div key={i} className="text-xs bg-white p-2 rounded border">
+                      <span className="text-gray-400">Row {sample.record_index}:</span>{' '}
+                      <code className="text-gray-700">
+                        {sample.value || sample.preview || '(empty)'}
+                      </code>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* CC FIX: Improved recommendation rendering to handle both array and string (Qodo) */}
+            {(issue.recommendations || issue.recommendation) && (
+              <div className="mt-2">
+                <p className="text-sm font-medium text-gray-700 mb-1">Recommendations:</p>
+                <ul className="list-disc list-inside text-sm text-gray-600">
+                  {[
+                    ...(issue.recommendations || []),
+                    ...(issue.recommendation &&
+                    !issue.recommendations?.includes(issue.recommendation)
+                      ? [issue.recommendation]
+                      : []),
+                  ].map((rec, i) => (
+                    <li key={`rec-${i}-${rec.slice(0, 20)}`}>{rec}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Current decision */}
+            {decision && (
+              <div className="mt-3 p-2 bg-white rounded border">
+                <div className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                  <span>Selected action:</span> <Badge>{decision.action}</Badge>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -277,169 +560,205 @@ const DataValidation: React.FC = () => {
           <div className="mb-6">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Data Quality Validation</h1>
+                <h1 className="text-2xl font-bold text-gray-900">Intelligent Data Validation</h1>
                 <p className="text-gray-600 mt-1">
-                  Validate imported data for quality and completeness
+                  Comprehensive data quality analysis before field mapping
                 </p>
               </div>
               <div className="flex gap-2">
-                <Button
-                  onClick={handleRefresh}
-                  variant="outline"
-                  disabled={isUpdating}
-                >
+                <Button onClick={handleRefresh} variant="outline" disabled={isUpdating}>
                   <RefreshCw className={`h-4 w-4 mr-2 ${isUpdating ? 'animate-spin' : ''}`} />
                   Refresh
-                </Button>
-                <Button
-                  onClick={handleTriggerValidation}
-                  disabled={isUpdating}
-                >
-                  <Activity className="h-4 w-4 mr-2" />
-                  Run Validation
                 </Button>
               </div>
             </div>
           </div>
 
-          {/* Validation Metrics */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          {/* Summary Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <Card>
               <CardContent className="pt-6">
                 <div className="text-center">
-                  <p className="text-sm text-gray-600 mb-2">Quality Score</p>
-                  <p className={`text-3xl font-bold ${qualityScore >= 80 ? 'text-green-600' : qualityScore >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>
-                    {qualityScore}%
-                  </p>
-                  <Progress value={qualityScore} className="mt-2" />
+                  <Database className="h-8 w-8 text-blue-500 mx-auto mb-2" />
+                  <p className="text-sm text-gray-600">Records</p>
+                  <p className="text-2xl font-bold text-blue-600">{totalRecords.toLocaleString()}</p>
                 </div>
               </CardContent>
             </Card>
-
             <Card>
               <CardContent className="pt-6">
                 <div className="text-center">
-                  <p className="text-sm text-gray-600 mb-2">Completeness</p>
-                  <p className={`text-3xl font-bold ${completenessScore >= 90 ? 'text-green-600' : completenessScore >= 70 ? 'text-yellow-600' : 'text-red-600'}`}>
-                    {completenessScore}%
-                  </p>
-                  <Progress value={completenessScore} className="mt-2" />
+                  <Activity className="h-8 w-8 text-purple-500 mx-auto mb-2" />
+                  <p className="text-sm text-gray-600">Fields</p>
+                  <p className="text-2xl font-bold text-purple-600">{totalFields}</p>
                 </div>
               </CardContent>
             </Card>
-
             <Card>
               <CardContent className="pt-6">
                 <div className="text-center">
-                  <p className="text-sm text-gray-600 mb-2">Records Validated</p>
-                  <p className="text-3xl font-bold text-blue-600">
-                    {validatedRecords}
-                  </p>
-                  <p className="text-sm text-gray-500 mt-2">of {totalRecords}</p>
+                  <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
+                  <p className="text-sm text-gray-600">Critical Issues</p>
+                  <p className="text-2xl font-bold text-red-600">{criticalIssues.length}</p>
                 </div>
               </CardContent>
             </Card>
-
             <Card>
               <CardContent className="pt-6">
                 <div className="text-center">
-                  <p className="text-sm text-gray-600 mb-2">Issues Found</p>
-                  <p className="text-3xl font-bold text-red-600">
-                    {validationIssues.length}
-                  </p>
-                  <p className="text-sm text-gray-500 mt-2">
-                    {validationIssues.filter((i: ValidationIssue) => i.severity === 'critical').length} critical
-                  </p>
+                  <AlertTriangle className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
+                  <p className="text-sm text-gray-600">Warnings</p>
+                  <p className="text-2xl font-bold text-yellow-600">{warnings.length}</p>
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Validation Issues */}
-          {validationIssues.length > 0 && (
-            <Card className="mb-6">
+          {/* Quality Scores */}
+          {qualityScores && (
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Quality Scores</h2>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                {renderQualityScoreCard(
+                  'Completeness',
+                  qualityScores.completeness,
+                  'Non-null values'
+                )}
+                {renderQualityScoreCard(
+                  'Consistency',
+                  qualityScores.consistency,
+                  'Data type uniformity'
+                )}
+                {renderQualityScoreCard(
+                  'Compliance',
+                  qualityScores.constraint_compliance,
+                  'Schema constraints'
+                )}
+                {renderQualityScoreCard(
+                  'Overall',
+                  qualityScores.overall,
+                  'Combined quality score'
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Critical Issues */}
+          {criticalIssues.length > 0 && (
+            <Card className="mb-6 border-red-200">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <AlertTriangle className="h-5 w-5 text-yellow-600" />
-                  Validation Issues
+                <CardTitle className="flex items-center gap-2 text-red-600">
+                  <AlertCircle className="h-5 w-5" />
+                  Critical Issues ({criticalIssues.length})
                 </CardTitle>
+                <CardDescription>
+                  These issues must be resolved before proceeding. Values exceeding schema limits
+                  will cause database errors.
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {validationIssues.map((issue: ValidationIssue, index: number) => (
-                    <div
-                      key={index}
-                      className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg"
-                    >
-                      <Badge
-                        variant={issue.severity === 'critical' ? 'destructive' : 'secondary'}
-                      >
-                        {issue.severity || 'warning'}
-                      </Badge>
-                      <div className="flex-1">
-                        <p className="font-medium text-gray-900">{issue.message}</p>
-                        {issue.field && (
-                          <p className="text-sm text-gray-600 mt-1">
-                            Field: {issue.field}
-                          </p>
-                        )}
-                        {issue.suggestion && (
-                          <p className="text-sm text-blue-600 mt-1">
-                            Suggestion: {issue.suggestion}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                  {criticalIssues.map((issue, index) =>
+                    renderIssueCard(issue, index, 'critical')
+                  )}
                 </div>
               </CardContent>
             </Card>
           )}
 
-          {/* Validation Success */}
-          {hasValidationResults && validationIssues.length === 0 && (
-            <Card className="mb-6">
+          {/* Warnings */}
+          {warnings.length > 0 && (
+            <Card className="mb-6 border-yellow-200">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                  Validation Complete
+                <CardTitle className="flex items-center gap-2 text-yellow-600">
+                  <AlertTriangle className="h-5 w-5" />
+                  Warnings ({warnings.length})
+                </CardTitle>
+                <CardDescription>
+                  Multi-valued fields detected. Consider splitting into separate records or using
+                  the first value only.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {warnings.map((issue, index) => renderIssueCard(issue, index, 'warning'))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Info */}
+          {infoIssues.length > 0 && (
+            <Card className="mb-6 border-blue-200">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-blue-600">
+                  <Info className="h-5 w-5" />
+                  Information ({infoIssues.length})
+                </CardTitle>
+                <CardDescription>
+                  Additional observations about your data that may be useful.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {infoIssues.map((issue, index) => renderIssueCard(issue, index, 'info'))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Success State */}
+          {dataProfile && criticalIssues.length === 0 && warnings.length === 0 && (
+            <Card className="mb-6 border-green-200 bg-green-50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-green-600">
+                  <CheckCircle className="h-5 w-5" />
+                  Data Validation Passed
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-gray-600">
-                  Your data has been successfully validated. No critical issues were found.
+                  Your data meets all quality requirements. No critical issues or warnings were
+                  detected.
                 </p>
                 <div className="mt-4 space-y-2">
                   <div className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span className="text-sm text-gray-700">Quality score &gt;= 80%</span>
+                    <span className="text-sm text-gray-700">
+                      All field values within schema limits
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span className="text-sm text-gray-700">No critical validation issues</span>
+                    <span className="text-sm text-gray-700">
+                      No multi-valued fields detected
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span className="text-sm text-gray-700">Completeness &gt;= 90%</span>
+                    <span className="text-sm text-gray-700">
+                      Data ready for field mapping
+                    </span>
                   </div>
                 </div>
               </CardContent>
             </Card>
           )}
 
-          {/* No Data State */}
-          {!hasValidationResults && !isUpdating && (
+          {/* No Profile State */}
+          {!dataProfile && !isLoadingProfile && (
             <Card className="mb-6">
               <CardHeader>
-                <CardTitle>No Validation Results</CardTitle>
+                <CardTitle>No Data Profile Available</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-gray-600 mb-4">
-                  No validation results are available yet. Click "Run Validation" to start the validation process.
+                  Unable to generate data profile. Please ensure data has been imported and try
+                  refreshing.
                 </p>
-                <Button onClick={handleTriggerValidation}>
-                  <Activity className="h-4 w-4 mr-2" />
-                  Run Validation
+                <Button onClick={handleRefresh} variant="outline">
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Refresh Profile
                 </Button>
               </CardContent>
             </Card>
@@ -447,21 +766,171 @@ const DataValidation: React.FC = () => {
 
           {/* Navigation Buttons */}
           <div className="flex justify-between">
-            <Button
-              onClick={handleBackToDataCleansing}
-              variant="outline"
-            >
-              Back to Data Cleansing
+            <Button onClick={handleBackToDataImport} variant="outline">
+              Back to Data Import
             </Button>
-            <Button
-              onClick={handleContinueToInventory}
-              disabled={!canContinue}
-            >
-              Continue to Inventory
-            </Button>
+            <div className="flex gap-2">
+              {requiresUserAction && (criticalIssues.length > 0 || warnings.length > 0) && (
+                <Button onClick={() => setShowDecisionModal(true)} variant="default">
+                  <Scissors className="h-4 w-4 mr-2" />
+                  Handle Issues ({criticalIssues.length + warnings.length})
+                </Button>
+              )}
+              {canContinue && (
+                <Button onClick={handleContinueWithoutIssues}>
+                  Continue to Field Mapping
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Decision Modal */}
+      <Dialog open={showDecisionModal} onOpenChange={setShowDecisionModal}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Handle Data Issues</DialogTitle>
+            <DialogDescription>
+              Choose how to handle each field with detected issues. These decisions will be applied
+              during data cleansing.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 py-4">
+            {/* Critical Issues */}
+            {criticalIssues.length > 0 && (
+              <div>
+                <h3 className="font-medium text-red-600 mb-3 flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4" />
+                  Critical Issues (Must Resolve)
+                </h3>
+                <div className="space-y-4">
+                  {criticalIssues.map((issue) => (
+                    <div key={issue.field} className="p-3 bg-red-50 rounded-lg border border-red-200">
+                      <div className="flex items-center justify-between mb-2">
+                        <div>
+                          <p className="font-medium">{issue.field}</p>
+                          <p className="text-sm text-gray-600">{issue.issue}</p>
+                        </div>
+                        <Select
+                          value={decisions.get(issue.field)?.action || 'truncate'}
+                          onValueChange={(value) =>
+                            handleDecisionChange(issue.field, value as FieldDecision['action'])
+                          }
+                        >
+                          <SelectTrigger className="w-40">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="truncate">
+                              <span className="flex items-center gap-2">
+                                <Scissors className="h-3 w-3" /> Truncate
+                              </span>
+                            </SelectItem>
+                            <SelectItem value="skip">
+                              <span className="flex items-center gap-2">
+                                <SkipForward className="h-3 w-3" /> Skip Record
+                              </span>
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Warnings */}
+            {warnings.length > 0 && (
+              <div>
+                <h3 className="font-medium text-yellow-600 mb-3 flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4" />
+                  Warnings (Optional)
+                </h3>
+                <div className="space-y-4">
+                  {warnings.map((issue) => (
+                    <div
+                      key={issue.field}
+                      className="p-3 bg-yellow-50 rounded-lg border border-yellow-200"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div>
+                          <p className="font-medium">{issue.field}</p>
+                          <p className="text-sm text-gray-600">
+                            Multi-valued field ({issue.delimiter})
+                          </p>
+                        </div>
+                        <Select
+                          value={decisions.get(issue.field)?.action || 'keep'}
+                          onValueChange={(value) =>
+                            handleDecisionChange(issue.field, value as FieldDecision['action'])
+                          }
+                        >
+                          <SelectTrigger className="w-40">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="keep">
+                              <span className="flex items-center gap-2">
+                                <Database className="h-3 w-3" /> Keep As-Is
+                              </span>
+                            </SelectItem>
+                            <SelectItem value="split">
+                              <span className="flex items-center gap-2">
+                                <FileX className="h-3 w-3" /> Split Records
+                              </span>
+                            </SelectItem>
+                            <SelectItem value="first_value">
+                              <span className="flex items-center gap-2">
+                                <SkipForward className="h-3 w-3" /> First Value
+                              </span>
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Proceed with warnings checkbox */}
+            {warnings.length > 0 && criticalIssues.length === 0 && (
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="proceed-warnings"
+                  checked={proceedWithWarnings}
+                  onCheckedChange={(checked) => setProceedWithWarnings(checked === true)}
+                />
+                <Label htmlFor="proceed-warnings" className="text-sm text-gray-600">
+                  I acknowledge the warnings and want to proceed
+                </Label>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDecisionModal(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSubmitDecisions}
+              disabled={isSubmittingDecisions}
+            >
+              {isSubmittingDecisions ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Applying...
+                </>
+              ) : (
+                'Apply & Continue'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -123,8 +123,22 @@ def _analyze_raw_data_quality(
                     if not re.match(email_pattern, value):
                         stats["invalid_format_count"] += 1
 
-                # IP address validation
-                elif "ip" in field_lower and isinstance(value, str):
+                # IP address validation - use specific patterns to avoid matching "description"
+                # CC FIX: "ip" in "description" was incorrectly flagging Description field
+                elif (
+                    any(
+                        p in field_lower
+                        for p in [
+                            "ip_address",
+                            "ipaddress",
+                            "ip address",
+                            "ipv4",
+                            "ipv6",
+                            "ip_addr",
+                        ]
+                    )
+                    or field_lower == "ip"
+                ) and isinstance(value, str):
                     ip_pattern = r"^(\d{1,3}\.){3}\d{1,3}$"
                     if not re.match(ip_pattern, value):
                         stats["invalid_format_count"] += 1
@@ -156,24 +170,135 @@ def _analyze_raw_data_quality(
     return dict(field_stats)
 
 
+def _get_expected_format_and_examples(field_name: str, issue_type: str) -> tuple:
+    """
+    Get expected format and fix examples based on field name patterns.
+
+    Returns:
+        tuple: (expected_format: str, fix_examples: List[str])
+    """
+    field_lower = field_name.lower()
+
+    # Email field patterns
+    if "email" in field_lower:
+        return (
+            "Valid email format: user@domain.com",
+            [
+                "john.doe@example.com",
+                "admin@company.org",
+                "support+team@service.io",
+            ],
+        )
+
+    # IP address patterns - use word boundary checks to avoid matching "description"
+    # Check for specific IP-related field names, not just substring "ip"
+    ip_patterns = ["ip_address", "ipaddress", "ip address", "ipv4", "ipv6", "ip_addr"]
+    if any(pattern in field_lower for pattern in ip_patterns) or field_lower in ["ip"]:
+        return (
+            "Valid IPv4 format: xxx.xxx.xxx.xxx (0-255 for each octet)",
+            ["192.168.1.100", "10.0.0.1", "172.16.254.1"],
+        )
+
+    # Date/timestamp patterns
+    if any(
+        kw in field_lower for kw in ["date", "created", "modified", "timestamp", "time"]
+    ):
+        return (
+            "ISO 8601 date format: YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS",
+            ["2024-01-15", "2024-03-22T14:30:00", "2024-12-01"],
+        )
+
+    # Hostname/server patterns
+    if any(kw in field_lower for kw in ["hostname", "server", "host"]):
+        return (
+            "Valid hostname: alphanumeric with hyphens, no spaces or special characters",
+            ["web-server-01", "db-prod-east", "app-frontend-2"],
+        )
+
+    # Environment field patterns
+    if any(kw in field_lower for kw in ["environment", "env"]):
+        return (
+            "Standard environment values: production, staging, development, test",
+            ["production", "staging", "development"],
+        )
+
+    # OS/platform patterns
+    if any(kw in field_lower for kw in ["os", "operating", "platform"]):
+        return (
+            "Standard OS identifiers with version",
+            ["Windows Server 2019", "RHEL 8.6", "Ubuntu 22.04 LTS"],
+        )
+
+    # Default for unknown field types
+    return (
+        "Consistent format matching existing valid values",
+        [],
+    )
+
+
+def _sanitize_validation_decision(
+    decision: Optional[Dict[str, Any]],
+) -> Optional[Dict[str, str]]:
+    """
+    Sanitize validation decision dict for Pydantic model compatibility.
+
+    Filters out None values and converts remaining values to strings,
+    as DataQualityIssue.validation_decision expects Dict[str, str].
+
+    Args:
+        decision: Raw validation decision dict from data validation phase
+
+    Returns:
+        Sanitized dict with only non-None string values, or None if empty/invalid
+    """
+    if not decision:
+        return None
+
+    # Filter out None values and convert to strings
+    sanitized = {k: str(v) for k, v in decision.items() if v is not None}
+
+    return sanitized if sanitized else None
+
+
 def _generate_quality_issues_from_stats(
     field_stats: Dict[str, Dict[str, Any]],
     total_records: int,
     sample_size: int,
+    validation_decisions: Optional[Dict[str, Any]] = None,
 ) -> List[DataQualityIssue]:
     """
     Generate DataQualityIssue objects from field statistics.
     Extrapolates affected record counts from sample to full dataset.
+
+    ADR-038: Enhanced to include sample values, expected format, and fix examples.
+
+    Args:
+        field_stats: Field-level quality statistics with sample_values
+        total_records: Total number of records in the dataset
+        sample_size: Number of records sampled for analysis
+        validation_decisions: Optional decisions from data validation phase
     """
     quality_issues = []
 
     if sample_size == 0:
         return []
 
+    # CC FIX: Build lookup for validation decisions by field name (case-insensitive) (Qodo)
+    decisions_by_field: Dict[str, Any] = {}
+    if validation_decisions and validation_decisions.get("decisions"):
+        for decision in validation_decisions["decisions"]:
+            field = decision.get("field_name")
+            if field:
+                decisions_by_field[field.lower()] = decision
+
     for field_name, stats in field_stats.items():
         total = stats["total_count"]
         missing_count = stats["missing_count"]
         invalid_count = stats["invalid_format_count"]
+        sample_values = stats.get("sample_values", [])
+
+        # CC FIX: Get validation decision for this field (case-insensitive match) (Qodo)
+        field_decision = decisions_by_field.get(field_name.lower())
 
         # Generate issue for missing values (if > 5%)
         if missing_count > 0 and (missing_count / total) > 0.05:
@@ -185,6 +310,16 @@ def _generate_quality_issues_from_stats(
             # Extrapolate to full dataset
             estimated_affected = int(total_records * (missing_count / sample_size))
 
+            # CC FIX: Preserve falsy but valid values like 0 (Qodo suggestion)
+            valid_samples = [
+                str(v) for v in sample_values if v is not None and v != ""
+            ][:3]
+            sample_text = (
+                f" (existing values include: {', '.join(valid_samples)})"
+                if valid_samples
+                else ""
+            )
+
             quality_issues.append(
                 DataQualityIssue(
                     id=_generate_deterministic_issue_id(field_name, "missing_values"),
@@ -192,15 +327,24 @@ def _generate_quality_issues_from_stats(
                     issue_type="missing_values",
                     severity=severity,
                     description=(
-                        f"Field '{field_name}' has an estimated {missing_count} missing values "
-                        f"in a sample of {total} records ({(missing_count/total)*100:.1f}%)"
+                        f"Field '{field_name}' has {missing_count} missing/empty values "
+                        f"out of {total} sampled records ({(missing_count/total)*100:.1f}% null rate). "
+                        f"Estimated {estimated_affected} affected records in full dataset."
                     ),
                     affected_records=estimated_affected,
                     recommendation=(
-                        f"Consider filling missing values for '{field_name}' with "
-                        f"default values or remove incomplete records"
+                        f"Fill missing values for '{field_name}' with a default value "
+                        f"or placeholder{sample_text}, or remove incomplete records"
                     ),
                     auto_fixable=True,
+                    sample_values=valid_samples if valid_samples else None,
+                    expected_format="Non-empty value required",
+                    fix_examples=[
+                        "Use 'N/A' or 'Unknown' for missing string values",
+                        "Use 0 or -1 for missing numeric values",
+                        "Remove records with critical missing data",
+                    ],
+                    validation_decision=_sanitize_validation_decision(field_decision),
                 )
             )
 
@@ -210,6 +354,19 @@ def _generate_quality_issues_from_stats(
             # Extrapolate to full dataset
             estimated_affected = int(total_records * (invalid_count / sample_size))
 
+            # Get expected format and examples based on field type
+            expected_format, fix_examples = _get_expected_format_and_examples(
+                field_name, "invalid_format"
+            )
+
+            # Include sample problematic values in description
+            invalid_samples = [str(v) for v in sample_values if v][:3]
+            sample_text = (
+                f" Sample values: [{', '.join(repr(s) for s in invalid_samples)}]"
+                if invalid_samples
+                else ""
+            )
+
             quality_issues.append(
                 DataQualityIssue(
                     id=_generate_deterministic_issue_id(field_name, "invalid_format"),
@@ -217,31 +374,228 @@ def _generate_quality_issues_from_stats(
                     issue_type="invalid_format",
                     severity=severity,
                     description=(
-                        f"Field '{field_name}' has an estimated {invalid_count} records with "
-                        f"invalid format in a sample of {total} records ({(invalid_count/total)*100:.1f}%)"
+                        f"Field '{field_name}' has {invalid_count} records with invalid format "
+                        f"out of {total} sampled ({(invalid_count/total)*100:.1f}%).{sample_text}"
                     ),
                     affected_records=estimated_affected,
-                    recommendation=f"Standardize format for '{field_name}' to ensure data consistency",
+                    recommendation=(
+                        f"Standardize '{field_name}' to {expected_format}. "
+                        f"Transform invalid values to match the expected pattern."
+                    ),
                     auto_fixable=True,
+                    sample_values=invalid_samples if invalid_samples else None,
+                    expected_format=expected_format,
+                    fix_examples=fix_examples if fix_examples else None,
+                    validation_decision=_sanitize_validation_decision(field_decision),
                 )
             )
 
         # Generate issue for data type mismatches (if multiple types detected)
         if len(stats["data_types"]) > 1:
+            type_list = list(stats["data_types"])
+            sample_vals = [str(v) for v in sample_values if v][:5]
+
             quality_issues.append(
                 DataQualityIssue(
                     id=_generate_deterministic_issue_id(field_name, "type_mismatch"),
                     field_name=field_name,
                     issue_type="type_mismatch",
                     severity="medium",
-                    description=f"Field '{field_name}' has mixed data types: {', '.join(stats['data_types'])}",
+                    description=(
+                        f"Field '{field_name}' contains mixed data types: {', '.join(type_list)}. "
+                        f"This can cause processing errors and inconsistent behavior."
+                    ),
                     affected_records=total,
-                    recommendation=f"Convert all values in '{field_name}' to a consistent data type",
+                    recommendation=(
+                        f"Convert all values in '{field_name}' to a single consistent type. "
+                        f"Recommended type: {type_list[0]} (most common)."
+                    ),
                     auto_fixable=True,
+                    sample_values=sample_vals if sample_vals else None,
+                    expected_format=f"Consistent {type_list[0]} type for all values",
+                    fix_examples=[
+                        "Convert string numbers to integers: '123' → 123",
+                        "Convert mixed booleans: 'true'/'yes' → True",
+                        "Ensure null handling: None → appropriate default",
+                    ],
+                    validation_decision=_sanitize_validation_decision(field_decision),
                 )
             )
 
     return quality_issues
+
+
+def _generate_recommendations_from_issues(
+    quality_issues: List[DataQualityIssue],
+    field_stats: Dict[str, Dict[str, Any]],
+) -> List[DataCleansingRecommendation]:
+    """
+    Generate cleansing recommendations from quality issues and field statistics.
+
+    Creates specific, actionable recommendations based on actual data quality
+    problems found rather than generic placeholders.
+
+    Args:
+        quality_issues: List of quality issues found in the data
+        field_stats: Field-level statistics from raw data analysis
+
+    Returns:
+        List of recommendations based on actual issues
+    """
+    recommendations = []
+    seen_categories = set()  # Prevent duplicate recommendation categories
+
+    # Group issues by type for consolidated recommendations
+    issues_by_type = defaultdict(list)
+    for issue in quality_issues:
+        issues_by_type[issue.issue_type].append(issue)
+
+    # Generate recommendation for missing values
+    missing_issues = issues_by_type.get("missing_values", [])
+    if missing_issues and "missing_values" not in seen_categories:
+        affected_fields = [issue.field_name for issue in missing_issues[:5]]
+        total_affected = sum(issue.affected_records for issue in missing_issues)
+        high_severity = sum(
+            1 for i in missing_issues if i.severity in ("high", "critical")
+        )
+
+        priority = "high" if high_severity > 0 else "medium"
+
+        recommendations.append(
+            DataCleansingRecommendation(
+                id=str(uuid.uuid4()),
+                category="validation",
+                title=f"Address missing values in {len(missing_issues)} fields",
+                description=(
+                    f"Found {len(missing_issues)} fields with missing values, "
+                    f"affecting approximately {total_affected:,} total records. "
+                    f"Fields include: {', '.join(affected_fields)}"
+                ),
+                priority=priority,
+                impact="Improves data completeness and enables accurate analysis",
+                effort_estimate=(
+                    "1-2 hours" if len(missing_issues) <= 3 else "2-4 hours"
+                ),
+                fields_affected=affected_fields,
+                confidence=0.95,
+                status="pending",
+                agent_source="Data Quality Agent",
+                implementation_steps=[
+                    "Review each field's business requirements",
+                    "Determine appropriate default values or handling strategy",
+                    "Implement fill/imputation logic for required fields",
+                    "Flag optional fields for manual review if needed",
+                ],
+            )
+        )
+        seen_categories.add("missing_values")
+
+    # Generate recommendation for invalid formats
+    format_issues = issues_by_type.get("invalid_format", [])
+    if format_issues and "invalid_format" not in seen_categories:
+        affected_fields = [issue.field_name for issue in format_issues[:5]]
+        total_affected = sum(issue.affected_records for issue in format_issues)
+
+        # Get specific format types from issue descriptions
+        format_details = []
+        for issue in format_issues[:3]:
+            if issue.expected_format:
+                format_details.append(f"{issue.field_name} → {issue.expected_format}")
+
+        recommendations.append(
+            DataCleansingRecommendation(
+                id=str(uuid.uuid4()),
+                category="standardization",
+                title=f"Standardize formats in {len(format_issues)} fields",
+                description=(
+                    f"Found {len(format_issues)} fields with inconsistent or invalid formats, "
+                    f"affecting approximately {total_affected:,} records. "
+                    + (
+                        f"Format corrections: {'; '.join(format_details)}"
+                        if format_details
+                        else ""
+                    )
+                ),
+                priority="high",
+                impact="Ensures data consistency and proper system integration",
+                effort_estimate=(
+                    "2-4 hours" if len(format_issues) <= 5 else "4-8 hours"
+                ),
+                fields_affected=affected_fields,
+                confidence=0.90,
+                status="pending",
+                agent_source="Data Standardization Specialist",
+                implementation_steps=[
+                    "Identify target standard formats for each field",
+                    "Create transformation rules for each format variation",
+                    "Apply transformations with validation checks",
+                    "Verify results match expected patterns",
+                ],
+            )
+        )
+        seen_categories.add("invalid_format")
+
+    # Generate recommendation for type mismatches
+    type_issues = issues_by_type.get("type_mismatch", [])
+    if type_issues and "type_mismatch" not in seen_categories:
+        affected_fields = [issue.field_name for issue in type_issues[:5]]
+
+        recommendations.append(
+            DataCleansingRecommendation(
+                id=str(uuid.uuid4()),
+                category="validation",
+                title=f"Resolve data type inconsistencies in {len(type_issues)} fields",
+                description=(
+                    f"Found {len(type_issues)} fields containing mixed data types. "
+                    f"Affected fields: {', '.join(affected_fields)}. "
+                    f"This can cause processing errors and query failures."
+                ),
+                priority="medium",
+                impact="Prevents type coercion errors and improves query reliability",
+                effort_estimate="1-3 hours",
+                fields_affected=affected_fields,
+                confidence=0.88,
+                status="pending",
+                agent_source="Data Quality Agent",
+                implementation_steps=[
+                    "Identify the expected data type for each field",
+                    "Analyze values that deviate from expected type",
+                    "Create conversion rules for type coercion",
+                    "Handle edge cases (null, empty strings, special values)",
+                ],
+            )
+        )
+        seen_categories.add("type_mismatch")
+
+    # If we generated no recommendations from issues, create one summary recommendation
+    if not recommendations and quality_issues:
+        all_fields = list(set(issue.field_name for issue in quality_issues))[:10]
+        recommendations.append(
+            DataCleansingRecommendation(
+                id=str(uuid.uuid4()),
+                category="validation",
+                title=f"Review {len(quality_issues)} data quality issues",
+                description=(
+                    f"Found {len(quality_issues)} data quality issues across {len(all_fields)} fields. "
+                    f"Review and address these issues to improve data quality."
+                ),
+                priority="medium",
+                impact="Improves overall data quality for migration",
+                effort_estimate="2-4 hours",
+                fields_affected=all_fields[:5],
+                confidence=0.85,
+                status="pending",
+                agent_source="Data Quality Agent",
+                implementation_steps=[
+                    "Review each quality issue in detail",
+                    "Prioritize fixes based on impact and effort",
+                    "Implement fixes for high-priority issues first",
+                    "Validate data after applying fixes",
+                ],
+            )
+        )
+
+    return recommendations
 
 
 async def _apply_stored_resolutions(
@@ -591,6 +945,47 @@ async def _perform_data_cleansing_analysis(  # noqa: C901
     field_quality_scores = {}
     field_stats = {}  # Initialize to empty dict to handle cases with no raw records
 
+    # CC: Initialize sample data variables for UI display
+    raw_data_sample = []
+    cleaned_data_sample = []
+
+    # ADR-038: Load data_validation_decisions from flow phase_state
+    validation_decisions = None
+    if include_details and db_session:
+        try:
+            # Convert flow_id to UUID if it's a string
+            flow_uuid = UUID(flow_id) if isinstance(flow_id, str) else flow_id
+
+            # Load the flow to get phase_state with validation decisions
+            flow_query = select(DiscoveryFlow).where(
+                DiscoveryFlow.flow_id == flow_uuid
+            )  # SKIP_TENANT_CHECK - flow_id validated via MFO
+            if client_account_id is not None:
+                flow_query = flow_query.where(
+                    DiscoveryFlow.client_account_id == client_account_id
+                )
+            if engagement_id is not None:
+                flow_query = flow_query.where(
+                    DiscoveryFlow.engagement_id == engagement_id
+                )
+
+            flow_result = await db_session.execute(flow_query)
+            flow_for_decisions = flow_result.scalar_one_or_none()
+
+            if flow_for_decisions and flow_for_decisions.phase_state:
+                validation_decisions = flow_for_decisions.phase_state.get(
+                    "data_validation_decisions"
+                )
+                if validation_decisions:
+                    logger.info(
+                        f"[ADR-038] Loaded {len(validation_decisions.get('decisions', []))} "
+                        f"data validation decisions for flow {flow_id}"
+                    )
+        except Exception:
+            logger.exception(
+                "[ADR-038] Failed to load data_validation_decisions from flow phase_state"
+            )
+
     # Analyze raw import records for quality issues (regardless of field_mappings)
     if include_details and data_import and db_session:
         try:
@@ -608,12 +1003,33 @@ async def _perform_data_cleansing_analysis(  # noqa: C901
                     f"Analyzing {len(raw_records)} raw records for quality issues"
                 )
 
+                # CC: Extract sample data for UI display (Data Processing Samples section)
+                # Take first 3 records for samples
+                raw_data_sample = []
+                cleaned_data_sample = []
+                for record in raw_records[:3]:
+                    if record.raw_data:
+                        raw_data_sample.append(record.raw_data)
+                    if (
+                        record.cleansed_data
+                        and record.cleansed_data.get("mappings_applied", 0) > 0
+                    ):
+                        cleaned_data_sample.append(record.cleansed_data)
+
+                logger.info(
+                    f"📊 Extracted samples: {len(raw_data_sample)} raw, {len(cleaned_data_sample)} cleansed"
+                )
+
                 # Analyze raw data for quality issues
                 field_stats = _analyze_raw_data_quality(raw_records, total_records)
 
-                # Generate quality issues from analysis
+                # Generate quality issues from analysis with validation decisions
+                # ADR-038: Pass data_validation_decisions to include in quality issues
                 quality_issues = _generate_quality_issues_from_stats(
-                    field_stats, total_records, len(raw_records)
+                    field_stats,
+                    total_records,
+                    len(raw_records),
+                    validation_decisions=validation_decisions,
                 )
 
                 # Calculate field quality scores
@@ -676,37 +1092,23 @@ async def _perform_data_cleansing_analysis(  # noqa: C901
                         )
                         recommendations.extend(existing_recommendations)
                     else:
-                        # No existing recommendations, create new sample recommendations
+                        # No existing recommendations, generate from quality issues
                         logger.info(
-                            "No existing recommendations found, creating new sample recommendations"
+                            "No existing recommendations found, generating from quality issues"
                         )
-                        # Only create sample recommendations if we have actual field data
-                        if field_stats:
-                            actual_fields = list(field_stats.keys())[
-                                :3
-                            ]  # Use first 3 actual fields
-                            new_recommendations = [
-                                DataCleansingRecommendation(
-                                    id=str(uuid.uuid4()),
-                                    category="standardization",
-                                    title="Standardize date formats",
-                                    description="Multiple date formats detected. Standardize to ISO 8601 format",
-                                    priority="high",
-                                    impact="Improves data consistency and query performance",
-                                    effort_estimate="2-4 hours",
-                                    fields_affected=(
-                                        actual_fields
-                                        if actual_fields
-                                        else ["example_field"]
-                                    ),
-                                    status="pending",
-                                ),
-                            ]
+                        # Generate recommendations based on actual quality issues
+                        if quality_issues:
+                            new_recommendations = _generate_recommendations_from_issues(
+                                quality_issues, field_stats
+                            )
+                            logger.info(
+                                f"Generated {len(new_recommendations)} recommendations from quality issues"
+                            )
                         else:
-                            # No field data available, create generic example
+                            # No quality issues to base recommendations on
                             new_recommendations = []
                             logger.info(
-                                "No field data available for creating sample recommendations"
+                                "No quality issues found to generate recommendations"
                             )
 
                         recommendations.extend(new_recommendations)
@@ -730,116 +1132,34 @@ async def _perform_data_cleansing_analysis(  # noqa: C901
                 except Exception:
                     logger.exception(
                         "Failed to load recommendations from database (table may not exist yet). "
-                        "Creating new sample recommendations instead."
+                        "Generating from quality issues instead."
                     )
-                    # Create sample recommendations as fallback
-                    new_recommendations = [
-                        DataCleansingRecommendation(
-                            id=str(uuid.uuid4()),
-                            category="standardization",
-                            title="Standardize date formats",
-                            description="Multiple date formats detected. Standardize to ISO 8601 format",
-                            priority="high",
-                            impact="Improves data consistency and query performance",
-                            effort_estimate="2-4 hours",
-                            fields_affected=[
-                                "created_date",
-                                "modified_date",
-                                "last_seen",
-                            ],
-                            status="pending",
-                        ),
-                        DataCleansingRecommendation(
-                            id=str(uuid.uuid4()),
-                            category="validation",
-                            title="Validate server names",
-                            description="Some server names contain invalid characters or inconsistent naming",
-                            priority="medium",
-                            impact="Ensures proper asset identification",
-                            effort_estimate="1-2 hours",
-                            fields_affected=["server_name", "hostname"],
-                            status="pending",
-                        ),
-                    ]
-                    recommendations.extend(new_recommendations)
+                    # Generate recommendations from quality issues as fallback
+                    if quality_issues:
+                        new_recommendations = _generate_recommendations_from_issues(
+                            quality_issues, field_stats
+                        )
+                        recommendations.extend(new_recommendations)
             else:
-                # Flow not found, create sample recommendations anyway
+                # Flow not found, generate from quality issues if available
                 logger.warning(
-                    f"Flow {flow_id} not found, creating sample recommendations"
+                    f"Flow {flow_id} not found, generating recommendations from quality issues"
                 )
-                new_recommendations = [
-                    DataCleansingRecommendation(
-                        id=str(uuid.uuid4()),
-                        category="standardization",
-                        title="Standardize date formats",
-                        description="Multiple date formats detected. Standardize to ISO 8601 format",
-                        priority="high",
-                        impact="Improves data consistency and query performance",
-                        effort_estimate="2-4 hours",
-                        fields_affected=["created_date", "modified_date", "last_seen"],
-                        status="pending",
-                    ),
-                    DataCleansingRecommendation(
-                        id=str(uuid.uuid4()),
-                        category="validation",
-                        title="Validate server names",
-                        description="Some server names contain invalid characters or inconsistent naming",
-                        priority="medium",
-                        impact="Ensures proper asset identification",
-                        effort_estimate="1-2 hours",
-                        fields_affected=["server_name", "hostname"],
-                        status="pending",
-                    ),
-                ]
-                recommendations.extend(new_recommendations)
+                if quality_issues:
+                    new_recommendations = _generate_recommendations_from_issues(
+                        quality_issues, field_stats
+                    )
+                    recommendations.extend(new_recommendations)
         except Exception:
-            # Fallback: create sample recommendations if anything goes wrong
+            # Fallback: generate from quality issues if anything goes wrong
             logger.exception(
-                "Error loading/creating recommendations. Creating fallback recommendations."
+                "Error loading/creating recommendations. Generating from quality issues."
             )
-            fallback_recommendations = [
-                DataCleansingRecommendation(
-                    id=str(uuid.uuid4()),
-                    category="standardization",
-                    title="Standardize date formats",
-                    description="Multiple date formats detected. Standardize to ISO 8601 format",
-                    priority="high",
-                    impact="Improves data consistency and query performance",
-                    effort_estimate="2-4 hours",
-                    fields_affected=["created_date", "modified_date", "last_seen"],
-                    confidence=0.92,
-                    status="pending",
-                    agent_source="Data Standardization Specialist",
-                    implementation_steps=[
-                        "Analyze all date fields to identify format variations",
-                        "Create transformation rules for common date patterns",
-                        "Apply ISO 8601 format (YYYY-MM-DD) to all date fields",
-                        "Validate transformed dates for accuracy",
-                        "Update field mappings to reflect standardized format",
-                    ],
-                ),
-                DataCleansingRecommendation(
-                    id=str(uuid.uuid4()),
-                    category="validation",
-                    title="Validate server names",
-                    description="Some server names contain invalid characters or inconsistent naming",
-                    priority="medium",
-                    impact="Ensures proper asset identification",
-                    effort_estimate="1-2 hours",
-                    fields_affected=["server_name", "hostname"],
-                    confidence=0.87,
-                    status="pending",
-                    agent_source="Data Quality Agent",
-                    implementation_steps=[
-                        "Identify server names with invalid characters or patterns",
-                        "Define naming convention standards (e.g., alphanumeric, hyphens only)",
-                        "Create transformation rules to sanitize server names",
-                        "Apply validation rules to ensure consistency",
-                        "Review transformed names for accuracy",
-                    ],
-                ),
-            ]
-            recommendations.extend(fallback_recommendations)
+            if quality_issues:
+                fallback_recommendations = _generate_recommendations_from_issues(
+                    quality_issues, field_stats
+                )
+                recommendations.extend(fallback_recommendations)
 
     # Calculate overall quality score
     quality_score = 85.0  # Mock score
@@ -867,4 +1187,7 @@ async def _perform_data_cleansing_analysis(  # noqa: C901
         field_quality_scores=field_quality_scores,
         processing_status=processing_status,
         source=source,
+        # CC: Sample data for UI display (Data Processing Samples section)
+        raw_data_sample=raw_data_sample,
+        cleaned_data_sample=cleaned_data_sample,
     )

@@ -12,6 +12,38 @@ from typing import Any, Dict, Optional, Tuple
 logger = logging.getLogger(__name__)
 
 
+def _get_case_insensitive(data: Dict[str, Any], *field_names: str) -> Any:
+    """
+    Get a value from a dictionary using case-insensitive field name lookup.
+
+    Handles raw data that may have uppercase field names (e.g., "Name", "Hostname")
+    while the code expects lowercase (e.g., "name", "hostname").
+
+    Args:
+        data: Dictionary to search
+        *field_names: Field names to try (in order of preference)
+
+    Returns:
+        First matching value found, or None if no match
+    """
+    if not isinstance(data, dict):
+        return None
+
+    # Build lowercase lookup for case-insensitive matching
+    lower_key_map = {k.lower(): k for k in data.keys()}
+
+    for field_name in field_names:
+        # Try exact match first
+        if field_name in data:
+            return data[field_name]
+        # Try case-insensitive match
+        lower_name = field_name.lower()
+        if lower_name in lower_key_map:
+            return data[lower_key_map[lower_name]]
+
+    return None
+
+
 def _normalize_string_field(value: Any, field_name: str) -> Optional[str]:
     """
     Normalize a string field value, handling edge cases.
@@ -62,7 +94,7 @@ def get_smart_asset_name(data: Dict[str, Any]) -> str:
     application_name is metadata only (which app the asset belongs to), NOT for naming
     hostname is optional and NOT applicable for applications/components
 
-    Tries multiple fields in order of preference:
+    Tries multiple fields in order of preference (case-insensitive):
     1. name (explicit)
     2. asset_name (same as name)
     3. hostname (only for applicable asset types: servers, databases, network devices)
@@ -84,25 +116,30 @@ def get_smart_asset_name(data: Dict[str, Any]) -> str:
         return "Unknown Asset"
 
     # Try name or asset_name first (they're the same thing)
+    # Use case-insensitive lookup to handle raw data with uppercase field names
     # Handle edge cases: empty strings, None values, non-string types
-    name = _normalize_string_field(data.get("name") or data.get("asset_name"), "name")
+    name = _normalize_string_field(
+        _get_case_insensitive(data, "name", "asset_name", "Name", "Asset_Name"), "name"
+    )
     if name:
         return name
 
     # Only use hostname for asset types where it's applicable
     # NOT for applications or components
-    asset_type = _normalize_asset_type(data.get("asset_type"))
+    asset_type_raw = _get_case_insensitive(data, "asset_type", "Asset_Type", "Class")
+    asset_type = _normalize_asset_type(asset_type_raw)
 
     if asset_type not in ("application", "component", "components"):
         # Try hostname (common for servers, databases, network devices)
-        hostname = _normalize_string_field(data.get("hostname"), "hostname")
+        # Also try "Number" field which is common in CMDB exports for hostnames
+        hostname = _normalize_string_field(
+            _get_case_insensitive(
+                data, "hostname", "Hostname", "server_name", "Server_Name", "Number"
+            ),
+            "hostname",
+        )
         if hostname:
             return hostname
-
-        # Try server_name
-        server_name = _normalize_string_field(data.get("server_name"), "server_name")
-        if server_name:
-            return server_name
 
     # Fallback with row number if available
     row_number = data.get("row_number")
