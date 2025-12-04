@@ -162,4 +162,5 @@ export interface AttributeMappingProps {
   onDataImportSelection: (importId: string) => void;
   onRefetchAgentic: () => void;
   onContinueToDataCleansing: () => void;
+  isNavigatingToDataCleansing?: boolean;
 }

@@ -48,7 +48,7 @@ const BulkActions: React.FC<BulkActionsProps> = ({
     <div className="bg-white p-4 rounded-lg border">
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium text-gray-700">
-          {buckets.autoMapped.length > 0 
+          {buckets.autoMapped.length > 0
             ? `Bulk Actions for ${buckets.autoMapped.length} auto-mapped fields`
             : 'Actions'
           }

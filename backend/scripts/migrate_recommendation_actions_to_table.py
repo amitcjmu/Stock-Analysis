@@ -47,7 +47,9 @@ async def find_flows_with_jsonb_actions(db) -> List[DiscoveryFlow]:
     for flow in all_flows:
         crewai_data = flow.crewai_state_data or {}
         data_cleansing_results = crewai_data.get("data_cleansing_results", {})
-        recommendation_actions = data_cleansing_results.get("recommendation_actions", {})
+        recommendation_actions = data_cleansing_results.get(
+            "recommendation_actions", {}
+        )
 
         if recommendation_actions:
             flows_with_actions.append(flow)
@@ -55,7 +57,7 @@ async def find_flows_with_jsonb_actions(db) -> List[DiscoveryFlow]:
     return flows_with_actions
 
 
-async def migrate_actions_for_flow(
+async def migrate_actions_for_flow(  # noqa: C901 - one-time migration script
     flow: DiscoveryFlow,
     db,
     dry_run: bool = False,
@@ -196,7 +198,9 @@ async def migrate_all_actions(
                 logger.info("Migration complete - nothing to migrate.")
                 return
 
-            logger.info(f"Found {total_flows} flows with recommendation_actions in JSONB")
+            logger.info(
+                f"Found {total_flows} flows with recommendation_actions in JSONB"
+            )
 
             if dry_run:
                 logger.info("=" * 80)
@@ -231,7 +235,9 @@ async def migrate_all_actions(
             logger.info("=" * 80)
             logger.info(f"Total flows processed: {total_flows}")
             logger.info(f"Actions migrated: {total_stats['migrated']}")
-            logger.info(f"Recommendations not found in table: {total_stats['not_found']}")
+            logger.info(
+                f"Recommendations not found in table: {total_stats['not_found']}"
+            )
             logger.info(f"Errors: {total_stats['errors']}")
             logger.info("=" * 80)
 
@@ -274,9 +280,10 @@ def main():
             "Run without --dry-run to clean up JSONB data."
         )
 
-    asyncio.run(migrate_all_actions(dry_run=args.dry_run, cleanup_jsonb=args.cleanup_jsonb))
+    asyncio.run(
+        migrate_all_actions(dry_run=args.dry_run, cleanup_jsonb=args.cleanup_jsonb)
+    )
 
 
 if __name__ == "__main__":
     main()
-

@@ -90,8 +90,8 @@ export interface DataCleansingAnalysis {
   processing_status: string;
   source?: 'agent' | 'fallback' | 'mock' | 'agent_failed' | 'service_unavailable';
   // CC: Sample data for UI display (Data Processing Samples section)
-  raw_data_sample?: Record<string, unknown>[];
-  cleaned_data_sample?: Record<string, unknown>[];
+  raw_data_sample?: Array<Record<string, unknown>>;
+  cleaned_data_sample?: Array<Record<string, unknown>>;
 }
 
 /**

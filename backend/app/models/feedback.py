@@ -60,6 +60,9 @@ class Feedback(Base):
         Boolean, default=False
     )  # Whether feedback has been processed for learning
 
+    # User tracking (display name only for privacy)
+    user_name = Column(String(255), nullable=True)  # User display name
+
     # Metadata
     user_agent = Column(String(500))  # Browser user agent
     user_timestamp = Column(String(50))  # Timestamp from client side

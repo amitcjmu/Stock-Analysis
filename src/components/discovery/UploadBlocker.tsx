@@ -39,12 +39,13 @@ export const UploadBlocker: React.FC<UploadBlockerProps> = ({
     if (!phase) return 'Unknown';
 
     const names: Record<string, string> = {
+      'data_import': 'Data Import',
+      'data_validation': 'Data Validation',
       'field_mapping': 'Field Mapping',
       'data_cleansing': 'Data Cleansing',
       'asset_inventory': 'Asset Inventory',
       'dependency_analysis': 'Dependency Analysis',
       'tech_debt_analysis': 'Tech Debt Analysis',
-      'data_import': 'Data Import'
     };
     return names[phase] || phase.replace(/_/g, ' ').toUpperCase();
   };

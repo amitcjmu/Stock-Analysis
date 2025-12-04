@@ -264,10 +264,14 @@ export const useFlowResumption = (): unknown => {
         console.log('📍 [DEBUG] Navigating to:', targetUrl);
         navigate(targetUrl);
       } else if (data.current_phase) {
-        // For field_mapping phase, navigate to attribute-mapping WITH flow ID
+        // Special case navigation for specific phases WITH flow ID
         if (data.current_phase === 'field_mapping' || data.current_phase === 'attribute_mapping') {
           console.log('📍 [DEBUG] Navigating to attribute mapping with flow ID:', flowId);
           navigate(`/discovery/attribute-mapping?flow_id=${flowId}`);
+        } else if (data.current_phase === 'data_validation') {
+          // ADR-038: Navigate to data validation page with flow ID
+          console.log('📍 [DEBUG] Navigating to data validation with flow ID:', flowId);
+          navigate(`/discovery/data-validation/${flowId}`);
         } else {
           const route = getDiscoveryPhaseRoute(data.current_phase, flowId);
           console.log('📍 [DEBUG] Navigating to phase route:', route);

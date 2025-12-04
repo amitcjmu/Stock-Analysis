@@ -13,6 +13,7 @@ from . import (
     chat,
     context,
     data_import,
+    feedback,
     field_mapping,
     flow_processing,
 )
@@ -27,6 +28,7 @@ from .monitoring_main import router as monitoring_router
 asset_inventory_router = asset_inventory.router
 monitoring_router = monitoring_router  # Use the imported monitoring_router
 chat_router = chat.router
+feedback_router = feedback.router
 # websocket_router removed - using HTTP polling for Vercel+Railway compatibility
 agent_learning_router = agent_learning_endpoints.router
 data_import_router = data_import.router

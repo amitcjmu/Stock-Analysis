@@ -70,6 +70,8 @@ class ContextMiddleware(BaseHTTPMiddleware):
             "/api/v1/auth/refresh",  # Token refresh - should not require context
             # /me endpoint for context initialization
             "/api/v1/me",
+            # Feedback view endpoint - admin feature, no tenant context needed
+            "/api/v1/chat/feedback",
         ]
 
         if exempt_paths is not None:

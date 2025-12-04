@@ -5,6 +5,7 @@ import { MessageCircle } from 'lucide-react'
 import { Send, X, Bot, User, Star, ThumbsUp } from 'lucide-react'
 import { apiCall, API_CONFIG } from '../../config/api';
 import { Markdown } from '../../utils/markdown';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface ChatMessage {
   id: string;
@@ -21,6 +22,7 @@ interface ChatInterfaceProps {
 }
 
 const ChatInterface: React.FC<ChatInterfaceProps> = ({ isOpen, onClose, currentPage = 'Asset Inventory', breadcrumbPath }) => {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'chat' | 'feedback'>('chat');
 
   // Chat state
@@ -168,7 +170,8 @@ If a question is outside these bounds, respond: "I'm specialized in IT migration
           comment: feedback,
           category: 'ui',
           breadcrumb: breadcrumbPath || window.location.pathname,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          user_name: user?.full_name || 'Anonymous'
         })
       });
 
