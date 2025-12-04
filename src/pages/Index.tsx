@@ -62,7 +62,7 @@ const Index = (): JSX.Element => {
       icon: FileText,
       path: '/assess',
       color: 'bg-blue-500',
-      status: 'In Progress'
+      status: 'Active'
     },
     {
       title: 'Plan',
@@ -70,7 +70,7 @@ const Index = (): JSX.Element => {
       icon: Building2,
       path: '/plan',
       color: 'bg-purple-500',
-      status: 'Planned'
+      status: 'Active'
     },
     {
       title: 'Execute',
@@ -94,7 +94,7 @@ const Index = (): JSX.Element => {
       icon: Archive,
       path: '/decommission',
       color: 'bg-red-500',
-      status: 'Planned'
+      status: 'In Progress'
     },
   ];
 
@@ -113,7 +113,7 @@ const Index = (): JSX.Element => {
       icon: Eye,
       path: '/observability',
       color: 'bg-emerald-500',
-      status: 'Planned'
+      status: 'In Progress'
     }
   ];
 
@@ -192,7 +192,13 @@ const Index = (): JSX.Element => {
                         <div className={`${mod.color} p-3 rounded-lg text-white`}>
                           <Icon className="h-6 w-6" />
                         </div>
-                        <span className={`px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-600`}>
+                        <span className={`px-2 py-1 text-xs rounded-full ${
+                          mod.status === 'Active'
+                            ? 'bg-green-100 text-green-800'
+                            : mod.status === 'In Progress'
+                              ? 'bg-blue-100 text-blue-800'
+                              : 'bg-gray-100 text-gray-600'
+                        }`}>
                           {mod.status}
                         </span>
                       </div>

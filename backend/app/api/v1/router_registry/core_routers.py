@@ -30,6 +30,7 @@ def register_core_routers(api_router: APIRouter):
         context_router,
         data_import_router,
         execute_router,
+        feedback_router,
         field_mapping_router,
         monitoring_router,
         context_establishment_router,
@@ -71,6 +72,7 @@ def register_core_routers(api_router: APIRouter):
 
     # Communication and Context
     api_router.include_router(chat_router, prefix="/chat")
+    api_router.include_router(feedback_router)  # Uses /feedback prefix from router
     api_router.include_router(context_router, prefix="/context")
     api_router.include_router(
         context_establishment_router, prefix="/context-establishment"
