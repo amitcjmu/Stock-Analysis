@@ -51,10 +51,13 @@ const fetchAvailableApplications = async (
   client_account_id: string,
   engagement_id: string
 ): Promise<ApplicationAsset[]> => {
-  return apiCall(
-    `/api/v1/dependency-analysis/available-applications?client_account_id=${client_account_id}&engagement_id=${engagement_id}`,
+  // Uses unified-discovery/dependencies router (per router_registry)
+  const response = await apiCall(
+    `/api/v1/unified-discovery/dependencies/applications`,
     { method: 'GET' }
   );
+  // API returns { success: bool, applications: [], count: int }
+  return response.applications || [];
 };
 
 export const DependencySelector: React.FC<DependencySelectorProps> = ({

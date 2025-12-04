@@ -8,7 +8,18 @@ Tests fail with event loop errors when using `httpx.AsyncClient` or other async 
 
 pytest-asyncio defaults to `asyncio_default_test_loop_scope=function`, meaning each test gets its own event loop. Session-scoped async fixtures try to use a closed loop on subsequent tests.
 
-## Solution: Match Fixture Scope to Event Loop Scope
+**CRITICAL**: In pytest-asyncio 0.23+, you MUST explicitly set `asyncio_default_fixture_loop_scope` in pytest.ini.
+
+## Solution: Configuration + Fixture Scope
+
+### Step 1: Add to pytest.ini (REQUIRED)
+```ini
+[tool:pytest]
+asyncio_mode = auto
+asyncio_default_fixture_loop_scope = function
+```
+
+### Step 2: Match Fixture Scope to Event Loop Scope
 
 ```python
 # ❌ WRONG - Session scope conflicts with function-scoped event loops
@@ -49,6 +60,17 @@ timestamp = asyncio.get_running_loop().time()
 2. Error occurs in fixture teardown (`await client.aclose()`)
 3. Traceback shows `pytest_asyncio/plugin.py` in finalizer
 
+## Test Execution Location (CRITICAL)
+
+**WRONG**: Running from `/app/back_end/backend/integration/`
+**CORRECT**: Running from `/app/back_end` or project root
+
+```bash
+# Correct command inside Docker container
+cd /app/back_end
+pytest tests/backend/integration/test_asset_inventory_api.py -v
+```
+
 ## Related: Patch Path Errors
 
 When mocking modules with late imports, patch the actual import location:
@@ -66,25 +88,7 @@ with patch("app.core.database.AsyncSessionLocal"):
     ...
 ```
 
-## Conftest Modularization for Test Fixtures
+## Files Updated (December 2025)
 
-When conftest.py exceeds 400 lines, split into `fixtures/` subpackage:
-
-```
-tests/backend/integration/
-├── conftest.py              # Main config + MFO fixtures (134 lines)
-├── fixtures/
-│   ├── __init__.py          # Re-exports all fixtures
-│   ├── api_fixtures.py      # HTTP clients, auth headers
-│   ├── db_fixtures.py       # Database engine/session
-│   ├── model_fixtures.py    # User, Client, Engagement
-│   └── test_utils.py        # BaseIntegrationTest, monitors
-```
-
-Main conftest.py imports and re-exports:
-```python
-from tests.backend.integration.fixtures import (
-    api_client, frontend_client, auth_headers,
-    test_engine, test_session, test_user, ...
-)
-```
+- `tests/pytest.ini:73-74` - Added asyncio_default_fixture_loop_scope = function
+- `backend/pytest.ini:17-18` - Added asyncio_default_fixture_loop_scope = function
