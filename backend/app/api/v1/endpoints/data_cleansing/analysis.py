@@ -283,13 +283,13 @@ def _generate_quality_issues_from_stats(
     if sample_size == 0:
         return []
 
-    # Build lookup for validation decisions by field name
-    decisions_by_field = {}
+    # CC FIX: Build lookup for validation decisions by field name (case-insensitive) (Qodo)
+    decisions_by_field: Dict[str, Any] = {}
     if validation_decisions and validation_decisions.get("decisions"):
         for decision in validation_decisions["decisions"]:
             field = decision.get("field_name")
             if field:
-                decisions_by_field[field] = decision
+                decisions_by_field[field.lower()] = decision
 
     for field_name, stats in field_stats.items():
         total = stats["total_count"]
@@ -297,8 +297,8 @@ def _generate_quality_issues_from_stats(
         invalid_count = stats["invalid_format_count"]
         sample_values = stats.get("sample_values", [])
 
-        # Get validation decision for this field if any
-        field_decision = decisions_by_field.get(field_name)
+        # CC FIX: Get validation decision for this field (case-insensitive match) (Qodo)
+        field_decision = decisions_by_field.get(field_name.lower())
 
         # Generate issue for missing values (if > 5%)
         if missing_count > 0 and (missing_count / total) > 0.05:
@@ -310,8 +310,10 @@ def _generate_quality_issues_from_stats(
             # Extrapolate to full dataset
             estimated_affected = int(total_records * (missing_count / sample_size))
 
-            # Get example valid values for recommendation
-            valid_samples = [str(v) for v in sample_values if v][:3]
+            # CC FIX: Preserve falsy but valid values like 0 (Qodo suggestion)
+            valid_samples = [
+                str(v) for v in sample_values if v is not None and v != ""
+            ][:3]
             sample_text = (
                 f" (existing values include: {', '.join(valid_samples)})"
                 if valid_samples

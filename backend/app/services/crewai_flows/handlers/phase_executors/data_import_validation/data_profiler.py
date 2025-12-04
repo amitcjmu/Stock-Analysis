@@ -96,7 +96,16 @@ class DataProfiler:
         if not self.raw_data:
             return []
 
-        fields_to_check = [field_name] if field_name else list(self.raw_data[0].keys())
+        # CC FIX: Iterate all records to build complete field list (Qodo suggestion)
+        if field_name:
+            fields_to_check = [field_name]
+        else:
+            fields_to_check = []
+            for rec in self.raw_data:
+                if isinstance(rec, dict):
+                    for k in rec.keys():
+                        if k not in fields_to_check:
+                            fields_to_check.append(k)
 
         results = []
 
@@ -108,9 +117,11 @@ class DataProfiler:
                 if not isinstance(record, dict):
                     continue
 
-                value = record.get(fname)
-                if not value or not isinstance(value, str):
+                # CC FIX: Stringify non-string values to catch multi-values in any type (Qodo suggestion)
+                raw_value = record.get(fname)
+                if raw_value is None:
                     continue
+                value = str(raw_value)
 
                 # Check against all delimiter patterns
                 for pattern_name, pattern in MULTI_VALUE_PATTERNS.items():
@@ -232,23 +243,37 @@ class DataProfiler:
         limit: int = 10,
     ) -> List[Dict[str, Any]]:
         """Find sample records where field exceeds length limit."""
-        samples = []
+        samples: List[Dict[str, Any]] = []
 
         for idx, record in enumerate(self.raw_data):
             if not isinstance(record, dict):
                 continue
 
-            value = record.get(field_name, "")
-            if value and len(str(value)) > max_length:
+            # CC FIX: Handle falsy values like "0" correctly (Qodo suggestion)
+            raw = record.get(field_name, "")
+            str_value = "" if raw is None else str(raw)
+            if len(str_value) > max_length:
+                # CC FIX: Mask potential sensitive data in previews (Qodo security)
+                preview = str_value[:50] + "..." if len(str_value) > 50 else str_value
+                # Redact if field name suggests sensitive content
+                if any(
+                    sensitive in field_name.lower()
+                    for sensitive in [
+                        "password",
+                        "secret",
+                        "token",
+                        "key",
+                        "ssn",
+                        "credit",
+                    ]
+                ):
+                    preview = "[REDACTED - sensitive field]"
+
                 samples.append(
                     {
                         "record_index": idx,
-                        "value_length": len(str(value)),
-                        "preview": (
-                            str(value)[:50] + "..."
-                            if len(str(value)) > 50
-                            else str(value)
-                        ),
+                        "value_length": len(str_value),
+                        "preview": preview,
                     }
                 )
                 if len(samples) >= limit:

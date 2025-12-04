@@ -191,6 +191,42 @@ const DataValidation: React.FC = () => {
   const handleSubmitDecisions = async () => {
     if (!effectiveFlowId) return;
 
+    // CC FIX: Add client-side validation before submit (Qodo suggestion)
+    if (dataProfile) {
+      const criticalFields = new Set(
+        dataProfile.issues.critical.map((i) => i.field)
+      );
+      const warningFields = new Set(
+        dataProfile.issues.warnings.map((i) => i.field)
+      );
+
+      // Ensure all critical fields have a supported decision
+      const missingCritical = Array.from(criticalFields).filter((f) => {
+        const d = decisions.get(f);
+        return !d || !['truncate', 'skip'].includes(d.action);
+      });
+
+      if (missingCritical.length > 0) {
+        alert(
+          `Please select an action for critical fields: ${missingCritical.join(', ')}`
+        );
+        return;
+      }
+
+      // Validate delimiter presence when splitting multi-valued fields
+      const invalidSplit = Array.from(warningFields).some((f) => {
+        const d = decisions.get(f);
+        return (
+          d?.action === 'split' &&
+          (!d.custom_delimiter || d.custom_delimiter.trim() === '')
+        );
+      });
+      if (invalidSplit) {
+        alert('Please specify a delimiter for fields set to "Split".');
+        return;
+      }
+    }
+
     setIsSubmittingDecisions(true);
     try {
       SecureLogger.info('[ADR-038] Submitting data profile decisions', {
@@ -274,8 +310,9 @@ const DataValidation: React.FC = () => {
   const blockingIssues = dataProfile?.blocking_issues || 0;
   const requiresUserAction = dataProfile?.user_action_required || false;
 
-  // Can continue if no blocking issues
-  const canContinue = !requiresUserAction || blockingIssues === 0;
+  // CC FIX: Can continue only when there are no blocking issues (Qodo suggestion)
+  // This ensures users cannot proceed if blocking issues exist
+  const canContinue = blockingIssues === 0;
 
   // Secure debug logging
   SecureLogger.debug('[ADR-038] DataValidation state', {

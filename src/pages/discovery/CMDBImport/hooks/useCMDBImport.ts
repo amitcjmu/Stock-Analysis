@@ -291,9 +291,10 @@ export const useCMDBImport = (): JSX.Element => {
     console.log('🔗 Navigation: Navigating to route:', route);
 
     navigate(route);
+    // CC FIX: Remove flow_id from toast to avoid identifier leakage (Qodo security)
     toast({
       title: "Navigating to Data Validation",
-      description: `Opening flow ${uploadedFile.flow_id} for data quality review.`,
+      description: "Opening flow for data quality review.",
     });
   }, [uploadedFiles, navigate, toast]);
 
