@@ -4,7 +4,7 @@ Common imports, router, and schema models for data cleansing endpoints.
 """
 
 import logging
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter
 from pydantic import BaseModel
@@ -92,6 +92,9 @@ class DataCleansingAnalysis(BaseModel):
     field_quality_scores: Dict[str, float]
     processing_status: str
     source: Optional[str] = None  # "agent", "fallback", "mock" to indicate data source
+    # CC: Sample data for UI display (Data Processing Samples section)
+    raw_data_sample: Optional[List[Dict[str, Any]]] = None
+    cleaned_data_sample: Optional[List[Dict[str, Any]]] = None
 
 
 class DataCleansingStats(BaseModel):

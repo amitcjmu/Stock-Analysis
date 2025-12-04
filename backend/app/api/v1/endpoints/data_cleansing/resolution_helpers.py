@@ -107,7 +107,8 @@ async def create_resolution_table(db: AsyncSession):
             error_type = type(e).__name__
             await db.execute(text("ROLLBACK TO SAVEPOINT before_table_creation"))
             logger.warning(
-                f"⚠️ [RESOLUTION] Table creation with uuid_generate_v4 failed ({error_type}): {str(e)}, trying fallback..."
+                f"⚠️ [RESOLUTION] Table creation with uuid_generate_v4 failed "
+                f"({error_type}): {str(e)}, trying fallback..."
             )
 
             # Fallback: use gen_random_uuid()
@@ -202,9 +203,7 @@ async def create_resolution_table(db: AsyncSession):
         raise
     except SQLAlchemyError as sp_err:
         # Other SQLAlchemy errors during savepoint
-        logger.error(
-            f"❌ [RESOLUTION] Database error during savepoint: {str(sp_err)}"
-        )
+        logger.error(f"❌ [RESOLUTION] Database error during savepoint: {str(sp_err)}")
         try:
             await db.rollback()
         except SQLAlchemyError as rollback_err:
@@ -259,7 +258,7 @@ def resolve_field_name_in_cleansed(
     """
     Resolve the actual field name in cleansed_data.
     Returns (resolved_field_name, current_value)
-    
+
     Note: This function only searches in cleansed_data. If future fallback
     logic to raw_data is needed, the parameter can be added back.
     """

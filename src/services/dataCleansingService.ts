@@ -89,6 +89,9 @@ export interface DataCleansingAnalysis {
   field_quality_scores: Record<string, number>;
   processing_status: string;
   source?: 'agent' | 'fallback' | 'mock' | 'agent_failed' | 'service_unavailable';
+  // CC: Sample data for UI display (Data Processing Samples section)
+  raw_data_sample?: Record<string, unknown>[];
+  cleaned_data_sample?: Record<string, unknown>[];
 }
 
 /**

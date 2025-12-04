@@ -21,6 +21,38 @@ from .field_mapping_utils import (
 logger = logging.getLogger(__name__)
 
 
+def _get_field_case_insensitive(data: Dict[str, Any], *field_names: str) -> Any:
+    """
+    Get a value from a dictionary using case-insensitive field name lookup.
+
+    This handles raw CMDB data which often has inconsistent field name casing
+    (e.g., "Hostname" vs "hostname", "IP Address" vs "ip_address").
+
+    Args:
+        data: Dictionary to search
+        *field_names: Field names to try (in order of preference)
+
+    Returns:
+        First matching value found, or None if no match
+    """
+    if not isinstance(data, dict):
+        return None
+
+    # Build lowercase lookup for case-insensitive matching
+    lower_key_map = {k.lower().replace(" ", "_"): k for k in data.keys()}
+
+    for field_name in field_names:
+        # Try exact match first
+        if field_name in data:
+            return data[field_name]
+        # Try case-insensitive match (also replace spaces with underscores)
+        normalized_name = field_name.lower().replace(" ", "_")
+        if normalized_name in lower_key_map:
+            return data[lower_key_map[normalized_name]]
+
+    return None
+
+
 def transform_raw_record_to_asset(
     record: RawImportRecord,
     master_flow_id: str,
@@ -84,21 +116,38 @@ def transform_raw_record_to_asset(
 
         # Build comprehensive asset data
         # Note: name is already normalized by get_smart_asset_name()
+        # Use case-insensitive field lookup for raw CMDB data with inconsistent casing
         asset_data = {
             "name": name,
             "asset_type": asset_type,
-            "description": asset_data_source.get(
-                "description",
-                f"Discovered asset from import row {record.row_number}",
+            "description": _get_field_case_insensitive(
+                asset_data_source, "description", "Description"
+            )
+            or f"Discovered asset from import row {record.row_number}",
+            # Network information - use case-insensitive lookup for common variations
+            "hostname": _get_field_case_insensitive(
+                asset_data_source,
+                "hostname",
+                "Hostname",
+                "server_name",
+                "Server_Name",
+                "Number",
             ),
-            # Network information
-            "hostname": asset_data_source.get("hostname"),
-            "ip_address": asset_data_source.get("ip_address"),
-            "fqdn": asset_data_source.get("fqdn"),
-            # System information
-            "operating_system": asset_data_source.get("operating_system"),
-            "os_version": asset_data_source.get("os_version"),
-            "environment": asset_data_source.get("environment", "Unknown"),
+            "ip_address": _get_field_case_insensitive(
+                asset_data_source, "ip_address", "IP Address", "IP_Address", "ipaddress"
+            ),
+            "fqdn": _get_field_case_insensitive(asset_data_source, "fqdn", "FQDN"),
+            # System information - handle various CMDB naming conventions
+            "operating_system": _get_field_case_insensitive(
+                asset_data_source, "operating_system", "Operating System", "OS"
+            ),
+            "os_version": _get_field_case_insensitive(
+                asset_data_source, "os_version", "OS Version", "OS_Version"
+            ),
+            "environment": _get_field_case_insensitive(
+                asset_data_source, "environment", "Environment"
+            )
+            or "Unknown",
             # Physical/Virtual specifications
             "cpu_cores": asset_data_source.get("cpu_cores"),
             "memory_gb": asset_data_source.get("memory_gb"),
