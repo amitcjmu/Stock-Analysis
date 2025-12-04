@@ -305,21 +305,27 @@ class DataProfiler:
         return 95.0
 
     def _calculate_constraint_compliance_score(self) -> float:
-        """Calculate constraint compliance score."""
+        """Calculate constraint compliance score.
+
+        CC FIX: Revised to be field-based rather than cell-based (Qodo suggestion).
+        Score is 100 minus the percentage of fields that have violations.
+        This provides a more intuitive and accurate compliance metric.
+        """
         if not self._field_stats:
             return 100.0
 
-        total_records = len(self.raw_data)
-        if total_records == 0:
+        total_relevant_fields = len(self._field_stats)
+        if total_relevant_fields == 0:
             return 100.0
 
-        # Count records with violations
-        violation_count = sum(v.affected_count for v in self._length_violations)
+        # Count unique fields with violations
+        fields_with_violations = len({v.field_name for v in self._length_violations})
 
-        compliance_rate = 1 - (
-            violation_count / (total_records * len(self._field_stats))
-        )
-        return round(max(0, min(100, compliance_rate * 100)), 2)
+        # Score is 100 minus the percentage of fields that have violations
+        violation_percentage = (fields_with_violations / total_relevant_fields) * 100
+        score = 100 - violation_percentage
+
+        return round(max(0, min(100, score)), 2)
 
     def generate_profile_report(
         self,

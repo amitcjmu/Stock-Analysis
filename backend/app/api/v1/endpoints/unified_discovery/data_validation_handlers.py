@@ -461,6 +461,28 @@ async def mark_data_validation_complete(
         # Get the discovery flow
         discovery_flow = await _get_discovery_flow(flow_id, db, context)
 
+        # CC FIX: Check for blocking issues before allowing completion (Qodo suggestion)
+        # Prevents users from bypassing critical data issues
+        if discovery_flow.data_import_id:
+            raw_data = await _get_raw_data_for_flow(
+                discovery_flow.data_import_id, db, context
+            )
+            if raw_data:
+                profiler = DataProfiler(raw_data)
+                schema_constraints = get_asset_schema_constraints()
+                violations = profiler.check_field_length_violations(schema_constraints)
+                if violations:
+                    logger.warning(
+                        safe_log_format(
+                            "[ADR-038] Blocking completion due to {count} critical issues",
+                            count=len(violations),
+                        )
+                    )
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Cannot complete validation. Critical issues found that require user decisions.",
+                    )
+
         # Update phase state
         acknowledge_warnings = request.get("acknowledge_warnings", False)
         current_phase_state = discovery_flow.phase_state or {}

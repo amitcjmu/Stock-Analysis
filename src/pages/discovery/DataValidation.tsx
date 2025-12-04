@@ -143,30 +143,39 @@ const DataValidation: React.FC = () => {
     fetchDataProfile();
   }, [fetchDataProfile]);
 
-  // Initialize decisions from issues
+  // CC FIX: Initialize decisions aggregating both critical and warning issues (Qodo suggestion)
+  // This ensures that when a field has both a critical issue and a warning,
+  // details from both are correctly aggregated into the initial decision state
   useEffect(() => {
     if (!dataProfile) return;
 
     const newDecisions = new Map<string, FieldDecision>();
 
-    // Add critical issues (length violations)
-    dataProfile.issues.critical.forEach((issue) => {
-      if (!newDecisions.has(issue.field)) {
-        newDecisions.set(issue.field, {
-          field_name: issue.field,
-          action: 'truncate', // Default action for length violations
-        });
-      }
-    });
+    // Combine all issues to process together
+    const allIssues = [
+      ...dataProfile.issues.critical,
+      ...dataProfile.issues.warnings,
+    ];
 
-    // Add warnings (multi-value fields)
-    dataProfile.issues.warnings.forEach((issue) => {
-      if (issue.is_multi_valued && !newDecisions.has(issue.field)) {
+    allIssues.forEach((issue) => {
+      const existingDecision = newDecisions.get(issue.field);
+
+      // If no decision exists, create a new one
+      if (!existingDecision) {
+        const isCritical = dataProfile.issues.critical.some(
+          (c) => c.field === issue.field
+        );
         newDecisions.set(issue.field, {
           field_name: issue.field,
-          action: 'keep', // Default action for multi-value
+          action: isCritical ? 'truncate' : 'keep',
           custom_delimiter: issue.delimiter || undefined,
         });
+        return;
+      }
+
+      // If a decision exists, enrich it with info from other issues (e.g., delimiter)
+      if (issue.delimiter && !existingDecision.custom_delimiter) {
+        existingDecision.custom_delimiter = issue.delimiter;
       }
     });
 
@@ -417,7 +426,8 @@ const DataValidation: React.FC = () => {
     index: number,
     type: 'critical' | 'warning' | 'info'
   ) => {
-    const issueKey = `${type}-${issue.field}-${index}`;
+    // CC FIX: Use stable key based on content instead of array index (Qodo suggestion)
+    const issueKey = `${type}-${issue.field}-${issue.issue.replace(/\s/g, '-')}`;
     const isExpanded = expandedIssues.has(issueKey);
     const decision = decisions.get(issue.field);
 
@@ -502,15 +512,20 @@ const DataValidation: React.FC = () => {
               </div>
             )}
 
-            {/* Recommendations */}
+            {/* CC FIX: Improved recommendation rendering to handle both array and string (Qodo) */}
             {(issue.recommendations || issue.recommendation) && (
               <div className="mt-2">
                 <p className="text-sm font-medium text-gray-700 mb-1">Recommendations:</p>
                 <ul className="list-disc list-inside text-sm text-gray-600">
-                  {issue.recommendations?.map((rec, i) => <li key={i}>{rec}</li>)}
-                  {issue.recommendation && !issue.recommendations && (
-                    <li>{issue.recommendation}</li>
-                  )}
+                  {[
+                    ...(issue.recommendations || []),
+                    ...(issue.recommendation &&
+                    !issue.recommendations?.includes(issue.recommendation)
+                      ? [issue.recommendation]
+                      : []),
+                  ].map((rec, i) => (
+                    <li key={`rec-${i}-${rec.slice(0, 20)}`}>{rec}</li>
+                  ))}
                 </ul>
               </div>
             )}
