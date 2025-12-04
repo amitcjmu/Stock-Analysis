@@ -1,0 +1,6258 @@
+{
+  "consumer": {
+    "name": "migrate-ui-frontend"
+  },
+  "interactions": [
+    {
+      "description": "a health check request",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "the API is running"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/health"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "status": "healthy",
+            "timestamp": "2025-01-01T00:00:00Z",
+            "version": "1.21.0"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.timestamp": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.version": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a health check request for FinOps service",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "FinOps service is running"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/finops/health"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "service": "finops",
+            "status": "healthy"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.service": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "healthy|degraded|unhealthy"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a health check request for data import service",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "data import service is running"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/data-import/health"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "service": "data-import",
+            "status": "healthy"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.service": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "healthy|degraded|unhealthy"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a health check request for discovery service",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "discovery service is running"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/unified-discovery/health"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "service": "discovery",
+            "status": "healthy"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.service": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "healthy|degraded|unhealthy"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request for LLM costs",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "LLM usage data exists"
+        }
+      ],
+      "request": {
+        "headers": {
+          "X-Client-Account-ID": [
+            "1"
+          ],
+          "X-Engagement-ID": [
+            "1"
+          ]
+        },
+        "matchingRules": {
+          "header": {
+            "X-Client-Account-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "X-Engagement-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "GET",
+        "path": "/api/v1/finops/llm-costs"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "cost_by_flow_type": {
+              "assessment": 100,
+              "collection": 50,
+              "discovery": 100
+            },
+            "cost_by_model": {
+              "claude-3-opus": 50,
+              "gpt-3.5-turbo": 50,
+              "gpt-4": 150
+            },
+            "period": "monthly",
+            "total_cost": 250,
+            "total_tokens": 5000000
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.cost_by_flow_type": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.cost_by_model": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.period": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.total_cost": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.total_tokens": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request for a specific import",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "a data import exists",
+          "params": {
+            "import_id": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        }
+      ],
+      "request": {
+        "headers": {
+          "X-Client-Account-ID": [
+            "1"
+          ],
+          "X-Engagement-ID": [
+            "1"
+          ]
+        },
+        "matchingRules": {
+          "header": {
+            "X-Client-Account-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "X-Engagement-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "GET",
+        "path": "/api/v1/data-import/imports/550e8400-e29b-41d4-a716-446655440000"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "created_at": "2025-01-01T00:00:00Z",
+            "field_mappings_count": 25,
+            "filename": "cmdb_export.csv",
+            "id": "550e8400-e29b-41d4-a716-446655440000",
+            "records_processed": 1000,
+            "records_total": 1000,
+            "status": "completed",
+            "updated_at": "2025-01-01T00:00:00Z"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.created_at": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.field_mappings_count": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.filename": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.records_processed": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.records_total": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "pending|processing|completed|failed"
+                }
+              ]
+            },
+            "$.updated_at": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request for active discovery flow",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "an active discovery flow exists"
+        }
+      ],
+      "request": {
+        "headers": {
+          "X-Client-Account-ID": [
+            "1"
+          ],
+          "X-Engagement-ID": [
+            "1"
+          ]
+        },
+        "matchingRules": {
+          "header": {
+            "X-Client-Account-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "X-Engagement-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "GET",
+        "path": "/api/v1/unified-discovery/flows/active"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "current_phase": "field_mapping",
+            "flow_id": "e2490de5-5bd3-43d5-b7c4-526e33f71304",
+            "status": "active"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "generators": {
+          "body": {
+            "$.flow_id": {
+              "type": "Uuid"
+            }
+          }
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.current_phase": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.flow_id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "active|running"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request for all master flows",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "multiple master flows exist"
+        }
+      ],
+      "request": {
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ],
+          "X-Client-Account-ID": [
+            "1"
+          ],
+          "X-Engagement-ID": [
+            "1"
+          ]
+        },
+        "matchingRules": {
+          "header": {
+            "X-Client-Account-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "X-Engagement-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "GET",
+        "path": "/api/v1/master-flows"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "flows": [
+              {
+                "created_at": "2025-01-01T00:00:00Z",
+                "flow_id": "e2490de5-5bd3-43d5-b7c4-526e33f71304",
+                "flow_status": "completed",
+                "flow_type": "assessment"
+              }
+            ],
+            "total": 3
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "generators": {
+          "body": {
+            "$.flows[*].flow_id": {
+              "type": "Uuid"
+            }
+          }
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.flows": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.flows[*].created_at": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.flows[*].flow_id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.flows[*].flow_status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "pending|active|in_progress|completed|paused|failed|cancelled"
+                }
+              ]
+            },
+            "$.flows[*].flow_type": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "discovery|assessment|collection|decommission"
+                }
+              ]
+            },
+            "$.total": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request for application readiness gaps",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "a canonical application with assessed assets",
+          "params": {
+            "app_id": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        }
+      ],
+      "request": {
+        "headers": {
+          "X-Client-Account-ID": [
+            "1"
+          ],
+          "X-Engagement-ID": [
+            "1"
+          ]
+        },
+        "matchingRules": {
+          "header": {
+            "X-Client-Account-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "X-Engagement-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "GET",
+        "path": "/api/v1/canonical-applications/550e8400-e29b-41d4-a716-446655440000/readiness-gaps"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "canonical_application_id": "550e8400-e29b-41d4-a716-446655440000",
+            "critical_gaps": 2,
+            "gaps": [
+              {
+                "affected_assets": 3,
+                "category": "technical_debt",
+                "description": "Legacy authentication mechanism needs update",
+                "id": "e2490de5-5bd3-43d5-b7c4-526e33f71304",
+                "remediation_effort": "medium",
+                "severity": "medium"
+              }
+            ],
+            "overall_readiness_score": 0.75,
+            "total_gaps": 8
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "generators": {
+          "body": {
+            "$.gaps[*].id": {
+              "type": "Uuid"
+            }
+          }
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.canonical_application_id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.critical_gaps": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.gaps": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.gaps[*].affected_assets": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.gaps[*].category": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "technical_debt|security|compliance|documentation"
+                }
+              ]
+            },
+            "$.gaps[*].description": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.gaps[*].id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.gaps[*].remediation_effort": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "low|medium|high"
+                }
+              ]
+            },
+            "$.gaps[*].severity": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "low|medium|high|critical"
+                }
+              ]
+            },
+            "$.overall_readiness_score": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.total_gaps": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request for assessment flow status",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "an assessment flow exists",
+          "params": {
+            "flow_id": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        }
+      ],
+      "request": {
+        "headers": {
+          "X-Client-Account-ID": [
+            "1"
+          ],
+          "X-Engagement-ID": [
+            "1"
+          ]
+        },
+        "matchingRules": {
+          "header": {
+            "X-Client-Account-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "X-Engagement-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "GET",
+        "path": "/api/v1/assessment-flow/550e8400-e29b-41d4-a716-446655440000/status"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "assessment_complete": false,
+            "created_at": "2025-01-01T00:00:00Z",
+            "current_phase": "tech_debt_assessment",
+            "flow_id": "550e8400-e29b-41d4-a716-446655440000",
+            "next_phase": "dependency_analysis",
+            "pause_points": [
+              "dependency_analysis"
+            ],
+            "progress_percentage": 45.5,
+            "selected_applications": 5,
+            "status": "processing",
+            "updated_at": "2025-01-01T00:00:00Z",
+            "user_inputs_captured": false
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.assessment_complete": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.created_at": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.current_phase": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.flow_id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.next_phase": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.pause_points": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.progress_percentage": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.selected_applications": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "initialized|processing|paused_for_user_input|completed|error"
+                }
+              ]
+            },
+            "$.updated_at": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.user_inputs_captured": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request for available target fields",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "target fields are configured"
+        }
+      ],
+      "request": {
+        "headers": {
+          "X-Client-Account-ID": [
+            "1"
+          ],
+          "X-Engagement-ID": [
+            "1"
+          ]
+        },
+        "matchingRules": {
+          "header": {
+            "X-Client-Account-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "X-Engagement-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "GET",
+        "path": "/api/v1/data-import/available-target-fields"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "fields": [
+              {
+                "category": "identity",
+                "data_type": "string",
+                "display_name": "Server Name",
+                "name": "server_name",
+                "required": true
+              }
+            ]
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.fields": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.fields[*].category": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.fields[*].data_type": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "string|number|boolean|date"
+                }
+              ]
+            },
+            "$.fields[*].display_name": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.fields[*].name": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.fields[*].required": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request for collection flow status",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "an active collection flow exists"
+        }
+      ],
+      "request": {
+        "headers": {
+          "X-Client-Account-ID": [
+            "1"
+          ],
+          "X-Engagement-ID": [
+            "1"
+          ]
+        },
+        "matchingRules": {
+          "header": {
+            "X-Client-Account-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "X-Engagement-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "GET",
+        "path": "/api/v1/collection/status"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "flow_id": "e2490de5-5bd3-43d5-b7c4-526e33f71304",
+            "has_active_flow": true,
+            "status": "active"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "generators": {
+          "body": {
+            "$.flow_id": {
+              "type": "Uuid"
+            }
+          }
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.flow_id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.has_active_flow": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "active|pending|completed"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request for cost alerts",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "cost alerts are configured"
+        }
+      ],
+      "request": {
+        "headers": {
+          "X-Client-Account-ID": [
+            "1"
+          ],
+          "X-Engagement-ID": [
+            "1"
+          ]
+        },
+        "matchingRules": {
+          "header": {
+            "X-Client-Account-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "X-Engagement-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "GET",
+        "path": "/api/v1/finops/alerts"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "alerts": [
+              {
+                "acknowledged": false,
+                "created_at": "2025-01-01T00:00:00Z",
+                "id": "e2490de5-5bd3-43d5-b7c4-526e33f71304",
+                "message": "Budget threshold exceeded",
+                "resource_id": "e2490de5-5bd3-43d5-b7c4-526e33f71304",
+                "severity": "warning",
+                "type": "budget"
+              }
+            ],
+            "unacknowledged_count": 3
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "generators": {
+          "body": {
+            "$.alerts[*].id": {
+              "type": "Uuid"
+            },
+            "$.alerts[*].resource_id": {
+              "type": "Uuid"
+            }
+          }
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.alerts": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.alerts[*].acknowledged": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.alerts[*].created_at": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.alerts[*].id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.alerts[*].message": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.alerts[*].resource_id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.alerts[*].severity": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "info|warning|critical"
+                }
+              ]
+            },
+            "$.alerts[*].type": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "budget|anomaly|threshold"
+                }
+              ]
+            },
+            "$.unacknowledged_count": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request for critical attributes status",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "imports with critical attributes exist"
+        }
+      ],
+      "request": {
+        "headers": {
+          "X-Client-Account-ID": [
+            "1"
+          ],
+          "X-Engagement-ID": [
+            "1"
+          ]
+        },
+        "matchingRules": {
+          "header": {
+            "X-Client-Account-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "X-Engagement-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "GET",
+        "path": "/api/v1/data-import/critical-attributes-status"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "completion_percentage": 80,
+            "critical_fields_mapped": 8,
+            "critical_fields_total": 10,
+            "missing_fields": [
+              "business_criticality"
+            ]
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.completion_percentage": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.critical_fields_mapped": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.critical_fields_total": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.missing_fields": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.missing_fields[*]": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request for current user context",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "a user is authenticated"
+        }
+      ],
+      "request": {
+        "headers": {
+          "X-Client-Account-ID": [
+            "1"
+          ],
+          "X-Engagement-ID": [
+            "1"
+          ]
+        },
+        "matchingRules": {
+          "header": {
+            "X-Client-Account-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "X-Engagement-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "GET",
+        "path": "/api/v1/me"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "active_flows": [],
+            "client_account_id": "1",
+            "engagement_id": "1",
+            "session_id": "session-abc",
+            "user_id": "user-123"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.active_flows": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.client_account_id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.engagement_id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.session_id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.user_id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request for data retention policies",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "data retention policies exist"
+        }
+      ],
+      "request": {
+        "headers": {
+          "X-Client-Account-ID": [
+            "1"
+          ],
+          "X-Engagement-ID": [
+            "1"
+          ]
+        },
+        "matchingRules": {
+          "header": {
+            "X-Client-Account-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "X-Engagement-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "GET",
+        "path": "/api/v1/decommission/data-retention"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "policies": [
+              {
+                "data_types": [
+                  "logs"
+                ],
+                "id": "e2490de5-5bd3-43d5-b7c4-526e33f71304",
+                "name": "Standard Retention",
+                "retention_days": 90
+              }
+            ]
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "generators": {
+          "body": {
+            "$.policies[*].id": {
+              "type": "Uuid"
+            }
+          }
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.policies": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.policies[*].data_types": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.policies[*].id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.policies[*].name": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.policies[*].retention_days": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request for decommission flow status",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "a decommission flow exists",
+          "params": {
+            "flow_id": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        }
+      ],
+      "request": {
+        "headers": {
+          "X-Client-Account-ID": [
+            "1"
+          ],
+          "X-Engagement-ID": [
+            "1"
+          ]
+        },
+        "matchingRules": {
+          "header": {
+            "X-Client-Account-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "X-Engagement-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "GET",
+        "path": "/api/v1/decommission-flow/550e8400-e29b-41d4-a716-446655440000/status"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "created_at": "2025-01-01T00:00:00Z",
+            "current_phase": "data_backup",
+            "flow_id": "550e8400-e29b-41d4-a716-446655440000",
+            "progress_percentage": 30,
+            "status": "running",
+            "systems_completed": 2,
+            "systems_remaining": 3,
+            "updated_at": "2025-01-01T00:00:00Z"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.created_at": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.current_phase": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.flow_id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.progress_percentage": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "initialized|running|paused|completed|error"
+                }
+              ]
+            },
+            "$.systems_completed": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.systems_remaining": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.updated_at": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request for detailed collection flow status",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "a collection flow exists",
+          "params": {
+            "flow_id": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        }
+      ],
+      "request": {
+        "headers": {
+          "X-Client-Account-ID": [
+            "1"
+          ],
+          "X-Engagement-ID": [
+            "1"
+          ]
+        },
+        "matchingRules": {
+          "header": {
+            "X-Client-Account-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "X-Engagement-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "GET",
+        "path": "/api/v1/collection/collection/flows/550e8400-e29b-41d4-a716-446655440000/status"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "answered_questions": 75,
+            "completeness_percentage": 75.5,
+            "flow_id": "550e8400-e29b-41d4-a716-446655440000",
+            "pending_questions": 25,
+            "status": "active",
+            "total_questions": 100
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.answered_questions": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.completeness_percentage": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.flow_id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.pending_questions": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "active|pending|completed|error"
+                }
+              ]
+            },
+            "$.total_questions": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request for discovered assets",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "discovery flow has assets",
+          "params": {
+            "flow_id": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        }
+      ],
+      "request": {
+        "headers": {
+          "X-Client-Account-ID": [
+            "1"
+          ],
+          "X-Engagement-ID": [
+            "1"
+          ],
+          "X-Flow-ID": [
+            "550e8400-e29b-41d4-a716-446655440000"
+          ]
+        },
+        "matchingRules": {
+          "header": {
+            "X-Client-Account-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "X-Engagement-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "X-Flow-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "GET",
+        "path": "/api/v1/unified-discovery/assets"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "assets": [
+              {
+                "asset_type": "server",
+                "id": "e2490de5-5bd3-43d5-b7c4-526e33f71304",
+                "name": "Server-001",
+                "status": "discovered"
+              }
+            ],
+            "total": 10
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "generators": {
+          "body": {
+            "$.assets[*].id": {
+              "type": "Uuid"
+            }
+          }
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.assets": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.assets[*].asset_type": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "server|database|application"
+                }
+              ]
+            },
+            "$.assets[*].id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.assets[*].name": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.assets[*].status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.total": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request for discovery flow status",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "a discovery flow exists",
+          "params": {
+            "flow_id": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        }
+      ],
+      "request": {
+        "headers": {
+          "X-Client-Account-ID": [
+            "1"
+          ],
+          "X-Engagement-ID": [
+            "1"
+          ]
+        },
+        "matchingRules": {
+          "header": {
+            "X-Client-Account-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "X-Engagement-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "GET",
+        "path": "/api/v1/unified-discovery/flows/550e8400-e29b-41d4-a716-446655440000/status"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "created_at": "2025-01-01T00:00:00Z",
+            "current_phase": "data_import",
+            "flow_id": "550e8400-e29b-41d4-a716-446655440000",
+            "progress_percentage": 45,
+            "status": "running",
+            "updated_at": "2025-01-01T00:00:00Z"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.created_at": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.current_phase": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.flow_id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.progress_percentage": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "initialized|running|paused|completed|error"
+                }
+              ]
+            },
+            "$.updated_at": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request for eligible systems",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "systems exist that can be decommissioned"
+        }
+      ],
+      "request": {
+        "headers": {
+          "X-Client-Account-ID": [
+            "1"
+          ],
+          "X-Engagement-ID": [
+            "1"
+          ]
+        },
+        "matchingRules": {
+          "header": {
+            "X-Client-Account-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "X-Engagement-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "GET",
+        "path": "/api/v1/decommission-flow/eligible-systems"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "systems": [
+              {
+                "id": "e2490de5-5bd3-43d5-b7c4-526e33f71304",
+                "name": "Legacy Server 001",
+                "recommendation": "retire",
+                "risk_level": "low",
+                "type": "server"
+              }
+            ],
+            "total": 10
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "generators": {
+          "body": {
+            "$.systems[*].id": {
+              "type": "Uuid"
+            }
+          }
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.systems": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.systems[*].id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.systems[*].name": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.systems[*].recommendation": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.systems[*].risk_level": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "low|medium|high"
+                }
+              ]
+            },
+            "$.systems[*].type": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "server|database|application"
+                }
+              ]
+            },
+            "$.total": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request for field mappings",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "discovery flow has field mappings",
+          "params": {
+            "flow_id": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        }
+      ],
+      "request": {
+        "headers": {
+          "X-Client-Account-ID": [
+            "1"
+          ],
+          "X-Engagement-ID": [
+            "1"
+          ]
+        },
+        "matchingRules": {
+          "header": {
+            "X-Client-Account-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "X-Engagement-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "GET",
+        "path": "/api/v1/unified-discovery/flows/550e8400-e29b-41d4-a716-446655440000/field-mappings"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "mappings": [
+              {
+                "confidence": 0.95,
+                "id": "e2490de5-5bd3-43d5-b7c4-526e33f71304",
+                "source_field": "hostname",
+                "status": "pending",
+                "target_field": "server_name"
+              }
+            ]
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "generators": {
+          "body": {
+            "$.mappings[*].id": {
+              "type": "Uuid"
+            }
+          }
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.mappings": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.mappings[*].confidence": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.mappings[*].id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.mappings[*].source_field": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.mappings[*].status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "approved|pending|rejected"
+                }
+              ]
+            },
+            "$.mappings[*].target_field": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request for import field mappings",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "an import with field mappings exists",
+          "params": {
+            "import_id": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        }
+      ],
+      "request": {
+        "headers": {
+          "X-Client-Account-ID": [
+            "1"
+          ],
+          "X-Engagement-ID": [
+            "1"
+          ]
+        },
+        "matchingRules": {
+          "header": {
+            "X-Client-Account-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "X-Engagement-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "GET",
+        "path": "/api/v1/data-import/field-mappings/imports/550e8400-e29b-41d4-a716-446655440000/mappings"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "mappings": [
+              {
+                "confidence": 0.95,
+                "id": "e2490de5-5bd3-43d5-b7c4-526e33f71304",
+                "mapping_type": "ai",
+                "source_field": "hostname",
+                "status": "pending",
+                "target_field": "server_name"
+              }
+            ],
+            "unmapped_fields": [
+              "custom_field_1"
+            ]
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "generators": {
+          "body": {
+            "$.mappings[*].id": {
+              "type": "Uuid"
+            }
+          }
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.mappings": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.mappings[*].confidence": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.mappings[*].id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.mappings[*].mapping_type": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "ai|manual|learned"
+                }
+              ]
+            },
+            "$.mappings[*].source_field": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.mappings[*].status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "approved|pending|rejected|ai_suggested"
+                }
+              ]
+            },
+            "$.mappings[*].target_field": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.unmapped_fields": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.unmapped_fields[*]": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request for learning statistics",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "learning data exists"
+        }
+      ],
+      "request": {
+        "headers": {
+          "X-Client-Account-ID": [
+            "1"
+          ],
+          "X-Engagement-ID": [
+            "1"
+          ]
+        },
+        "matchingRules": {
+          "header": {
+            "X-Client-Account-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "X-Engagement-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "GET",
+        "path": "/api/v1/data-import/learning-statistics"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "accuracy_rate": 0.92,
+            "mappings_by_type": {
+              "ai_suggested": 100,
+              "manually_approved": 30,
+              "manually_created": 20
+            },
+            "total_learned_mappings": 150
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.accuracy_rate": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.mappings_by_type": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.total_learned_mappings": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request for master flow details",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "a master flow exists",
+          "params": {
+            "flow_id": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        }
+      ],
+      "request": {
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ],
+          "X-Client-Account-ID": [
+            "1"
+          ],
+          "X-Engagement-ID": [
+            "1"
+          ]
+        },
+        "matchingRules": {
+          "header": {
+            "X-Client-Account-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "X-Engagement-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "GET",
+        "path": "/api/v1/master-flows/550e8400-e29b-41d4-a716-446655440000"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "client_account_id": "1",
+            "created_at": "2025-01-01T00:00:00Z",
+            "engagement_id": "1",
+            "flow_configuration": {},
+            "flow_id": "550e8400-e29b-41d4-a716-446655440000",
+            "flow_name": "Q4 Assessment",
+            "flow_status": "in_progress",
+            "flow_type": "assessment",
+            "updated_at": "2025-01-01T00:00:00Z",
+            "user_id": "user-123"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.client_account_id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.created_at": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.engagement_id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.flow_configuration": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.flow_id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.flow_name": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.flow_status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "pending|active|in_progress|completed|paused|failed|cancelled"
+                }
+              ]
+            },
+            "$.flow_type": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "discovery|assessment|collection|decommission"
+                }
+              ]
+            },
+            "$.updated_at": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.user_id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request for non-existent assessment flow status",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "no assessment flow exists"
+        }
+      ],
+      "request": {
+        "headers": {
+          "X-Client-Account-ID": [
+            "1"
+          ],
+          "X-Engagement-ID": [
+            "1"
+          ]
+        },
+        "matchingRules": {
+          "header": {
+            "X-Client-Account-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "X-Engagement-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "GET",
+        "path": "/api/v1/assessment-flow/00000000-0000-0000-0000-000000000000/status"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "detail": "Flow not found"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.detail": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 404
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request for optimization opportunities",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "cost optimization opportunities exist"
+        }
+      ],
+      "request": {
+        "headers": {
+          "X-Client-Account-ID": [
+            "1"
+          ],
+          "X-Engagement-ID": [
+            "1"
+          ]
+        },
+        "matchingRules": {
+          "header": {
+            "X-Client-Account-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "X-Engagement-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "GET",
+        "path": "/api/v1/finops/opportunities"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "opportunities": [
+              {
+                "affected_resources": 5,
+                "category": "rightsizing",
+                "effort": "low",
+                "id": "e2490de5-5bd3-43d5-b7c4-526e33f71304",
+                "potential_savings": 2500,
+                "priority": "high",
+                "title": "Right-size oversized instances"
+              }
+            ],
+            "total_potential_savings": 10000
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "generators": {
+          "body": {
+            "$.opportunities[*].id": {
+              "type": "Uuid"
+            }
+          }
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.opportunities": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.opportunities[*].affected_resources": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.opportunities[*].category": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "rightsizing|scheduling|reserved|spot"
+                }
+              ]
+            },
+            "$.opportunities[*].effort": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "low|medium|high"
+                }
+              ]
+            },
+            "$.opportunities[*].id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.opportunities[*].potential_savings": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.opportunities[*].priority": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "low|medium|high|critical"
+                }
+              ]
+            },
+            "$.opportunities[*].title": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.total_potential_savings": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request for resource costs",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "resources with costs exist"
+        }
+      ],
+      "request": {
+        "headers": {
+          "X-Client-Account-ID": [
+            "1"
+          ],
+          "X-Engagement-ID": [
+            "1"
+          ]
+        },
+        "matchingRules": {
+          "header": {
+            "X-Client-Account-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "X-Engagement-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "GET",
+        "path": "/api/v1/finops/resources"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "resources": [
+              {
+                "id": "e2490de5-5bd3-43d5-b7c4-526e33f71304",
+                "monthly_cost": 500,
+                "name": "Production Web Server",
+                "recommendation": "right-size",
+                "type": "compute",
+                "utilization": 0.75
+              }
+            ],
+            "total": 25,
+            "total_monthly_cost": 12500
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "generators": {
+          "body": {
+            "$.resources[*].id": {
+              "type": "Uuid"
+            }
+          }
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.resources": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.resources[*].id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.resources[*].monthly_cost": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.resources[*].name": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.resources[*].recommendation": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.resources[*].type": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "compute|storage|database|network"
+                }
+              ]
+            },
+            "$.resources[*].utilization": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.total": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.total_monthly_cost": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request for target field categories",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "field categories are configured"
+        }
+      ],
+      "request": {
+        "headers": {
+          "X-Client-Account-ID": [
+            "1"
+          ],
+          "X-Engagement-ID": [
+            "1"
+          ]
+        },
+        "matchingRules": {
+          "header": {
+            "X-Client-Account-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "X-Engagement-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "GET",
+        "path": "/api/v1/data-import/target-field-categories"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "categories": [
+              {
+                "display_name": "Identity",
+                "fields_count": 5,
+                "name": "identity"
+              }
+            ]
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.categories": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.categories[*].display_name": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.categories[*].fields_count": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.categories[*].name": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request for the latest import",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "at least one data import exists"
+        }
+      ],
+      "request": {
+        "headers": {
+          "X-Client-Account-ID": [
+            "1"
+          ],
+          "X-Engagement-ID": [
+            "1"
+          ]
+        },
+        "matchingRules": {
+          "header": {
+            "X-Client-Account-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "X-Engagement-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "GET",
+        "path": "/api/v1/data-import/latest"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "created_at": "2025-01-01T00:00:00Z",
+            "filename": "cmdb_export_latest.csv",
+            "id": "e2490de5-5bd3-43d5-b7c4-526e33f71304",
+            "records_processed": 500,
+            "records_total": 500,
+            "status": "completed"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "generators": {
+          "body": {
+            "$.id": {
+              "type": "Uuid"
+            }
+          }
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.created_at": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.filename": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.records_processed": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.records_total": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "pending|processing|completed|failed"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request to accept 6R recommendation",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "assessment flow with 6R decisions",
+          "params": {
+            "app_id": "650e8400-e29b-41d4-a716-446655440001",
+            "flow_id": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        }
+      ],
+      "request": {
+        "body": {
+          "content": {
+            "confidence_level": 0.95,
+            "reasoning": "Low complexity, suitable for lift-and-shift",
+            "strategy": "rehost"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ],
+          "X-Client-Account-ID": [
+            "1"
+          ],
+          "X-Engagement-ID": [
+            "1"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.confidence_level": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.reasoning": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.strategy": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          },
+          "header": {
+            "X-Client-Account-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "X-Engagement-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "PUT",
+        "path": "/api/v1/assessment-flow/550e8400-e29b-41d4-a716-446655440000/sixr-decisions/650e8400-e29b-41d4-a716-446655440001"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "app_id": "650e8400-e29b-41d4-a716-446655440001",
+            "flow_id": "550e8400-e29b-41d4-a716-446655440000",
+            "message": "Recommendation accepted",
+            "strategy": "rehost",
+            "success": true
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.app_id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.flow_id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.message": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.strategy": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.success": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request to bulk map assets",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "a canonical application and multiple assets exist",
+          "params": {
+            "app_id": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        }
+      ],
+      "request": {
+        "body": {
+          "content": {
+            "asset_ids": [
+              "650e8400-e29b-41d4-a716-446655440001"
+            ],
+            "canonical_application_id": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ],
+          "X-Client-Account-ID": [
+            "1"
+          ],
+          "X-Engagement-ID": [
+            "1"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.asset_ids": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.canonical_application_id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            }
+          },
+          "header": {
+            "X-Client-Account-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "X-Engagement-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/canonical-applications/bulk-map-assets"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "canonical_application_id": "550e8400-e29b-41d4-a716-446655440000",
+            "failed_count": 0,
+            "mapped_count": 5,
+            "message": "Bulk mapping completed",
+            "success": true
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.canonical_application_id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.failed_count": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.mapped_count": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.message": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.success": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request to cancel decommission flow",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "an active decommission flow",
+          "params": {
+            "flow_id": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        }
+      ],
+      "request": {
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ],
+          "X-Client-Account-ID": [
+            "1"
+          ],
+          "X-Engagement-ID": [
+            "1"
+          ]
+        },
+        "matchingRules": {
+          "header": {
+            "X-Client-Account-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "X-Engagement-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/decommission-flow/550e8400-e29b-41d4-a716-446655440000/cancel"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "flow_id": "550e8400-e29b-41d4-a716-446655440000",
+            "message": "Decommission flow cancelled",
+            "status": "cancelled"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.flow_id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.message": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request to create assessment flow",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "applications ready for assessment"
+        }
+      ],
+      "request": {
+        "body": {
+          "content": {
+            "flow_name": "Q4 2025 Assessment",
+            "selected_application_ids": [
+              "550e8400-e29b-41d4-a716-446655440001"
+            ]
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ],
+          "X-Client-Account-ID": [
+            "1"
+          ],
+          "X-Engagement-ID": [
+            "1"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.flow_name": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.selected_application_ids": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            }
+          },
+          "header": {
+            "X-Client-Account-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "X-Engagement-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/assessment-flow/initialize"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "current_phase": "initialization",
+            "flow_id": "e2490de5-5bd3-43d5-b7c4-526e33f71304",
+            "message": "Assessment flow created successfully",
+            "next_phase": "architecture_standards",
+            "selected_applications": 1,
+            "status": "initialized"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "generators": {
+          "body": {
+            "$.flow_id": {
+              "type": "Uuid"
+            }
+          }
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.current_phase": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.flow_id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.message": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.next_phase": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.selected_applications": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "initialized|processing"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request to create collection flow from discovery",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "a discovery flow exists",
+          "params": {
+            "discovery_flow_id": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        }
+      ],
+      "request": {
+        "body": {
+          "content": {
+            "discovery_flow_id": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ],
+          "X-Client-Account-ID": [
+            "1"
+          ],
+          "X-Engagement-ID": [
+            "1"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.discovery_flow_id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            }
+          },
+          "header": {
+            "X-Client-Account-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "X-Engagement-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/collection/flows/from-discovery"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "discovery_flow_id": "550e8400-e29b-41d4-a716-446655440000",
+            "id": "e2490de5-5bd3-43d5-b7c4-526e33f71304",
+            "message": "Collection flow created successfully",
+            "status": "created"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "generators": {
+          "body": {
+            "$.id": {
+              "type": "Uuid"
+            }
+          }
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.discovery_flow_id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.message": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "created|active|pending"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request to execute a decommission phase",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "a decommission flow ready for phase execution",
+          "params": {
+            "flow_id": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        }
+      ],
+      "request": {
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ],
+          "X-Client-Account-ID": [
+            "1"
+          ],
+          "X-Engagement-ID": [
+            "1"
+          ]
+        },
+        "matchingRules": {
+          "header": {
+            "X-Client-Account-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "X-Engagement-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/decommission-flow/550e8400-e29b-41d4-a716-446655440000/phases/data_backup"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "flow_id": "550e8400-e29b-41d4-a716-446655440000",
+            "message": "Phase execution started",
+            "phase": "data_backup",
+            "status": "running"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.flow_id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.message": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.phase": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "running|completed|pending"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request to execute discovery flow",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "a discovery flow ready for execution",
+          "params": {
+            "flow_id": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        }
+      ],
+      "request": {
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ],
+          "X-Client-Account-ID": [
+            "1"
+          ],
+          "X-Engagement-ID": [
+            "1"
+          ]
+        },
+        "matchingRules": {
+          "header": {
+            "X-Client-Account-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "X-Engagement-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/unified-discovery/flows/550e8400-e29b-41d4-a716-446655440000/execute"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "flow_id": "550e8400-e29b-41d4-a716-446655440000",
+            "message": "Flow execution started",
+            "status": "running"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.flow_id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.message": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "running|processing|executing"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request to generate field mappings",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "an import ready for mapping generation",
+          "params": {
+            "import_id": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        }
+      ],
+      "request": {
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ],
+          "X-Client-Account-ID": [
+            "1"
+          ],
+          "X-Engagement-ID": [
+            "1"
+          ]
+        },
+        "matchingRules": {
+          "header": {
+            "X-Client-Account-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "X-Engagement-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/data-import/field-mappings/imports/550e8400-e29b-41d4-a716-446655440000/generate"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "message": "Field mapping generation started",
+            "status": "processing",
+            "task_id": "e2490de5-5bd3-43d5-b7c4-526e33f71304"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "generators": {
+          "body": {
+            "$.task_id": {
+              "type": "Uuid"
+            }
+          }
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.message": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.task_id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            }
+          }
+        },
+        "status": 202
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request to initialize decommission flow",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "systems eligible for decommission exist"
+        }
+      ],
+      "request": {
+        "body": {
+          "content": {
+            "flow_name": "Decommission Q4 2025",
+            "selected_system_ids": [
+              "550e8400-e29b-41d4-a716-446655440001"
+            ]
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ],
+          "X-Client-Account-ID": [
+            "1"
+          ],
+          "X-Engagement-ID": [
+            "1"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.flow_name": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.selected_system_ids": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            }
+          },
+          "header": {
+            "X-Client-Account-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "X-Engagement-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/decommission-flow/initialize"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "flow_id": "e2490de5-5bd3-43d5-b7c4-526e33f71304",
+            "message": "Decommission flow initialized successfully",
+            "status": "initialized",
+            "systems_count": 5
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "generators": {
+          "body": {
+            "$.flow_id": {
+              "type": "Uuid"
+            }
+          }
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.flow_id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.message": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "initialized|created|active"
+                }
+              ]
+            },
+            "$.systems_count": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request to initialize discovery flow",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "ready to create discovery flow"
+        }
+      ],
+      "request": {
+        "body": {
+          "content": {
+            "flow_name": "Discovery Flow Q4 2025"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ],
+          "X-Client-Account-ID": [
+            "1"
+          ],
+          "X-Engagement-ID": [
+            "1"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.flow_name": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          },
+          "header": {
+            "X-Client-Account-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "X-Engagement-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/unified-discovery/flows/initialize"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "flow_id": "e2490de5-5bd3-43d5-b7c4-526e33f71304",
+            "message": "Discovery flow initialized successfully",
+            "status": "initialized"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "generators": {
+          "body": {
+            "$.flow_id": {
+              "type": "Uuid"
+            }
+          }
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.flow_id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.message": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "initialized|created|active"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request to list canonical applications",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "canonical applications exist"
+        }
+      ],
+      "request": {
+        "headers": {
+          "X-Client-Account-ID": [
+            "1"
+          ],
+          "X-Engagement-ID": [
+            "1"
+          ]
+        },
+        "matchingRules": {
+          "header": {
+            "X-Client-Account-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "X-Engagement-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "GET",
+        "path": "/api/v1/canonical-applications"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "applications": [
+              {
+                "assets_count": 15,
+                "business_criticality": "high",
+                "created_at": "2025-01-01T00:00:00Z",
+                "description": "Main customer-facing web application",
+                "id": "e2490de5-5bd3-43d5-b7c4-526e33f71304",
+                "migration_status": "not_started",
+                "name": "Customer Portal",
+                "owner": "Engineering Team"
+              }
+            ],
+            "total": 10
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "generators": {
+          "body": {
+            "$.applications[*].id": {
+              "type": "Uuid"
+            }
+          }
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.applications": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.applications[*].assets_count": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.applications[*].business_criticality": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "low|medium|high|critical"
+                }
+              ]
+            },
+            "$.applications[*].created_at": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.applications[*].description": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.applications[*].id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.applications[*].migration_status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "not_started|in_progress|completed"
+                }
+              ]
+            },
+            "$.applications[*].name": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.applications[*].owner": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.total": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request to list collection flows",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "collection flows exist"
+        }
+      ],
+      "request": {
+        "headers": {
+          "X-Client-Account-ID": [
+            "1"
+          ],
+          "X-Engagement-ID": [
+            "1"
+          ]
+        },
+        "matchingRules": {
+          "header": {
+            "X-Client-Account-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "X-Engagement-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "GET",
+        "path": "/api/v1/collection/flows"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "flows": [
+              {
+                "created_at": "2025-01-01T00:00:00Z",
+                "id": "e2490de5-5bd3-43d5-b7c4-526e33f71304",
+                "status": "active"
+              }
+            ]
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "generators": {
+          "body": {
+            "$.flows[*].id": {
+              "type": "Uuid"
+            }
+          }
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.flows": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.flows[*].created_at": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.flows[*].id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.flows[*].status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "active|pending|completed"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request to list data imports",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "data imports exist"
+        }
+      ],
+      "request": {
+        "headers": {
+          "X-Client-Account-ID": [
+            "1"
+          ],
+          "X-Engagement-ID": [
+            "1"
+          ]
+        },
+        "matchingRules": {
+          "header": {
+            "X-Client-Account-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "X-Engagement-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "GET",
+        "path": "/api/v1/data-import/imports"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "imports": [
+              {
+                "created_at": "2025-01-01T00:00:00Z",
+                "filename": "cmdb_export.csv",
+                "id": "e2490de5-5bd3-43d5-b7c4-526e33f71304",
+                "records_processed": 1000,
+                "records_total": 1000,
+                "status": "completed"
+              }
+            ],
+            "total": 5
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "generators": {
+          "body": {
+            "$.imports[*].id": {
+              "type": "Uuid"
+            }
+          }
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.imports": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.imports[*].created_at": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.imports[*].filename": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.imports[*].id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.imports[*].records_processed": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.imports[*].records_total": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.imports[*].status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "pending|processing|completed|failed"
+                }
+              ]
+            },
+            "$.total": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request to list decommission flows",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "decommission flows exist"
+        }
+      ],
+      "request": {
+        "headers": {
+          "X-Client-Account-ID": [
+            "1"
+          ],
+          "X-Engagement-ID": [
+            "1"
+          ]
+        },
+        "matchingRules": {
+          "header": {
+            "X-Client-Account-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "X-Engagement-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "GET",
+        "path": "/api/v1/decommission-flow/"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "flows": [
+              {
+                "created_at": "2025-01-01T00:00:00Z",
+                "id": "e2490de5-5bd3-43d5-b7c4-526e33f71304",
+                "status": "running",
+                "systems_count": 5
+              }
+            ],
+            "total": 3
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "generators": {
+          "body": {
+            "$.flows[*].id": {
+              "type": "Uuid"
+            }
+          }
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.flows": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.flows[*].created_at": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.flows[*].id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.flows[*].status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "initialized|running|completed|cancelled"
+                }
+              ]
+            },
+            "$.flows[*].systems_count": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.total": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request to map an asset to a canonical application",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "a canonical application and asset exist",
+          "params": {
+            "app_id": "550e8400-e29b-41d4-a716-446655440000",
+            "asset_id": "650e8400-e29b-41d4-a716-446655440001"
+          }
+        }
+      ],
+      "request": {
+        "body": {
+          "content": {
+            "asset_id": "650e8400-e29b-41d4-a716-446655440001",
+            "canonical_application_id": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ],
+          "X-Client-Account-ID": [
+            "1"
+          ],
+          "X-Engagement-ID": [
+            "1"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.asset_id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.canonical_application_id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            }
+          },
+          "header": {
+            "X-Client-Account-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "X-Engagement-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/canonical-applications/map-asset"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "asset_id": "650e8400-e29b-41d4-a716-446655440001",
+            "canonical_application_id": "550e8400-e29b-41d4-a716-446655440000",
+            "mapping_id": "e2490de5-5bd3-43d5-b7c4-526e33f71304",
+            "message": "Asset mapped successfully",
+            "success": true
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "generators": {
+          "body": {
+            "$.mapping_id": {
+              "type": "Uuid"
+            }
+          }
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.asset_id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.canonical_application_id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.mapping_id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.message": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.success": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request to pause decommission flow",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "a running decommission flow",
+          "params": {
+            "flow_id": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        }
+      ],
+      "request": {
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ],
+          "X-Client-Account-ID": [
+            "1"
+          ],
+          "X-Engagement-ID": [
+            "1"
+          ]
+        },
+        "matchingRules": {
+          "header": {
+            "X-Client-Account-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "X-Engagement-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/decommission-flow/550e8400-e29b-41d4-a716-446655440000/pause"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "flow_id": "550e8400-e29b-41d4-a716-446655440000",
+            "message": "Decommission flow paused successfully",
+            "status": "paused"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.flow_id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.message": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request to pause discovery flow",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "a running discovery flow",
+          "params": {
+            "flow_id": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        }
+      ],
+      "request": {
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ],
+          "X-Client-Account-ID": [
+            "1"
+          ],
+          "X-Engagement-ID": [
+            "1"
+          ]
+        },
+        "matchingRules": {
+          "header": {
+            "X-Client-Account-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "X-Engagement-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/unified-discovery/flows/550e8400-e29b-41d4-a716-446655440000/pause"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "flow_id": "550e8400-e29b-41d4-a716-446655440000",
+            "message": "Flow paused successfully",
+            "status": "paused"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.flow_id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.message": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request to pause the flow",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "an active master flow exists",
+          "params": {
+            "flow_id": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        }
+      ],
+      "request": {
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ],
+          "X-Client-Account-ID": [
+            "1"
+          ],
+          "X-Engagement-ID": [
+            "1"
+          ]
+        },
+        "matchingRules": {
+          "header": {
+            "X-Client-Account-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "X-Engagement-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/master-flows/550e8400-e29b-41d4-a716-446655440000/pause"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "flow_id": "550e8400-e29b-41d4-a716-446655440000",
+            "message": "Flow paused successfully",
+            "new_status": "paused",
+            "success": true
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.flow_id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.message": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.new_status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.success": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request to resume decommission flow",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "a paused decommission flow",
+          "params": {
+            "flow_id": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        }
+      ],
+      "request": {
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ],
+          "X-Client-Account-ID": [
+            "1"
+          ],
+          "X-Engagement-ID": [
+            "1"
+          ]
+        },
+        "matchingRules": {
+          "header": {
+            "X-Client-Account-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "X-Engagement-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/decommission-flow/550e8400-e29b-41d4-a716-446655440000/resume"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "flow_id": "550e8400-e29b-41d4-a716-446655440000",
+            "message": "Decommission flow resumed successfully",
+            "status": "running"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.flow_id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.message": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "running|active|resumed"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request to resume discovery flow",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "a paused discovery flow",
+          "params": {
+            "flow_id": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        }
+      ],
+      "request": {
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ],
+          "X-Client-Account-ID": [
+            "1"
+          ],
+          "X-Engagement-ID": [
+            "1"
+          ]
+        },
+        "matchingRules": {
+          "header": {
+            "X-Client-Account-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "X-Engagement-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/unified-discovery/flows/550e8400-e29b-41d4-a716-446655440000/resume"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "flow_id": "550e8400-e29b-41d4-a716-446655440000",
+            "message": "Flow resumed successfully",
+            "status": "running"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.flow_id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.message": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "running|active|resumed"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request to resume the flow",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "a paused master flow exists",
+          "params": {
+            "flow_id": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        }
+      ],
+      "request": {
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ],
+          "X-Client-Account-ID": [
+            "1"
+          ],
+          "X-Engagement-ID": [
+            "1"
+          ]
+        },
+        "matchingRules": {
+          "header": {
+            "X-Client-Account-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "X-Engagement-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/master-flows/550e8400-e29b-41d4-a716-446655440000/resume"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "flow_id": "550e8400-e29b-41d4-a716-446655440000",
+            "message": "Flow resumed successfully",
+            "new_status": "in_progress",
+            "success": true
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.flow_id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.message": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.new_status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.success": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request to scan gaps",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "a collection flow ready for gap analysis",
+          "params": {
+            "flow_id": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        }
+      ],
+      "request": {
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ],
+          "X-Client-Account-ID": [
+            "1"
+          ],
+          "X-Engagement-ID": [
+            "1"
+          ]
+        },
+        "matchingRules": {
+          "header": {
+            "X-Client-Account-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "X-Engagement-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/collection/flows/550e8400-e29b-41d4-a716-446655440000/scan-gaps"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "message": "Gap scanning initiated",
+            "status": "scanning",
+            "task_id": "e2490de5-5bd3-43d5-b7c4-526e33f71304"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "generators": {
+          "body": {
+            "$.task_id": {
+              "type": "Uuid"
+            }
+          }
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.message": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.task_id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            }
+          }
+        },
+        "status": 202
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request to transition to assessment",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "a completed collection flow",
+          "params": {
+            "flow_id": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        }
+      ],
+      "request": {
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ],
+          "X-Client-Account-ID": [
+            "1"
+          ],
+          "X-Engagement-ID": [
+            "1"
+          ]
+        },
+        "matchingRules": {
+          "header": {
+            "X-Client-Account-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "X-Engagement-ID": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/collection/collection/flows/550e8400-e29b-41d4-a716-446655440000/transition-to-assessment"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "assessment_flow_id": "e2490de5-5bd3-43d5-b7c4-526e33f71304",
+            "message": "Successfully transitioned to assessment",
+            "success": true
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "generators": {
+          "body": {
+            "$.assessment_flow_id": {
+              "type": "Uuid"
+            }
+          }
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.assessment_flow_id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.message": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.success": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    }
+  ],
+  "metadata": {
+    "pactRust": {
+      "ffi": "0.4.28",
+      "models": "1.3.5"
+    },
+    "pactSpecification": {
+      "version": "4.0"
+    }
+  },
+  "provider": {
+    "name": "migrate-api-backend"
+  }
+}

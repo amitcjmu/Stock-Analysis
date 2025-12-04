@@ -59,7 +59,7 @@ export const useAttributeMapping = () => {
   } = useAttributeMappingLogic();
 
   // Navigation logic
-  const { handleContinueToDataCleansing } = useAttributeMappingNavigation(
+  const { handleContinueToDataCleansing, isNavigatingToDataCleansing } = useAttributeMappingNavigation(
     flowState,
     mappingProgress
   );
@@ -196,6 +196,7 @@ export const useAttributeMapping = () => {
 
     // Navigation actions
     handleContinueToDataCleansing,
+    isNavigatingToDataCleansing,
 
     // URL params
     urlFlowId

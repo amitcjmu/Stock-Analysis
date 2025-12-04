@@ -222,5 +222,3 @@ def downgrade() -> None:
         print("Dropped data_cleansing_recommendations table successfully")
     else:
         print("Table data_cleansing_recommendations does not exist, skipping drop")
-
-

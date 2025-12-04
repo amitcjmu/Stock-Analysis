@@ -1,8 +1,8 @@
 # Security Patterns Master
 
-**Last Updated**: 2025-11-30
-**Version**: 1.0
-**Consolidates**: 12 memories
+**Last Updated**: 2025-12-03
+**Version**: 1.1
+**Consolidates**: 12+ memories
 **Status**: Active
 
 ---
@@ -14,7 +14,7 @@
 > 2. **UUID Types**: NEVER convert tenant IDs to integers - always UUID
 > 3. **Required Headers**: X-Client-Account-ID, X-Engagement-ID, X-User-ID
 > 4. **apiCall() Utility**: Always use for API calls - auto-adds auth headers
-> 5. **Never Log Tokens**: Log metadata only, never Authorization headers
+> 5. **Sensitive Field Redaction**: ALWAYS redact password/secret/token/key fields in previews
 
 ---
 
@@ -24,28 +24,31 @@
 2. [Multi-Tenant Security](#multi-tenant-security)
 3. [UUID Type Enforcement](#uuid-type-enforcement)
 4. [Authentication Headers](#authentication-headers)
-5. [Security Hardening](#security-hardening)
-6. [Anti-Patterns](#anti-patterns)
-7. [Code Templates](#code-templates)
-8. [Consolidated Sources](#consolidated-sources)
+5. [Data Protection Patterns](#data-protection-patterns)
+6. [Security Hardening](#security-hardening)
+7. [Anti-Patterns](#anti-patterns)
+8. [Code Templates](#code-templates)
+9. [Consolidated Sources](#consolidated-sources)
 
 ---
 
 ## Overview
 
 ### What This Covers
-Multi-tenant data isolation, authentication header management, UUID type enforcement, and security hardening patterns for enterprise security.
+Multi-tenant data isolation, authentication header management, UUID type enforcement, sensitive data protection, and security hardening patterns for enterprise security.
 
 ### When to Reference
 - Implementing database queries
 - Adding API endpoints
 - Fixing cross-tenant security issues
 - Debugging authentication failures
+- Building data preview/profiling features
 
 ### Key Files
 - `backend/app/middleware/context_establishment_middleware.py`
 - `src/lib/api/apiClient.ts`
 - `src/utils/api/multiTenantHeaders.ts`
+- `backend/app/services/crewai_flows/handlers/phase_executors/data_import_validation/data_profiler.py`
 
 ---
 
@@ -239,9 +242,99 @@ const headers = getAuthHeaders();
 
 ---
 
+## Data Protection Patterns
+
+### Pattern 7: Sensitive Field Redaction in Previews (NEW - Dec 2025)
+
+**Problem**: Data profiling/preview endpoints may expose sensitive field values like passwords, API keys, SSNs.
+
+**Critical**: ANY endpoint returning preview/sample data MUST redact sensitive fields.
+
+**Implementation**:
+```python
+# Define sensitive keywords (case-insensitive matching)
+SENSITIVE_KEYWORDS = [
+    "password", "passwd", "pwd",
+    "secret", "token", "key", "api_key", "apikey",
+    "ssn", "social_security",
+    "credit", "card", "cvv", "pin",
+    "private", "credential"
+]
+
+def redact_sensitive_preview(field_name: str, value: Any) -> str:
+    """Safely preview field values, redacting sensitive data."""
+    # Case-insensitive check for sensitive keywords
+    field_lower = field_name.lower()
+    if any(sensitive in field_lower for sensitive in SENSITIVE_KEYWORDS):
+        return "[REDACTED - sensitive field]"
+
+    if value is None:
+        return ""
+
+    # Truncate long values
+    str_value = str(value)
+    return str_value[:100] if len(str_value) > 100 else str_value
+```
+
+**Where to apply**:
+- Data profiling endpoints
+- Field mapping preview
+- Data cleansing sample extraction
+- Any endpoint returning raw data samples
+
+**Files typically affected**:
+- `backend/app/services/crewai_flows/handlers/phase_executors/data_import_validation/data_profiler.py`
+- `backend/app/api/v1/endpoints/data_cleansing/analysis.py`
+- Any data preview/sample extraction endpoints
+
+**Verification Checklist**:
+- [ ] Field name checked against sensitive keywords (case-insensitive)
+- [ ] Redaction applied BEFORE any logging or response building
+- [ ] Redaction message doesn't reveal what the value contained
+- [ ] Full value never logged even at DEBUG level
+
+**Source**: Session learning from Qodo Bot security review on ADR-038 (Dec 2025)
+
+---
+
+### Pattern 8: Prevent Critical Issue Bypass (NEW - Dec 2025)
+
+**Problem**: Data validation workflows should enforce resolution of critical issues before completion.
+
+**Implementation**:
+```python
+@router.post("/complete")
+async def complete_validation(
+    flow_id: str,
+    db: AsyncSession = Depends(get_async_db),
+    context: RequestContext = Depends(get_current_context),
+):
+    # Check for unresolved critical issues
+    violations = await check_critical_issues(flow_id, db, context)
+
+    if violations:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot complete validation. Critical issues found that require user decisions.",
+        )
+
+    # Proceed with completion
+    return {"success": True}
+```
+
+**Dual-layer enforcement**:
+1. **Frontend**: Disable "Continue" button when critical issues exist
+2. **Backend**: Re-validate and reject if critical issues found
+
+**Why both layers**: Frontend can be bypassed; backend is authoritative.
+
+**Source**: Session learning from Qodo Bot review (Dec 2025)
+
+---
+
 ## Security Hardening
 
-### Pattern 7: Never Log Sensitive Headers
+### Pattern 9: Never Log Sensitive Headers
 
 ```typescript
 // BAD - Exposes bearer tokens
@@ -257,7 +350,7 @@ if (process.env.NODE_ENV !== 'production') {
 }
 ```
 
-### Pattern 8: Feature Flag Gating
+### Pattern 10: Feature Flag Gating
 
 ```typescript
 // Explicit feature flag for fallback operations
@@ -271,7 +364,7 @@ if (!enableFallback) {
 }
 ```
 
-### Pattern 9: Environment-Specific Endpoints
+### Pattern 11: Environment-Specific Endpoints
 
 ```typescript
 // Dual-gate demo endpoints
@@ -282,7 +375,7 @@ const ASSETS_ENDPOINT =
     : '/unified-discovery/assets';
 ```
 
-### Pattern 10: Regex for Security Paths
+### Pattern 12: Regex for Security Paths
 
 ```typescript
 // Use precise regex to prevent path traversal
@@ -352,6 +445,34 @@ def get_service(db: AsyncSession):
     return Service(db=db)
 ```
 
+### Don't: Expose Sensitive Fields in Previews
+
+```python
+# WRONG - Exposes passwords
+preview_data = [{"password": "hunter2", "email": "user@example.com"}]
+
+# CORRECT - Redact sensitive fields
+preview_data = [{"password": "[REDACTED - sensitive field]", "email": "user@example.com"}]
+```
+
+### Don't: Trust Frontend-Only Validation
+
+```python
+# WRONG - Relies on frontend check only
+@router.post("/complete")
+async def complete_validation(flow_id: str):
+    # Frontend disabled button, so we're safe, right? WRONG!
+    return await complete_flow(flow_id)
+
+# CORRECT - Backend validates independently
+@router.post("/complete")
+async def complete_validation(flow_id: str, db: AsyncSession):
+    violations = await check_critical_issues(flow_id, db)
+    if violations:
+        raise HTTPException(status_code=400, detail="Critical issues must be resolved")
+    return await complete_flow(flow_id)
+```
+
 ---
 
 ## Code Templates
@@ -413,6 +534,23 @@ async def get_status(
     return await repo.get_by_id(UUID(flow_id))
 ```
 
+### Template 3: Sensitive Field Redaction (NEW - Dec 2025)
+
+```python
+SENSITIVE_KEYWORDS = ["password", "secret", "token", "key", "ssn", "credit", "cvv", "pin"]
+
+def redact_sensitive_preview(field_name: str, value: Any) -> str:
+    """Safely preview field values, redacting sensitive data."""
+    if any(sensitive in field_name.lower() for sensitive in SENSITIVE_KEYWORDS):
+        return "[REDACTED - sensitive field]"
+
+    if value is None:
+        return ""
+
+    str_value = str(value)
+    return str_value[:100] if len(str_value) > 100 else str_value
+```
+
 ---
 
 ## Troubleshooting
@@ -435,6 +573,12 @@ async def get_status(
 
 **Fix**: Add `and_(client_account_id, engagement_id)` to WHERE clause.
 
+### Issue: Sensitive data exposed in preview
+
+**Cause**: Missing field name check before returning preview values.
+
+**Fix**: Add sensitive keyword check and redaction before building response.
+
 ---
 
 ## Consolidated Sources
@@ -453,11 +597,21 @@ async def get_status(
 | `download-functionality-auth-fix` | 2025-09 | Download auth |
 | `data-driven-refactoring-and-security-patterns-2025-01` | 2025-01 | Refactoring patterns |
 | `pre_commit_security_fixes` | 2025-09 | Pre-commit security |
+| Session learning ADR-038 | 2025-12 | Sensitive field redaction, critical issue bypass prevention |
 
 **Archive Location**: `.serena/archive/security/`
 
 ---
 
+## Changelog
+
+| Date | Change | Author |
+|------|--------|--------|
+| 2025-11-30 | Initial consolidation of 12 memories | Claude Code |
+| 2025-12-03 | Added patterns 7, 8 and template 3 from ADR-038 session | Claude Code |
+
+---
+
 ## Search Keywords
 
-security, multi_tenant, tenant_scoping, uuid, authentication, headers, cross_tenant, authorization
+security, multi_tenant, tenant_scoping, uuid, authentication, headers, cross_tenant, authorization, sensitive_field, redaction, password, secret, token, critical_issue, bypass_prevention

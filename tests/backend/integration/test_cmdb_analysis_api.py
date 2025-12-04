@@ -139,7 +139,7 @@ iot-sensor-network,Unknown,Temperature monitoring sensors,Production"""
         assert data["success"] is True
         assert "flow_id" in data
         assert "metadata" in data
-        
+
         # Verify that flow was initialized successfully
         assert data["status"] == "initialized"
         assert isinstance(data["flow_id"], str)

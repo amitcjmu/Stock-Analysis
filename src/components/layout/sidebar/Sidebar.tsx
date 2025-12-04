@@ -97,8 +97,34 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
   });
 
   /**
+   * Extract flowId from current URL for discovery phase navigation
+   * ADR-038: Support data validation and other phases that need flowId context
+   */
+  const discoveryFlowId = React.useMemo(() => {
+    // Match flowId from various discovery URL patterns
+    const patterns = [
+      /\/discovery\/data-validation\/([a-f0-9-]+)/,
+      /\/discovery\/attribute-mapping\/([a-f0-9-]+)/,
+      /\/discovery\/data-cleansing\/([a-f0-9-]+)/,
+      /\/discovery\/inventory\/([a-f0-9-]+)/,
+      /\/discovery\/dependencies\/([a-f0-9-]+)/,
+      /\/discovery\/monitor\/([a-f0-9-]+)/,
+    ];
+
+    for (const pattern of patterns) {
+      const match = location.pathname.match(pattern);
+      if (match) return match[1];
+    }
+
+    // Also check query params for flowId
+    const searchParams = new URLSearchParams(location.search);
+    return searchParams.get('flow_id') || searchParams.get('flowId') || null;
+  }, [location.pathname, location.search]);
+
+  /**
    * Build dynamic Discovery submenu from API-driven phases
    * Per ADR-027: Use FlowTypeConfig as single source of truth
+   * ADR-038: Replace :flowId placeholder with actual flow ID from URL
    */
   const discoverySubmenu = React.useMemo(() => {
     // Fallback while loading or if API fails
@@ -110,18 +136,26 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
 
     // Map API phases to NavigationItem format
     // Use ui_short_name for compact sidebar labels, fallback to display_name
-    const phases = allFlowPhases.discovery.phase_details.map(phase => ({
-      name: phase.ui_short_name || phase.display_name,
-      path: phase.ui_route,
-      icon: getIconForPhase(phase.name)
-    }));
+    const phases = allFlowPhases.discovery.phase_details.map(phase => {
+      // Replace :flowId placeholder with actual flowId if available
+      let routePath = phase.ui_route;
+      if (discoveryFlowId && routePath.includes(':flowId')) {
+        routePath = routePath.replace(':flowId', discoveryFlowId);
+      }
+
+      return {
+        name: phase.ui_short_name || phase.display_name,
+        path: routePath,
+        icon: getIconForPhase(phase.name)
+      };
+    });
 
     // Always include Overview at the top
     return [
       { name: 'Overview', path: '/discovery/overview', icon: LayoutDashboard },
       ...phases
     ];
-  }, [allFlowPhases]);
+  }, [allFlowPhases, discoveryFlowId]);
 
   /**
    * Extract flowId from current URL for assessment phase navigation

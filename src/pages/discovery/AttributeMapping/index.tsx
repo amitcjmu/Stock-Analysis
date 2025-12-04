@@ -36,6 +36,7 @@ const AttributeMappingContainer: React.FC = () => {
 
     // Navigation actions
     handleContinueToDataCleansing,
+    isNavigatingToDataCleansing,
 
     // URL params
     urlFlowId
@@ -186,6 +187,7 @@ const AttributeMappingContainer: React.FC = () => {
                   fieldMappings={fieldMappings}
                   canContinueToDataCleansing={canContinueToDataCleansing()}
                   onContinueToDataCleansing={handleContinueToDataCleansing}
+                  isNavigatingToDataCleansing={isNavigatingToDataCleansing}
                 />
 
                 {/* Main Content */}

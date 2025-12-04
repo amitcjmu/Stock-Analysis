@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useUnifiedDiscoveryFlow } from '../useUnifiedDiscoveryFlow';
@@ -30,6 +30,7 @@ interface MappingProgress {
  */
 interface AttributeMappingNavigationReturn {
   handleContinueToDataCleansing: () => Promise<void>;
+  isNavigatingToDataCleansing: boolean;
 }
 
 /**
@@ -47,6 +48,7 @@ export const useAttributeMappingNavigation = (
 ): AttributeMappingNavigationReturn => {
   const navigate = useNavigate();
   const { user, client, engagement } = useAuth();
+  const [isNavigatingToDataCleansing, setIsNavigatingToDataCleansing] = useState(false);
 
   // SMART FLOW RESOLUTION: Use masterFlowService to get the correct flow ID
   // before initializing useUnifiedDiscoveryFlow
@@ -94,6 +96,9 @@ export const useAttributeMappingNavigation = (
   const { toast } = useToast();
 
   const handleContinueToDataCleansing = useCallback(async () => {
+    // Set loading state immediately to show user feedback
+    setIsNavigatingToDataCleansing(true);
+
     try {
       // BUG FIX (#995): Extract flow ID from flowState or fall back to flow object
       // Note: extractedFlowId is already being used by useUnifiedDiscoveryFlow (line 93)
@@ -120,6 +125,7 @@ export const useAttributeMappingNavigation = (
           flowState,
           flow
         });
+        setIsNavigatingToDataCleansing(false);
         toast({
           title: "Error",
           description: "No active flow found. Please start a new discovery flow or return to the overview page.",
@@ -153,6 +159,7 @@ export const useAttributeMappingNavigation = (
             break;
         }
 
+        setIsNavigatingToDataCleansing(false);
         toast({
           title,
           description,
@@ -224,6 +231,7 @@ export const useAttributeMappingNavigation = (
         });
       } catch (executeError) {
         console.error('Failed to continue flow:', executeError);
+        setIsNavigatingToDataCleansing(false);
         toast({
           title: "Continue Failed",
           description: "Failed to continue the discovery flow. Please try again.",
@@ -232,6 +240,7 @@ export const useAttributeMappingNavigation = (
       }
     } catch (error) {
       console.error('Failed to proceed to data cleansing:', error);
+      setIsNavigatingToDataCleansing(false);
       toast({
         title: "Error",
         description: "Failed to continue to data cleansing. Please try again.",
@@ -241,6 +250,7 @@ export const useAttributeMappingNavigation = (
   }, [flow, flowState, navigate, mappingProgress, toast, client?.id, engagement?.id, getCorrectFlowId]);
 
   return {
-    handleContinueToDataCleansing
+    handleContinueToDataCleansing,
+    isNavigatingToDataCleansing
   };
 };

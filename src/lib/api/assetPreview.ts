@@ -3,6 +3,8 @@
  *
  * Issue #907: API service for previewing and approving assets before database creation
  * Endpoints: GET /api/v1/asset-preview/{flow_id}, POST /api/v1/asset-preview/{flow_id}/approve
+ *
+ * CC: Added regenerate capability to refresh stale previews from current cleansed data
  */
 
 import { apiCall } from '@/config/api';
@@ -27,8 +29,9 @@ export interface AssetPreviewResponse {
   flow_id: string;
   assets_preview: AssetPreviewData[];
   count: number;
-  status: 'preview_ready' | 'assets_already_created';
+  status: 'preview_ready' | 'assets_already_created' | 'no_data';
   message?: string;
+  regenerated?: boolean;
 }
 
 export interface ApproveAssetsResponse {
@@ -40,11 +43,21 @@ export interface ApproveAssetsResponse {
 
 /**
  * Get asset preview for a flow
+ *
+ * CC: Added regenerate parameter to refresh preview from current cleansed data
+ *
+ * @param flow_id - Master flow UUID
+ * @param regenerate - If true, forces regeneration of preview from current raw_import_records
  */
 export const getAssetPreview = async (
-  flow_id: string
+  flow_id: string,
+  regenerate: boolean = false
 ): Promise<AssetPreviewResponse> => {
-  return apiCall(`/api/v1/asset-preview/${flow_id}`, {
+  const url = regenerate
+    ? `/api/v1/asset-preview/${flow_id}?regenerate=true`
+    : `/api/v1/asset-preview/${flow_id}`;
+
+  return apiCall(url, {
     method: 'GET',
   });
 };

@@ -37,7 +37,7 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Loader2, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
 import {
   getAssetPreview,
   approveAssets,
@@ -63,17 +63,20 @@ export const AssetCreationPreviewModal: React.FC<
   const queryClient = useQueryClient();
   const [editableAssets, setEditableAssets] = useState<EditableAsset[]>([]);
   const [hasUnsavedEdits, setHasUnsavedEdits] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  const [wasRegenerated, setWasRegenerated] = useState(false);
 
   // Fetch asset preview with polling during flow processing
   const {
     data: previewData,
     isLoading,
     error,
+    refetch,
   } = useQuery<AssetPreviewResponse>({
     queryKey: ['assetPreview', flow_id],
     queryFn: async () => {
       console.log('📡 Fetching asset preview for flow:', flow_id);
-      const result = await getAssetPreview(flow_id);
+      const result = await getAssetPreview(flow_id, false);
       console.log('📊 Asset preview API response:', {
         flow_id,
         status: result.status,
@@ -89,6 +92,40 @@ export const AssetCreationPreviewModal: React.FC<
       return data?.status === 'preview_ready' ? false : 5000;
     },
   });
+
+  // CC: Regenerate preview mutation - forces refresh from current cleansed data
+  const handleRegeneratePreview = async () => {
+    setIsRegenerating(true);
+    setWasRegenerated(false);
+    try {
+      console.log('🔄 Regenerating asset preview for flow:', flow_id);
+      const result = await getAssetPreview(flow_id, true);
+      console.log('✅ Regenerated preview:', {
+        count: result.count,
+        regenerated: result.regenerated,
+      });
+
+      // Update the cache with regenerated data
+      queryClient.setQueryData(['assetPreview', flow_id], result);
+
+      // Reset editable assets to pick up new data
+      if (result.assets_preview) {
+        setEditableAssets(
+          result.assets_preview.map((asset) => ({
+            ...asset,
+            isSelected: true,
+            validationErrors: {},
+          }))
+        );
+        setHasUnsavedEdits(false);
+        setWasRegenerated(true);
+      }
+    } catch (err) {
+      console.error('❌ Failed to regenerate preview:', err);
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
 
   // CC FIX (Issue #907): Initialize editable assets when preview data loads
   // Replaced deprecated onSuccess callback with useEffect
@@ -289,22 +326,54 @@ export const AssetCreationPreviewModal: React.FC<
           </DialogDescription>
         </DialogHeader>
 
+        {/* CC: Show regenerated success message */}
+        {wasRegenerated && (
+          <Alert className="bg-green-50 border-green-200">
+            <CheckCircle2 className="h-4 w-4 text-green-600" />
+            <AlertDescription className="text-green-700">
+              Preview successfully regenerated from current cleansed data.
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Asset count and selection summary */}
         <div className="flex items-center justify-between py-2 px-4 bg-muted rounded-md">
           <span className="text-sm font-medium">
             Total Assets: {previewData?.count || 0} | Selected:{' '}
             {selectedAssets.length}
           </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleToggleAll}
-            disabled={editableAssets.length === 0}
-          >
-            {editableAssets.every((asset) => asset.isSelected)
-              ? 'Deselect All'
-              : 'Select All'}
-          </Button>
+          <div className="flex items-center gap-2">
+            {/* CC: Regenerate Preview button - refreshes from current cleansed data */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRegeneratePreview}
+              disabled={isRegenerating}
+              title="Regenerate preview from current cleansed data"
+            >
+              {isRegenerating ? (
+                <>
+                  <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                  Regenerating...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="mr-1 h-3 w-3" />
+                  Regenerate Preview
+                </>
+              )}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleToggleAll}
+              disabled={editableAssets.length === 0}
+            >
+              {editableAssets.every((asset) => asset.isSelected)
+                ? 'Deselect All'
+                : 'Select All'}
+            </Button>
+          </div>
         </div>
 
         {/* Validation errors alert */}

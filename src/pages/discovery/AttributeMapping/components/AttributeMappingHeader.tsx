@@ -1,5 +1,5 @@
 import React from 'react';
-import { RefreshCw, Zap, ArrowRight, AlertCircle, Wifi, WifiOff, Activity, CheckCircle, CheckCircle2 } from 'lucide-react';
+import { RefreshCw, Zap, ArrowRight, AlertCircle, Wifi, WifiOff, Activity, CheckCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { isFlowTerminal } from '@/constants/flowStates';
@@ -26,6 +26,7 @@ interface AttributeMappingHeaderProps {
   // Continue to data cleansing props
   canContinueToDataCleansing?: boolean;
   onContinueToDataCleansing?: () => void;
+  isNavigatingToDataCleansing?: boolean;
 }
 
 export const AttributeMappingHeader: React.FC<AttributeMappingHeaderProps> = ({
@@ -41,7 +42,8 @@ export const AttributeMappingHeader: React.FC<AttributeMappingHeaderProps> = ({
   isSSEConnected,
   connectionType,
   canContinueToDataCleansing,
-  onContinueToDataCleansing
+  onContinueToDataCleansing,
+  isNavigatingToDataCleansing
 }) => {
   const isFlowPaused = flowStatus === 'paused' || flowStatus === 'waiting_for_approval' || flowStatus === 'waiting_for_user_approval';
 
@@ -204,11 +206,21 @@ export const AttributeMappingHeader: React.FC<AttributeMappingHeaderProps> = ({
         {canContinueToDataCleansing && (
           <Button
             onClick={onContinueToDataCleansing}
-            className="bg-green-600 hover:bg-green-700 flex items-center space-x-2"
-            title="Continue to data cleansing phase"
+            disabled={isNavigatingToDataCleansing}
+            className="bg-green-600 hover:bg-green-700 flex items-center space-x-2 disabled:opacity-70"
+            title={isNavigatingToDataCleansing ? "Processing, please wait..." : "Continue to data cleansing phase"}
           >
-            <span>Continue to Data Cleansing</span>
-            <ArrowRight className="h-4 w-4" />
+            {isNavigatingToDataCleansing ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Processing...</span>
+              </>
+            ) : (
+              <>
+                <span>Continue to Data Cleansing</span>
+                <ArrowRight className="h-4 w-4" />
+              </>
+            )}
           </Button>
         )}
         </div>
