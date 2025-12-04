@@ -188,7 +188,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  date_trunc('hour', created_at) AS time,\n  agent_name,\n  SUM(tasks_attempted) AS tasks\nFROM migration.agent_performance_daily\nWHERE $__timeFilter(created_at)\nGROUP BY 1\nORDER BY 1;",
+          "rawSql": "SELECT\n  date_trunc('hour', created_at) AS time,\n  agent_name,\n  SUM(tasks_attempted) AS tasks\nFROM migration.agent_performance_daily\nWHERE $__timeFilter(created_at)\nGROUP BY 1, agent_name\nORDER BY 1;",
           "refId": "A"
         }
       ],
@@ -339,7 +339,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  date_trunc('hour', created_at) AS time,\n  agent_name,\n  AVG(avg_duration_seconds) AS duration_sec\nFROM migration.agent_performance_daily\nWHERE $__timeFilter(created_at)\nGROUP BY 1\nORDER BY 1;",
+          "rawSql": "SELECT\n  date_trunc('hour', created_at) AS time,\n  agent_name,\n  AVG(avg_duration_seconds) AS duration_sec\nFROM migration.agent_performance_daily\nWHERE $__timeFilter(created_at)\nGROUP BY 1, agent_name\nORDER BY 1;",
           "refId": "A"
         }
       ],
@@ -440,7 +440,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  date_trunc('hour', created_at) AS time,\n  agent_name,\n  CASE\n    WHEN SUM(tasks_attempted) > 0 THEN (SUM(tasks_completed)::numeric / SUM(tasks_attempted)::numeric) * 100\n    ELSE 0\n  END AS success_rate\nFROM migration.agent_performance_daily\nWHERE $__timeFilter(created_at)\nGROUP BY 1\nORDER BY 1;",
+          "rawSql": "SELECT\n  date_trunc('hour', created_at) AS time,\n  agent_name,\n  CASE\n    WHEN SUM(tasks_attempted) > 0 THEN (SUM(tasks_completed)::numeric / SUM(tasks_attempted)::numeric) * 100\n    ELSE 0\n  END AS success_rate\nFROM migration.agent_performance_daily\nWHERE $__timeFilter(created_at)\nGROUP BY 1, agent_name\nORDER BY 1;",
           "refId": "A"
         }
       ],
