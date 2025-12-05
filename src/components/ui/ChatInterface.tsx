@@ -109,10 +109,14 @@ How can I assist you with your migration today?`;
     scrollToBottom();
   }, [messages]);
 
-  // Load conversation history from backend on mount
+  // Load conversation history from backend on mount (only when authenticated)
   useEffect(() => {
     const loadConversationHistory = async (): Promise<void> => {
-      if (historyLoaded) return;
+      // Skip if already loaded or user not authenticated
+      if (historyLoaded || !user) {
+        if (!user) setHistoryLoaded(true); // Mark as loaded to prevent repeated attempts
+        return;
+      }
 
       try {
         const response = await apiCall(`/chat/conversation/${conversationId}`, {
@@ -148,7 +152,7 @@ How can I assist you with your migration today?`;
     };
 
     loadConversationHistory();
-  }, [conversationId, historyLoaded, pageContext, helpTopics]);
+  }, [conversationId, historyLoaded, pageContext, helpTopics, user]);
 
   // Update greeting when page context changes (route navigation) - append instead of replace
   useEffect(() => {
