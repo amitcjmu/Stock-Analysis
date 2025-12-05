@@ -116,9 +116,10 @@ async def submit_chat_message_feedback(
     except Exception as e:
         logger.error(f"Error submitting chat message feedback: {e}")
         await db.rollback()
+        # Don't expose internal error details to users
         return ChatMessageFeedbackResponse(
             status="error",
-            message=f"Failed to submit feedback: {str(e)}",
+            message="An error occurred while submitting your feedback",
         )
 
 

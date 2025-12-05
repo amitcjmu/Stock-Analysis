@@ -18,6 +18,20 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+# Constants for input validation
+MAX_MESSAGE_LENGTH = 10000
+MAX_HISTORY_LENGTH = 50
+
+
+def _sanitize_log_message(message: str, max_len: int = 50) -> str:
+    """Sanitize message for logging - truncate and redact potential PII."""
+    if not message:
+        return "[empty]"
+    # Truncate for logs, don't log full user input
+    truncated = message[:max_len].replace("\n", " ")
+    return f"{truncated}..." if len(message) > max_len else truncated
+
+
 @router.post("/")
 async def chat_with_ai(request: ChatRequest):
     """
@@ -25,7 +39,15 @@ async def chat_with_ai(request: ChatRequest):
     Provides conversational interface for user questions and help.
     """
     try:
-        logger.info(f"Received chat message: {request.message[:100]}...")
+        # Input validation - message size limits
+        if len(request.message) > MAX_MESSAGE_LENGTH:
+            return {
+                "status": "error",
+                "error": "Message too long",
+                "message": f"Message exceeds maximum length of {MAX_MESSAGE_LENGTH} characters",
+            }
+
+        logger.info(f"Received chat message: {_sanitize_log_message(request.message)}")
 
         # Convert conversation history to dict format
         history = []
@@ -60,7 +82,11 @@ async def chat_with_ai(request: ChatRequest):
 
     except Exception as e:
         logger.error(f"Error in chat endpoint: {e}")
-        raise HTTPException(status_code=500, detail=f"Chat failed: {str(e)}")
+        # Don't expose internal error details to users
+        raise HTTPException(
+            status_code=500,
+            detail="An error occurred processing your chat request",
+        )
 
 
 @router.post("/ask-about-assets")
@@ -128,4 +154,8 @@ async def ask_about_assets(request: ChatRequest):
 
     except Exception as e:
         logger.error(f"Error in asset chat: {e}")
-        raise HTTPException(status_code=500, detail=f"Asset chat failed: {str(e)}")
+        # Don't expose internal error details to users
+        raise HTTPException(
+            status_code=500,
+            detail="An error occurred processing your asset chat request",
+        )

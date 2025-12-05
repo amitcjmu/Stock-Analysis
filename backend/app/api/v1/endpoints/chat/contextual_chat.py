@@ -19,6 +19,17 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
+# Constants for input validation
+MAX_MESSAGE_LENGTH = 10000
+
+
+def _sanitize_log_message(message: str, max_len: int = 30) -> str:
+    """Sanitize message for logging - truncate and redact potential PII."""
+    if not message:
+        return "[empty]"
+    truncated = message[:max_len].replace("\n", " ")
+    return f"{truncated}..." if len(message) > max_len else truncated
+
 
 @router.post("/contextual")
 async def contextual_chat(request: ContextualChatRequest):
@@ -34,8 +45,16 @@ async def contextual_chat(request: ContextualChatRequest):
     Milestone: Contextual AI Chat Assistant
     """
     try:
+        # Input validation
+        if len(request.message) > MAX_MESSAGE_LENGTH:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Message exceeds maximum length of {MAX_MESSAGE_LENGTH}",
+            )
+
+        # Secure logging - don't log full user messages
         logger.info(
-            f"Contextual chat request - Message: {request.message[:50]}... "
+            f"Contextual chat request - Message: {_sanitize_log_message(request.message)} "
             f"Page: {request.page_context.page_name if request.page_context else 'Unknown'}"
         )
 
@@ -52,9 +71,15 @@ async def contextual_chat(request: ContextualChatRequest):
             "related_help_topics": result.related_help_topics,
         }
 
+    except HTTPException:
+        raise  # Re-raise HTTPExceptions as-is
     except Exception as e:
         logger.error(f"Error in contextual chat endpoint: {e}")
-        raise HTTPException(status_code=500, detail=f"Contextual chat failed: {str(e)}")
+        # Don't expose internal error details to users
+        raise HTTPException(
+            status_code=500,
+            detail="An error occurred processing your contextual chat request",
+        )
 
 
 @router.get("/page-greeting")
