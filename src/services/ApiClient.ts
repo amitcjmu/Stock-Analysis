@@ -20,6 +20,32 @@ export interface RequestConfig {
 }
 
 /**
+ * Custom API error that preserves response body for detailed error handling
+ * Issue #719: Needed to propagate backend error details (like apps_not_found) to frontend
+ */
+export class ApiError extends Error {
+  status: number;
+  statusText: string;
+  response: {
+    data: Record<string, unknown>;
+    status: number;
+    statusText: string;
+  };
+
+  constructor(status: number, statusText: string, data: Record<string, unknown>) {
+    super(`HTTP ${status}: ${statusText}`);
+    this.name = 'ApiError';
+    this.status = status;
+    this.statusText = statusText;
+    this.response = {
+      data,
+      status,
+      statusText,
+    };
+  }
+}
+
+/**
  * Generic request payload type for external API data
  */
 export type RequestPayload =
@@ -114,12 +140,25 @@ export class ApiClient {
       const response = await fetch(url, requestOptions);
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        // Issue #719: Parse response body to preserve error details (like apps_not_found)
+        let errorData: Record<string, unknown> = {};
+        try {
+          errorData = await response.json();
+        } catch {
+          // Response may not be JSON, use empty object
+          errorData = { message: response.statusText };
+        }
+        console.error(`API Error ${response.status}: ${method} ${endpoint}`, errorData);
+        throw new ApiError(response.status, response.statusText, errorData);
       }
 
       const result = await response.json();
       return result;
     } catch (error) {
+      // Re-throw ApiErrors as-is to preserve response data
+      if (error instanceof ApiError) {
+        throw error;
+      }
       console.error(`API Request failed: ${method} ${endpoint}`, error);
       throw error;
     }
