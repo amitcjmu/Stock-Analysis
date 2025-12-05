@@ -120,6 +120,15 @@ FIELD_IMPORT_TYPES = {
     "serial_number": ["cmdb"],
     "architecture_type": ["cmdb"],
     "asset_status": ["cmdb"],
+    # CMDB assessment fields (Issue #798)
+    "virtualization_platform": ["cmdb"],
+    "virtualization_type": ["cmdb"],
+    "data_volume_characteristics": ["cmdb"],
+    "user_load_patterns": ["cmdb"],
+    "business_logic_complexity": ["cmdb"],
+    "configuration_complexity": ["cmdb"],
+    "change_tolerance": ["cmdb"],
+    "eol_technology_assessment": ["cmdb"],
     # Dependency fields are handled separately in get_asset_dependency_fields()
 }
 
