@@ -2,11 +2,14 @@ import React from 'react'
 import { useState, useRef, useCallback } from 'react'
 import { useEffect } from 'react'
 import { MessageCircle, Lightbulb, HelpCircle, ChevronRight } from 'lucide-react'
-import { Send, X, Bot, User, Star, ThumbsUp } from 'lucide-react'
+import { Send, X, Bot, User, Star, ThumbsUp, History } from 'lucide-react'
 import { apiCall, API_CONFIG } from '../../config/api';
 import { Markdown } from '../../utils/markdown';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePageContext } from '../../hooks/usePageContext';
+
+// Session storage key for persisting conversation ID
+const CONVERSATION_ID_KEY = 'chat_conversation_id';
 
 interface ChatMessage {
   id: string;
@@ -63,7 +66,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ isOpen, onClose, currentP
 How can I assist you with your migration today?`;
   }, [pageContext]);
 
-  // Chat state
+  // Chat state with session persistence
+  const [conversationId, setConversationId] = useState<string>(() => {
+    // Initialize from sessionStorage or create new
+    if (typeof window !== 'undefined') {
+      const stored = sessionStorage.getItem(CONVERSATION_ID_KEY);
+      if (stored) return stored;
+      const newId = `chat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      sessionStorage.setItem(CONVERSATION_ID_KEY, newId);
+      return newId;
+    }
+    return `chat-${Date.now()}`;
+  });
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '1',
@@ -76,6 +90,7 @@ How can I assist you with your migration today?`;
   ]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
 
   // Feedback state
   const [rating, setRating] = useState(0);
@@ -94,24 +109,68 @@ How can I assist you with your migration today?`;
     scrollToBottom();
   }, [messages]);
 
-  // Update greeting when page context changes (route navigation)
+  // Load conversation history from backend on mount
+  useEffect(() => {
+    const loadConversationHistory = async (): Promise<void> => {
+      if (historyLoaded) return;
+
+      try {
+        const response = await apiCall(`/chat/conversation/${conversationId}`, {
+          method: 'GET',
+        }) as { status: string; messages: Array<{ role: string; content: string; timestamp: string }> };
+
+        if (response.status === 'success' && response.messages && response.messages.length > 0) {
+          // Convert backend messages to our format
+          const loadedMessages: ChatMessage[] = response.messages.map((msg, idx) => ({
+            id: `loaded-${idx}-${Date.now()}`,
+            role: msg.role as 'user' | 'assistant',
+            content: msg.content,
+            timestamp: msg.timestamp,
+          }));
+
+          // Add a page-context greeting at the end if we loaded history
+          loadedMessages.push({
+            id: Date.now().toString(),
+            role: 'assistant',
+            content: `*You're now on ${pageContext?.page_name || 'this page'}. How can I continue helping you?*`,
+            timestamp: new Date().toISOString(),
+            suggested_actions: pageContext?.actions?.slice(0, 3) || [],
+            related_help_topics: helpTopics?.slice(0, 5) || []
+          });
+
+          setMessages(loadedMessages);
+        }
+      } catch {
+        // If no conversation exists yet, that's fine - use initial greeting
+      } finally {
+        setHistoryLoaded(true);
+      }
+    };
+
+    loadConversationHistory();
+  }, [conversationId, historyLoaded, pageContext, helpTopics]);
+
+  // Update greeting when page context changes (route navigation) - append instead of replace
   useEffect(() => {
     const currentRoute = pageContext?.route || window.location.pathname;
 
-    if (previousRouteRef.current && previousRouteRef.current !== currentRoute) {
-      // Route changed - update the initial greeting
-      setMessages([{
-        id: Date.now().toString(),
-        role: 'assistant',
-        content: getInitialGreeting(),
-        timestamp: new Date().toISOString(),
-        suggested_actions: pageContext?.actions?.slice(0, 3) || [],
-        related_help_topics: helpTopics?.slice(0, 5) || []
-      }]);
+    if (previousRouteRef.current && previousRouteRef.current !== currentRoute && historyLoaded) {
+      // Route changed - add a page transition message instead of resetting all messages
+      setMessages(prev => [
+        ...prev,
+        {
+          id: Date.now().toString(),
+          role: 'assistant',
+          content: `📍 *You navigated to ${pageContext?.page_name || 'a new page'}.*\n\n${getInitialGreeting()}`,
+          timestamp: new Date().toISOString(),
+          suggested_actions: pageContext?.actions?.slice(0, 3) || [],
+          related_help_topics: helpTopics?.slice(0, 5) || []
+        }
+      ]);
     }
 
     previousRouteRef.current = currentRoute;
-  }, [pageContext, helpTopics, getInitialGreeting]);
+  }, [pageContext, helpTopics, getInitialGreeting, historyLoaded]);
 
   // Restrictive system prompt for Gemma chatbot
   const getRestrictiveSystemPrompt = (): unknown => {
@@ -154,6 +213,26 @@ SECURITY:
 If a question is outside these bounds, respond: "I'm specialized in IT migration and infrastructure topics. How can I help you with your cloud migration, asset inventory, or infrastructure modernization instead?"`;
   };
 
+  // Clear conversation history and start fresh
+  const clearHistory = (): void => {
+    const newId = `chat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    sessionStorage.setItem(CONVERSATION_ID_KEY, newId);
+    setConversationId(newId);
+    setMessages([{
+      id: Date.now().toString(),
+      role: 'assistant',
+      content: getInitialGreeting(),
+      timestamp: new Date().toISOString(),
+      suggested_actions: pageContext?.actions?.slice(0, 3) || [],
+      related_help_topics: helpTopics?.slice(0, 5) || []
+    }]);
+
+    // Clear on backend too (fire-and-forget)
+    apiCall(`/chat/conversation/${conversationId}`, {
+      method: 'DELETE',
+    }).catch(() => {/* ignore cleanup errors */});
+  };
+
   const sendMessage = async (): Promise<void> => {
     if (!inputMessage.trim() || isLoading) return;
 
@@ -169,8 +248,8 @@ If a question is outside these bounds, respond: "I'm specialized in IT migration
     setIsLoading(true);
 
     try {
-      // Use contextual chat endpoint with full page context
-      const response = await apiCall('/chat/contextual', {
+      // Use conversation endpoint for persistent storage
+      const response = await apiCall(`/chat/conversation/${conversationId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -181,27 +260,20 @@ If a question is outside these bounds, respond: "I'm specialized in IT migration
             role: msg.role,
             content: msg.content
           })),
-          page_context: pageContext ? {
-            page_name: pageContext.page_name,
-            route: pageContext.route,
-            flow_type: pageContext.flow_type,
-            description: pageContext.description,
-            features: pageContext.features,
-            actions: pageContext.actions,
-            help_topics: pageContext.help_topics,
-            workflow: pageContext.workflow,
-            faq: pageContext.faq,
-            tips: pageContext.tips
-          } : null,
-          flow_context: flowState ? {
-            flow_id: flowState.flow_id,
-            flow_type: flowState.flow_type,
-            current_phase: flowState.current_phase,
-            completion_percentage: flowState.completion_percentage,
-            status: flowState.status,
-            pending_actions: flowState.pending_actions
-          } : null,
-          breadcrumb: breadcrumb || breadcrumbPath
+          context: pageContext ? JSON.stringify({
+            page_context: {
+              page_name: pageContext.page_name,
+              route: pageContext.route,
+              flow_type: pageContext.flow_type,
+              description: pageContext.description,
+            },
+            flow_context: flowState ? {
+              flow_id: flowState.flow_id,
+              current_phase: flowState.current_phase,
+              status: flowState.status,
+            } : null,
+            breadcrumb: breadcrumb || breadcrumbPath
+          }) : null
         })
       }) as ContextualChatResponse;
 
@@ -298,12 +370,23 @@ If a question is outside these bounds, respond: "I'm specialized in IT migration
                 </p>
               </div>
             </div>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <X className="h-6 w-6" />
-            </button>
+            <div className="flex items-center space-x-2">
+              {activeTab === 'chat' && messages.length > 1 && (
+                <button
+                  onClick={clearHistory}
+                  className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded hover:bg-gray-100"
+                  title="Clear conversation history"
+                >
+                  <History className="h-5 w-5" />
+                </button>
+              )}
+              <button
+                onClick={onClose}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
           </div>
 
           {/* Tab Navigation */}
