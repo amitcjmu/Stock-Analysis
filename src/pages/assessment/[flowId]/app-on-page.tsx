@@ -6,7 +6,7 @@ import { AssessmentFlowLayout } from '@/components/assessment/AssessmentFlowLayo
 import { ApplicationSummaryCard } from '@/components/assessment/ApplicationSummaryCard';
 import { ComponentBreakdownView } from '@/components/assessment/ComponentBreakdownView';
 import { TechDebtSummaryChart } from '@/components/assessment/TechDebtSummaryChart';
-import { SixRDecisionRationale } from '@/components/assessment/SixRDecisionRationale';
+// SixRDecisionRationale removed - replaced by RecommendationCard (Issue #719)
 import {
   RecommendationCard,
   type SixRStrategyType,
@@ -324,8 +324,10 @@ const AppOnPagePage: React.FC = () => {
                     effort: alt.effort_estimate as EffortLevel | undefined,
                     cost_range: alt.cost_range as CostRange | undefined
                   }))}
+                  is_accepted={state.appsReadyForPlanning.includes(selectedApp)}
                   onAccept={(appId) => {
                     console.log('Recommendation accepted for:', appId);
+                    // TODO: Implement accept logic via Assessment Flow API
                   }}
                   onRequestSME={(appId) => {
                     console.log('SME review requested for:', appId);
@@ -333,19 +335,12 @@ const AppOnPagePage: React.FC = () => {
                   }}
                 />
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Legacy 6R Decision Rationale - kept for backward compatibility */}
-                  <SixRDecisionRationale
-                    decision={currentAppDecision}
-                    printMode={printMode}
-                  />
-
-                  <ArchitectureExceptionsPanel
-                    decision={currentAppDecision}
-                    standards={state.engagementStandards}
-                    printMode={printMode}
-                  />
-                </div>
+                {/* Architecture Exceptions - full width now that SixRDecisionRationale is removed */}
+                <ArchitectureExceptionsPanel
+                  decision={currentAppDecision}
+                  standards={state.engagementStandards}
+                  printMode={printMode}
+                />
 
                 <TechDebtSummaryChart
                   techDebt={currentAppTechDebt}
@@ -389,9 +384,19 @@ const AppOnPagePage: React.FC = () => {
               {printMode && (
                 <div className="print:block hidden space-y-8">
                   <div className="page-break">
-                    <SixRDecisionRationale
-                      decision={currentAppDecision}
-                      printMode={printMode}
+                    {/* Print mode uses RecommendationCard for 6R strategy display (Issue #719) */}
+                    <RecommendationCard
+                      application_id={selectedApp}
+                      application_name={
+                        state.selectedApplications.find(app => app.application_id === selectedApp)?.application_name || 'Application'
+                      }
+                      recommended_strategy={(currentAppDecision?.overall_strategy || 'retain') as SixRStrategyType}
+                      confidence={currentAppDecision?.confidence_score || 0}
+                      effort={currentAppDecision?.effort_estimate as EffortLevel | undefined}
+                      cost_range={currentAppDecision?.cost_range as CostRange | undefined}
+                      rationale={currentAppDecision?.rationale || 'No rationale provided'}
+                      risk_factors={currentAppDecision?.risk_factors || []}
+                      is_accepted={state.appsReadyForPlanning.includes(selectedApp)}
                     />
                   </div>
 
