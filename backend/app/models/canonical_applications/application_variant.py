@@ -73,13 +73,13 @@ class ApplicationNameVariant(Base, TimestampMixin):
     # Multi-tenant isolation
     client_account_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("client_accounts.id", ondelete="CASCADE"),
+        ForeignKey("migration.client_accounts.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
     engagement_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("engagements.id", ondelete="CASCADE"),
+        ForeignKey("migration.engagements.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )

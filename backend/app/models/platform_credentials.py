@@ -67,13 +67,13 @@ class PlatformCredential(Base):
     # Relationships
     client_account_id = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("client_accounts.id"),
+        ForeignKey("migration.client_accounts.id"),
         nullable=False,
         index=True,
     )
     platform_adapter_id = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("platform_adapters.id"),
+        ForeignKey("migration.platform_adapters.id"),
         nullable=False,
         index=True,
     )
@@ -117,10 +117,10 @@ class PlatformCredential(Base):
 
     # Audit Fields
     created_by = Column(
-        PostgresUUID(as_uuid=True), ForeignKey("users.id"), nullable=False
+        PostgresUUID(as_uuid=True), ForeignKey("migration.users.id"), nullable=False
     )
     updated_by = Column(
-        PostgresUUID(as_uuid=True), ForeignKey("users.id"), nullable=True
+        PostgresUUID(as_uuid=True), ForeignKey("migration.users.id"), nullable=True
     )
     created_at = Column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
@@ -193,12 +193,15 @@ class CredentialAccessLog(Base):
     # References
     credential_id = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("platform_credentials.id", ondelete="CASCADE"),
+        ForeignKey("migration.platform_credentials.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
     accessed_by = Column(
-        PostgresUUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True
+        PostgresUUID(as_uuid=True),
+        ForeignKey("migration.users.id"),
+        nullable=False,
+        index=True,
     )
 
     # Access Information
@@ -208,7 +211,7 @@ class CredentialAccessLog(Base):
     access_purpose = Column(Text, nullable=True)
     collection_flow_id = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("collection_flows.id", ondelete="SET NULL"),
+        ForeignKey("migration.collection_flows.id", ondelete="SET NULL"),
         nullable=True,
     )
 
@@ -250,7 +253,7 @@ class CredentialRotationHistory(Base):
     # References
     credential_id = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("platform_credentials.id", ondelete="CASCADE"),
+        ForeignKey("migration.platform_credentials.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
@@ -265,7 +268,7 @@ class CredentialRotationHistory(Base):
 
     # Who performed the rotation
     rotated_by = Column(
-        PostgresUUID(as_uuid=True), ForeignKey("users.id"), nullable=False
+        PostgresUUID(as_uuid=True), ForeignKey("migration.users.id"), nullable=False
     )
 
     # Result
@@ -302,14 +305,17 @@ class CredentialPermission(Base):
     # References
     credential_id = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("platform_credentials.id", ondelete="CASCADE"),
+        ForeignKey("migration.platform_credentials.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
 
     # Permission target (user or role)
     user_id = Column(
-        PostgresUUID(as_uuid=True), ForeignKey("users.id"), nullable=True, index=True
+        PostgresUUID(as_uuid=True),
+        ForeignKey("migration.users.id"),
+        nullable=True,
+        index=True,
     )
     role = Column(String(50), nullable=True, index=True)
 
@@ -318,7 +324,7 @@ class CredentialPermission(Base):
         String(50), nullable=False, index=True
     )  # read, write, delete, rotate
     granted_by = Column(
-        PostgresUUID(as_uuid=True), ForeignKey("users.id"), nullable=False
+        PostgresUUID(as_uuid=True), ForeignKey("migration.users.id"), nullable=False
     )
     expires_at = Column(DateTime(timezone=True), nullable=True)
 
@@ -331,7 +337,7 @@ class CredentialPermission(Base):
     )
     revoked_at = Column(DateTime(timezone=True), nullable=True)
     revoked_by = Column(
-        PostgresUUID(as_uuid=True), ForeignKey("users.id"), nullable=True
+        PostgresUUID(as_uuid=True), ForeignKey("migration.users.id"), nullable=True
     )
 
     # Relationships

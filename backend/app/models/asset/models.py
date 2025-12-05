@@ -70,14 +70,14 @@ class Asset(
     # Multi-tenant isolation
     client_account_id = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("client_accounts.id", ondelete="CASCADE"),
+        ForeignKey("migration.client_accounts.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="FK to client account.",
     )
     engagement_id = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("engagements.id", ondelete="CASCADE"),
+        ForeignKey("migration.engagements.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="FK to engagement.",
@@ -86,14 +86,14 @@ class Asset(
     # Flow-based tracking (migrated from session_id)
     flow_id = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("discovery_flows.flow_id", ondelete="CASCADE"),
+        ForeignKey("migration.discovery_flows.flow_id", ondelete="CASCADE"),
         nullable=True,
         index=True,
         comment="Legacy field. Use master_flow_id.",
     )
     migration_id = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("migrations.id"),
+        ForeignKey("migration.migrations.id"),
         nullable=True,
         comment="Migration activity ID.",
     )
@@ -290,13 +290,13 @@ class Asset(
     )
     created_by = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("users.id"),
+        ForeignKey("migration.users.id"),
         nullable=True,
         comment="The user who originally created this asset record.",
     )
     updated_by = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("users.id"),
+        ForeignKey("migration.users.id"),
         nullable=True,
         comment="The user who last updated this asset record.",
     )
@@ -310,7 +310,7 @@ class Asset(
     )
     deleted_by = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("users.id"),
+        ForeignKey("migration.users.id"),
         nullable=True,
         default=None,
         comment="User ID who performed the soft delete.",

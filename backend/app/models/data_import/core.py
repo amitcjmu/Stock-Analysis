@@ -44,19 +44,21 @@ class DataImport(Base):
     )
     client_account_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("client_accounts.id", ondelete="CASCADE"),
+        ForeignKey("migration.client_accounts.id", ondelete="CASCADE"),
         nullable=True,
         comment="The client account this import belongs to.",
     )
     engagement_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("engagements.id", ondelete="CASCADE"),
+        ForeignKey("migration.engagements.id", ondelete="CASCADE"),
         nullable=True,
         comment="The engagement this import is associated with.",
     )
     master_flow_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("crewai_flow_state_extensions.flow_id", ondelete="CASCADE"),
+        ForeignKey(
+            "migration.crewai_flow_state_extensions.flow_id", ondelete="CASCADE"
+        ),
         nullable=True,
         comment="The master flow ID that was initiated by this data import.",
     )
@@ -133,7 +135,7 @@ class DataImport(Base):
     # Configuration and user info
     imported_by = Column(
         UUID(as_uuid=True),
-        ForeignKey("users.id"),
+        ForeignKey("migration.users.id"),
         nullable=False,
         comment="The user ID of the person who initiated the import.",
     )
@@ -224,19 +226,21 @@ class RawImportRecord(Base):
     # Context IDs for direct querying
     client_account_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("client_accounts.id"),
+        ForeignKey("migration.client_accounts.id"),
         nullable=True,
         comment="Denormalized client account ID for efficient multi-tenant queries.",
     )
     engagement_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("engagements.id"),
+        ForeignKey("migration.engagements.id"),
         nullable=True,
         comment="Denormalized engagement ID for efficient scoping.",
     )
     master_flow_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("crewai_flow_state_extensions.flow_id", ondelete="CASCADE"),
+        ForeignKey(
+            "migration.crewai_flow_state_extensions.flow_id", ondelete="CASCADE"
+        ),
         nullable=True,
         comment="Denormalized master flow ID for linking records to a flow.",
     )
@@ -280,7 +284,7 @@ class RawImportRecord(Base):
     )
     asset_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("assets.id"),
+        ForeignKey("migration.assets.id"),
         comment="If an asset is created from this record, this links to it.",
     )
 

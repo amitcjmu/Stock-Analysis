@@ -31,7 +31,7 @@ class CollectionDataGap(Base, TimestampMixin):
     # Foreign keys
     collection_flow_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("collection_flows.id", ondelete="CASCADE"),
+        ForeignKey("migration.collection_flows.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )

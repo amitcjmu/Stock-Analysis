@@ -41,13 +41,13 @@ class AdaptiveQuestionnaire(Base):
     # Multi-tenant isolation
     client_account_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("client_accounts.id", ondelete="CASCADE"),
+        ForeignKey("migration.client_accounts.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
     engagement_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("engagements.id", ondelete="CASCADE"),
+        ForeignKey("migration.engagements.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
@@ -55,7 +55,7 @@ class AdaptiveQuestionnaire(Base):
     # Flow relationship (nullable for asset-based questionnaires)
     collection_flow_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("collection_flows.id", ondelete="CASCADE"),
+        ForeignKey("migration.collection_flows.id", ondelete="CASCADE"),
         nullable=True,  # Made nullable per migration 128 for asset-based deduplication
         index=True,
     )
@@ -64,7 +64,7 @@ class AdaptiveQuestionnaire(Base):
     # One questionnaire per (engagement_id, asset_id) - reused across flows
     asset_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("assets.id", ondelete="CASCADE"),
+        ForeignKey("migration.assets.id", ondelete="CASCADE"),
         nullable=True,  # Nullable during migration, will become required
         index=True,
     )

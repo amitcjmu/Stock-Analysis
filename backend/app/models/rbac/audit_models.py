@@ -36,7 +36,7 @@ class AccessAuditLog(Base):
     # Who and what
     user_id = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("users.id"),
+        ForeignKey("migration.users.id"),
         nullable=False,
         index=True,
         comment="The user who performed the action or was the subject of the event.",
@@ -58,13 +58,13 @@ class AccessAuditLog(Base):
     # Context
     client_account_id = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("client_accounts.id"),
+        ForeignKey("migration.client_accounts.id"),
         nullable=True,
         comment="The client account context in which the action occurred.",
     )
     engagement_id = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("engagements.id"),
+        ForeignKey("migration.engagements.id"),
         nullable=True,
         comment="The engagement context in which the action occurred.",
     )

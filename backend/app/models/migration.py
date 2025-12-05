@@ -150,7 +150,7 @@ class MigrationLog(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     migration_id = Column(
-        UUID(as_uuid=True), ForeignKey("migrations.id"), nullable=False
+        UUID(as_uuid=True), ForeignKey("migration.migrations.id"), nullable=False
     )
 
     # Log details

@@ -27,13 +27,13 @@ class CollectedDataInventory(Base, TimestampMixin):
     # Foreign keys
     collection_flow_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("collection_flows.id", ondelete="CASCADE"),
+        ForeignKey("migration.collection_flows.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
     adapter_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("platform_adapters.id", ondelete="SET NULL"),
+        ForeignKey("migration.platform_adapters.id", ondelete="SET NULL"),
         nullable=True,
     )
 

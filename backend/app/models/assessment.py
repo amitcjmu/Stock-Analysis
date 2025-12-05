@@ -88,21 +88,23 @@ class Assessment(Base):
     # Multi-tenant isolation
     client_account_id = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("client_accounts.id", ondelete="CASCADE"),
+        ForeignKey("migration.client_accounts.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
     engagement_id = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("engagements.id", ondelete="CASCADE"),
+        ForeignKey("migration.engagements.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
     migration_id = Column(
-        PostgresUUID(as_uuid=True), ForeignKey("migrations.id"), nullable=False
+        PostgresUUID(as_uuid=True),
+        ForeignKey("migration.migrations.id"),
+        nullable=False,
     )
     asset_id = Column(
-        PostgresUUID(as_uuid=True), ForeignKey("assets.id"), nullable=True
+        PostgresUUID(as_uuid=True), ForeignKey("migration.assets.id"), nullable=True
     )  # Null for migration-wide assessments
 
     # Assessment metadata
@@ -227,18 +229,20 @@ class WavePlan(Base):
     # Multi-tenant isolation
     client_account_id = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("client_accounts.id", ondelete="CASCADE"),
+        ForeignKey("migration.client_accounts.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
     engagement_id = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("engagements.id", ondelete="CASCADE"),
+        ForeignKey("migration.engagements.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
     migration_id = Column(
-        PostgresUUID(as_uuid=True), ForeignKey("migrations.id"), nullable=False
+        PostgresUUID(as_uuid=True),
+        ForeignKey("migration.migrations.id"),
+        nullable=False,
     )
 
     # Wave details

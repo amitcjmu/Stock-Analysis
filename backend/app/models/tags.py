@@ -61,7 +61,7 @@ class Tag(Base):
     )
     client_account_id = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("client_accounts.id", ondelete="CASCADE"),
+        ForeignKey("migration.client_accounts.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
@@ -102,7 +102,7 @@ class AssetEmbedding(Base):
     )
     asset_id = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("assets.id", ondelete="CASCADE"),
+        ForeignKey("migration.assets.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
@@ -110,13 +110,13 @@ class AssetEmbedding(Base):
     # Multi-tenant isolation (inherited from asset, but explicit for vector queries)
     client_account_id = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("client_accounts.id", ondelete="CASCADE"),
+        ForeignKey("migration.client_accounts.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
     engagement_id = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("engagements.id", ondelete="CASCADE"),
+        ForeignKey("migration.engagements.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
@@ -147,13 +147,13 @@ class AssetTag(Base):
     id = Column(PostgresUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     asset_id = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("assets.id", ondelete="CASCADE"),
+        ForeignKey("migration.assets.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
     tag_id = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("tags.id", ondelete="CASCADE"),
+        ForeignKey("migration.tags.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
@@ -162,13 +162,13 @@ class AssetTag(Base):
     confidence_score = Column(Float)  # 0-1 similarity score
     assigned_method = Column(String(50))  # 'auto', 'manual', 'ai_agent'
     assigned_by = Column(
-        PostgresUUID(as_uuid=True), ForeignKey("users.id"), nullable=True
+        PostgresUUID(as_uuid=True), ForeignKey("migration.users.id"), nullable=True
     )
 
     # Validation
     is_validated = Column(Boolean, default=False)
     validated_by = Column(
-        PostgresUUID(as_uuid=True), ForeignKey("users.id"), nullable=True
+        PostgresUUID(as_uuid=True), ForeignKey("migration.users.id"), nullable=True
     )
     validated_at = Column(DateTime(timezone=True))
 

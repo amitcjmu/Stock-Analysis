@@ -27,22 +27,24 @@ class CollectionQuestionnaireResponse(Base, TimestampMixin):
     # Foreign keys
     collection_flow_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("collection_flows.id", ondelete="CASCADE"),
+        ForeignKey("migration.collection_flows.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
     gap_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("collection_data_gaps.id", ondelete="SET NULL"),
+        ForeignKey("migration.collection_data_gaps.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
     )
-    responded_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    responded_by = Column(
+        UUID(as_uuid=True), ForeignKey("migration.users.id"), nullable=True
+    )
 
     # Asset relationship - CRITICAL: Links responses to specific assets
     asset_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("assets.id", ondelete="CASCADE"),
+        ForeignKey("migration.assets.id", ondelete="CASCADE"),
         nullable=True,  # Allow null for legacy responses
         index=True,
         comment="Foreign key to the asset this questionnaire response is about",

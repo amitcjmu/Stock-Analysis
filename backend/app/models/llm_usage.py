@@ -44,10 +44,10 @@ class LLMUsageLog(Base):
 
     # Context and identification
     client_account_id = Column(
-        UUID(as_uuid=True), ForeignKey("client_accounts.id"), nullable=True
+        UUID(as_uuid=True), ForeignKey("migration.client_accounts.id"), nullable=True
     )
     engagement_id = Column(
-        UUID(as_uuid=True), ForeignKey("engagements.id"), nullable=True
+        UUID(as_uuid=True), ForeignKey("migration.engagements.id"), nullable=True
     )
     user_id = Column(
         Integer, nullable=True
@@ -211,10 +211,10 @@ class LLMUsageSummary(Base):
 
     # Context
     client_account_id = Column(
-        UUID(as_uuid=True), ForeignKey("client_accounts.id"), nullable=True
+        UUID(as_uuid=True), ForeignKey("migration.client_accounts.id"), nullable=True
     )
     engagement_id = Column(
-        UUID(as_uuid=True), ForeignKey("engagements.id"), nullable=True
+        UUID(as_uuid=True), ForeignKey("migration.engagements.id"), nullable=True
     )
     user_id = Column(Integer, nullable=True)
     llm_provider = Column(String(100), nullable=True)
