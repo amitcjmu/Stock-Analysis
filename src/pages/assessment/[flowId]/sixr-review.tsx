@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AssessmentFlowLayout } from '@/components/assessment/AssessmentFlowLayout';
 import { useAssessmentFlow } from '@/hooks/useAssessmentFlow';
@@ -20,10 +20,17 @@ import {
   TrendingUp,
   Database,
   GitBranch,
-  Download
+  Download,
+  UserCheck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { SixRDecision } from '@/hooks/useAssessmentFlow';
+import {
+  RecommendationCard,
+  type SixRStrategyType,
+  type EffortLevel,
+  type CostRange
+} from '@/components/assessment';
 
 type SixRStrategy = 'rehost' | 'replatform' | 'refactor' | 'repurchase' | 'retire' | 'retain';
 
@@ -386,72 +393,34 @@ const SixRStrategyReview: React.FC = () => {
 
         {selectedApp && currentAppDecision && (
           <>
-            {/* 6R Recommendation Card */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      {getStrategyIcon(currentAppDecision.overall_strategy)}
-                      Recommended Strategy: {currentAppDecision.overall_strategy}
-                    </CardTitle>
-                    <CardDescription>
-                      Confidence Score: {Math.round((currentAppDecision.confidence_score || 0) * 100)}%
-                    </CardDescription>
-                  </div>
-                  <Badge className={cn('text-sm', getStrategyColor(currentAppDecision.overall_strategy))}>
-                    {currentAppDecision.overall_strategy.toUpperCase()}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <h4 className="font-semibold text-sm mb-2">Rationale</h4>
-                  <p className="text-sm text-gray-700">{currentAppDecision.rationale}</p>
-                </div>
-
-                {currentAppDecision.architecture_exceptions && currentAppDecision.architecture_exceptions.length > 0 && (
-                  <div>
-                    <h4 className="font-semibold text-sm mb-2">Architecture Exceptions</h4>
-                    <ul className="list-disc list-inside space-y-1">
-                      {currentAppDecision.architecture_exceptions.map((exception, idx) => (
-                        <li key={idx} className="text-sm text-gray-700">{exception}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {currentAppDecision.move_group_hints && currentAppDecision.move_group_hints.length > 0 && (
-                  <div>
-                    <h4 className="font-semibold text-sm mb-2">Move Group Hints</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {currentAppDecision.move_group_hints.map((hint, idx) => (
-                        <Badge key={idx} variant="outline">{hint}</Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div className="pt-4 border-t">
-                  <Button
-                    onClick={() => handleAcceptRecommendation(selectedApp)}
-                    disabled={acceptedRecommendations.has(selectedApp)}
-                    className="w-full"
-                  >
-                    {acceptedRecommendations.has(selectedApp) ? (
-                      <>
-                        <CheckCircle className="h-4 w-4 mr-2" />
-                        Recommendation Accepted
-                      </>
-                    ) : (
-                      <>
-                        Accept Recommendation
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            {/* Enhanced 6R Recommendation Card (Issue #719 - Treatment Display Polish) */}
+            <RecommendationCard
+              application_id={selectedApp}
+              application_name={
+                state.selectedApplications.find(app => app.application_id === selectedApp)?.application_name || 'Application'
+              }
+              application_version={
+                state.selectedApplications.find(app => app.application_id === selectedApp)?.version
+              }
+              recommended_strategy={currentAppDecision.overall_strategy as SixRStrategyType}
+              confidence={currentAppDecision.confidence_score || 0}
+              effort={currentAppDecision.effort_estimate as EffortLevel | undefined}
+              cost_range={currentAppDecision.cost_range as CostRange | undefined}
+              rationale={currentAppDecision.rationale || 'No rationale provided'}
+              risk_factors={currentAppDecision.risk_factors || riskFactors.map(r => r.description)}
+              alternatives={currentAppDecision.alternative_strategies?.map(alt => ({
+                strategy: alt.strategy as SixRStrategyType,
+                confidence: alt.confidence || 0,
+                effort: alt.effort_estimate as EffortLevel | undefined,
+                cost_range: alt.cost_range as CostRange | undefined
+              }))}
+              is_accepted={acceptedRecommendations.has(selectedApp)}
+              onAccept={handleAcceptRecommendation}
+              onRequestSME={(appId) => {
+                console.log('SME review requested for:', appId);
+                alert('SME review request submitted. You will be notified when feedback is available.');
+              }}
+            />
 
             {/* Detailed Analysis Tabs */}
             <Tabs defaultValue="components" className="space-y-4">
