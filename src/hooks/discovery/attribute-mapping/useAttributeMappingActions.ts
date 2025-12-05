@@ -23,7 +23,7 @@
 import { useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '../../../contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { apiCall } from '../../../config/api';
 import { isFlowTerminal } from '@/constants/flowStates';
 import type { FieldMapping } from '@/types/api/discovery/field-mapping-types';
@@ -31,7 +31,6 @@ import type { DiscoveryFlowData } from '@/types/discovery';
 import type { FlowUpdate } from '../../useFlowUpdates'
 import { useFlowUpdates } from '../../useFlowUpdates'
 import { logTerminalStateAuditEvent } from '@/utils/auditLogger';
-import { useAuth } from '@/contexts/AuthContext';
 
 // Agent decision structure from backend
 interface AgentDecision {
