@@ -181,19 +181,37 @@ How can I assist you with your migration today?`;
       return;
     }
 
-    // After initial context, only add navigation message for actual route changes
+    // After initial context, handle route changes
     if (initialContextSet && previousRouteRef.current && previousRouteRef.current !== currentRoute && historyLoaded) {
-      setMessages(prev => [
-        ...prev,
-        {
-          id: Date.now().toString(),
-          role: 'assistant',
-          content: `📍 *You navigated to ${pageContext?.page_name || 'a new page'}.*\n\n${getInitialGreeting()}`,
-          timestamp: new Date().toISOString(),
-          suggested_actions: pageContext?.actions?.slice(0, 3) || [],
-          related_help_topics: helpTopics?.slice(0, 5) || []
+      setMessages(prev => {
+        // Check if there are actual user messages (not just greetings)
+        const hasUserMessages = prev.some(msg => msg.role === 'user');
+
+        if (hasUserMessages) {
+          // Only add navigation message if there's an actual conversation
+          return [
+            ...prev,
+            {
+              id: Date.now().toString(),
+              role: 'assistant' as const,
+              content: `📍 *You navigated to ${pageContext?.page_name || 'a new page'}.*\n\n${getInitialGreeting()}`,
+              timestamp: new Date().toISOString(),
+              suggested_actions: pageContext?.actions?.slice(0, 3) || [],
+              related_help_topics: helpTopics?.slice(0, 5) || []
+            }
+          ];
+        } else {
+          // No actual conversation - just replace greeting with fresh page context
+          return [{
+            id: '1',
+            role: 'assistant' as const,
+            content: getInitialGreeting(),
+            timestamp: new Date().toISOString(),
+            suggested_actions: pageContext?.actions?.slice(0, 3) || [],
+            related_help_topics: helpTopics?.slice(0, 5) || []
+          }];
         }
-      ]);
+      });
     }
 
     previousRouteRef.current = currentRoute;
