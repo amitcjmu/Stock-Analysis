@@ -366,131 +366,26 @@ test('should complete app-discovery import workflow', async ({ page }) => {
 
 ## Alembic Database Migrations
 
-### ❌ Creating Migrations Without Checking Latest Migration in Branch
-**Issue:** Creating new migration files that reference migrations that don't exist in current branch  
-**Why:** Alembic fails with `KeyError: 'revision_id'` - backend won't start, deployment blocked  
-**Example:** Creating migration 146 that references `145_create_help_documents_table` when migration 145 only exists in main branch, not in feature branch  
-**Check - MANDATORY before creating ANY migration:**
+### ❌ Creating Migrations Without Merging Main First
+**Issue:** Creating migration that references migration from main branch that doesn't exist in feature branch  
+**Why:** Alembic fails with `KeyError: 'revision_id'` - backend won't start  
+**Example:** Creating migration 146 referencing `145_create_help_documents_table` when 145 only exists in main  
+**Check:** 
+- **ALWAYS** merge main first: `git fetch origin main && git merge origin/main`
+- Check latest migration in branch: `ls -1 backend/alembic/versions/*.py | sort -V | tail -1`
+- Set `down_revision` to latest migration from your branch
+- Rebuild backend: `docker-compose build backend`
+- Test startup: `docker-compose restart backend` and check logs for errors
 
-**1. Check Latest Migration in Current Branch:**
-```bash
-# Find the latest numbered migration in YOUR branch
-ls -1 backend/alembic/versions/*.py | xargs -I {} basename {} | grep -E "^[0-9]{3}_" | sort -V | tail -1
+**Reference:** Migration 146 (Dec 2025) - Backend startup failure
 
-# Check what it references
-grep "down_revision" backend/alembic/versions/144_*.py
-```
-
-**2. Merge Latest Main Branch FIRST:**
-```bash
-# ALWAYS merge main before creating migrations
-git fetch origin main
-git merge origin/main
-# Resolve any conflicts
-# Verify migration files from main are present
-```
-
-**3. Verify Migration Chain:**
-```bash
-# After merging main, check what the latest migration is
-ls -1 backend/alembic/versions/*.py | xargs -I {} basename {} | grep -E "^[0-9]{3}_" | sort -V | tail -1
-
-# Your new migration MUST reference this as down_revision
-```
-
-**4. Follow Migration Naming Standards:**
-```bash
-# Check existing migration naming pattern
-ls -1 backend/alembic/versions/*.py | tail -5
-
-# Pattern: {number}_{descriptive_name}.py
-# Example: 146_add_additional_cmdb_fields_to_assets.py
-# NOT: 146_add_serial_number_architecture_type_asset_status.py (too specific)
-```
-
-**5. Verify Migration File in Container:**
-```bash
-# After creating migration, rebuild backend
-docker-compose -f config/docker/docker-compose.yml build backend
-
-# Verify migration file exists in container
-docker-compose -f config/docker/docker-compose.yml exec backend ls -la /app/alembic/versions/146*.py
-
-# If file doesn't exist, container needs rebuild
-```
-
-**6. Test Backend Startup:**
-```bash
-# ALWAYS test backend starts after creating migration
-docker-compose -f config/docker/docker-compose.yml restart backend
-
-# Check logs for migration errors
-docker-compose -f config/docker/docker-compose.yml logs backend | grep -i "migration\|alembic\|error"
-
-# Verify backend is running
-docker-compose -f config/docker/docker-compose.yml ps backend
-```
-
-**7. Verify Migration Applied:**
-```bash
-# Check database version
-docker-compose -f config/docker/docker-compose.yml exec postgres psql -U postgres -d migration_db -c "SELECT version_num FROM migration.alembic_version;"
-
-# Verify new columns/objects exist
-docker-compose -f config/docker/docker-compose.yml exec postgres psql -U postgres -d migration_db -c "\d migration.assets" | grep "new_column_name"
-```
-
-**Migration Creation Checklist:**
-1. ✅ Merged latest main branch (`git merge origin/main`)
-2. ✅ Identified latest migration in branch (`ls -1 backend/alembic/versions/*.py | sort -V | tail -1`)
-3. ✅ Created migration with correct number (next sequential number)
-4. ✅ Set `down_revision` to latest migration from step 2
-5. ✅ Followed naming pattern (e.g., `146_add_additional_cmdb_fields_to_assets.py`)
-6. ✅ Rebuilt backend container (`docker-compose build backend`)
-7. ✅ Verified migration file exists in container
-8. ✅ Tested backend startup (`docker-compose restart backend`)
-9. ✅ Verified no migration errors in logs
-10. ✅ Verified migration applied in database
-11. ✅ Verified new database objects exist (columns, tables, indexes)
-
-**Common Mistakes:**
-- ❌ Creating migration before merging main → References non-existent migration
-- ❌ Using wrong migration number → Conflicts with existing migrations
-- ❌ Not rebuilding container → Migration file not in container, Alembic can't find it
-- ❌ Not testing startup → Migration errors discovered in deployment
-- ❌ Wrong `down_revision` → Breaks migration chain
-
-**Real World Example:**
-- Created migration 146 referencing `145_create_help_documents_table`
-- Migration 145 only existed in main branch, not in feature branch
-- Backend failed to start with `KeyError: '145_create_help_documents_table'`
-- Fixed by: Merging main branch first, then updating migration 146 to reference correct down_revision
-
-**Reference:** Migration 146 creation (Dec 2025) - Backend startup failure due to missing migration reference
-
-### ❌ Not Following Alembic Migration Numbering Standards
-**Issue:** Migration file names don't follow project standards, causing confusion and potential conflicts  
-**Why:** Inconsistent naming makes it hard to track migration order, can cause merge conflicts  
-**Example:** Using overly specific names like `146_add_serial_number_architecture_type_asset_status.py` instead of descriptive category name  
-**Check:**
-- Use descriptive category names: `146_add_additional_cmdb_fields_to_assets.py`
-- Not field-by-field names: `146_add_serial_number_architecture_type_asset_status.py`
-- Follow existing patterns in `backend/alembic/versions/` directory
-- Check similar migrations for naming conventions
+### ❌ Not Following Migration Naming Standards
+**Issue:** Migration names too specific or don't follow project patterns  
+**Why:** Hard to track, inconsistent with existing migrations  
+**Example:** `146_add_serial_number_architecture_type_asset_status.py` vs `146_add_additional_cmdb_fields_to_assets.py`  
+**Check:** Use descriptive category names, check existing patterns in `backend/alembic/versions/`
 
 **Reference:** Migration 146 naming correction (Dec 2025)
-
-### ❌ Not Testing Migration Before Committing
-**Issue:** Committing migration files without verifying backend builds and starts correctly  
-**Why:** Migration errors discovered in deployment, blocking releases  
-**Check:**
-- **ALWAYS** rebuild backend after creating migration
-- **ALWAYS** restart backend and verify it starts
-- **ALWAYS** check logs for migration errors
-- **ALWAYS** verify migration applied in database
-- **NEVER** commit migrations without build verification
-
-**Reference:** Migration 146 - Backend startup failure (Dec 2025)
 
 ## Git & Version Control
 
@@ -680,11 +575,7 @@ Use this before submitting PRs:
 - [ ] Consistent logging throughout
 - [ ] Tests added for bug fixes
 - [ ] Pulled and merged latest from main
-- [ ] **For migrations: Merged main FIRST, then created migration**
-- [ ] **For migrations: Verified latest migration in branch before creating new one**
-- [ ] **For migrations: Tested backend builds and starts correctly**
-- [ ] **For migrations: Verified migration file exists in container**
-- [ ] **For migrations: Verified migration applied in database**
+- [ ] **For migrations: Merged main first, verified latest migration, tested backend startup**
 - [ ] Pre-commit checks passing
 - [ ] Manual verification completed
 - [ ] **Refactoring integrity verified (line counts, field counts, signature preservation)**
