@@ -12,6 +12,7 @@ import { useInventoryFlowDetection } from '../../hooks/discovery/useDiscoveryFlo
 import { useUnifiedDiscoveryFlow } from '../../hooks/useUnifiedDiscoveryFlow';
 import { isFlowTerminal } from '../../constants/flowStates';
 import { useAuth } from '@/contexts/AuthContext';
+import { logTerminalStateAuditEvent } from '../../utils/auditLogger';
 
 const Inventory = (): JSX.Element => {
   const { client, engagement } = useAuth();
@@ -62,6 +63,23 @@ const Inventory = (): JSX.Element => {
       };
     } else if (isFlowTerminalState) {
       console.log(`⚠️ Skipping modal open: Flow is in terminal state (${flowStatus})`);
+
+      // Audit log: Terminal state blocked preview modal from opening
+      logTerminalStateAuditEvent(
+        {
+          action_type: 'asset_preview_modal_blocked',
+          resource_type: 'discovery_flow',
+          resource_id: effectiveFlowId,
+          result: 'blocked',
+          reason: `Asset preview modal blocked: Flow is in terminal state (${flowStatus})`,
+          details: {
+            flow_status: flowStatus,
+          },
+        },
+        effectiveFlowId,
+        client?.id,
+        engagement?.id
+      );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveFlowId, flow?.status]); // Include flow status in dependencies
@@ -70,9 +88,27 @@ const Inventory = (): JSX.Element => {
   useEffect(() => {
     if (showPreviewModal && isFlowTerminalState) {
       console.log(`⚠️ Closing preview modal: Flow became terminal state (${flowStatus})`);
+
+      // Audit log: Terminal state closed preview modal
+      logTerminalStateAuditEvent(
+        {
+          action_type: 'asset_preview_modal_closed',
+          resource_type: 'discovery_flow',
+          resource_id: effectiveFlowId,
+          result: 'closed',
+          reason: `Asset preview modal closed: Flow became terminal state (${flowStatus})`,
+          details: {
+            flow_status: flowStatus,
+          },
+        },
+        effectiveFlowId,
+        client?.id,
+        engagement?.id
+      );
+
       setShowPreviewModal(false);
     }
-  }, [showPreviewModal, isFlowTerminalState]);
+  }, [showPreviewModal, isFlowTerminalState, effectiveFlowId, flowStatus, client?.id, engagement?.id]);
 
   // Debug info for flow detection
   console.log('🔍 Inventory flow detection:', {

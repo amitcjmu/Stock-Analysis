@@ -8,6 +8,7 @@ import type { Asset } from '../../../../types/asset';
 import SecureLogger from '../../../../utils/secureLogger';
 import { assetConflictService } from '../../../../services/api/assetConflictService';
 import type { AssetConflict } from '../../../../types/assetConflict';
+import { logTerminalStateAuditEvent } from '../../../../utils/auditLogger';
 
 // Components
 import { InventoryOverview } from '../components/InventoryOverview';
@@ -283,6 +284,26 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
       } else {
         if (isFlowTerminalState) {
           console.log(`⚠️ [ConflictDetection] Skipping conflict check: Flow is in terminal state (${flowStatus})`);
+
+          // Audit log: Terminal state blocked conflict modal from opening
+          logTerminalStateAuditEvent(
+            {
+              action_type: 'conflict_modal_blocked',
+              resource_type: 'discovery_flow',
+              resource_id: flowId,
+              result: 'blocked',
+              reason: `Conflict modal blocked: Flow is in terminal state (${flowStatus})`,
+              details: {
+                flow_status: flowStatus,
+                has_conflicts: has_conflicts,
+                conflict_count: assetConflicts.length,
+              },
+            },
+            flowId,
+            client?.id,
+            engagement?.id
+          );
+
           setShowConflictModal(false);
           setAssetConflicts([]);
         } else {
@@ -302,10 +323,29 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
 
     if (showConflictModal && isFlowTerminalState) {
       console.log(`⚠️ [ConflictDetection] Closing conflict modal: Flow became terminal state (${flowStatus})`);
+
+      // Audit log: Terminal state closed conflict modal
+      logTerminalStateAuditEvent(
+        {
+          action_type: 'conflict_modal_closed',
+          resource_type: 'discovery_flow',
+          resource_id: flowId,
+          result: 'closed',
+          reason: `Conflict modal closed: Flow became terminal state (${flowStatus})`,
+          details: {
+            flow_status: flowStatus,
+            conflict_count: assetConflicts.length,
+          },
+        },
+        flowId,
+        client?.id,
+        engagement?.id
+      );
+
       setShowConflictModal(false);
       setAssetConflicts([]);
     }
-  }, [showConflictModal, flow?.status]);
+  }, [showConflictModal, flow?.status, flowId, client?.id, engagement?.id, assetConflicts.length]);
 
   // Handle conflict resolution completion
   const handleConflictResolutionComplete = async (): Promise<void> => {
