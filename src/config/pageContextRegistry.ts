@@ -778,6 +778,192 @@ export const PAGE_CONTEXT_REGISTRY: Record<string, PageContext> = {
     related_docs: ['/docs/e2e-flows/03_Assess/01_Overview.md'],
   },
 
+  '/assess/treatment': {
+    page_name: 'Assessment Treatment',
+    route: '/assess/treatment',
+    route_pattern: '/assess/treatment',
+    flow_type: 'assessment',
+    description: 'Review and apply 6R recommendations to applications. Accept, modify, or override AI-generated migration strategies.',
+    features: [
+      '6R recommendation review',
+      'Application treatment grid',
+      'Strategy override',
+      'Bulk treatment updates',
+      'Risk assessment details',
+      'Migration complexity scores',
+    ],
+    actions: [
+      'Accept 6R recommendation',
+      'Override strategy',
+      'Apply bulk changes',
+      'Export treatment plan',
+      'View risk details',
+    ],
+    help_topics: ['6R treatment', 'migration strategy', 'application assessment', 'risk analysis'],
+    workflow: {
+      phase: '6R Treatment',
+      step: 6,
+      totalSteps: 8,
+      nextStep: 'Export',
+      previousStep: '6R Decision',
+    },
+    faq: [
+      {
+        question: 'What is treatment in assessment?',
+        answer: 'Treatment is where you review AI-generated 6R recommendations and decide the migration strategy for each application - accepting, modifying, or overriding the suggestions.',
+      },
+      {
+        question: 'Can I change the AI recommendation?',
+        answer: 'Yes, you can override any 6R recommendation. Select the application and choose a different strategy from the dropdown. Document the reason for audit purposes.',
+      },
+      {
+        question: 'What factors influence 6R recommendations?',
+        answer: 'The AI considers application complexity, dependencies, technical debt, business criticality, and cloud readiness when suggesting Rehost, Replatform, Refactor, Rearchitect, Rebuild, or Retire.',
+      },
+    ],
+    related_docs: ['/docs/e2e-flows/03_Assess/05_Treatment.md'],
+    tips: [
+      'Review high-risk applications first',
+      'Consider business impact when overriding recommendations',
+      'Document override reasons for compliance',
+    ],
+  },
+
+  '/assess/editor': {
+    page_name: 'Assessment Editor',
+    route: '/assess/editor',
+    route_pattern: '/assess/editor',
+    flow_type: 'assessment',
+    description: 'Edit and customize assessment parameters, criteria, and scoring models.',
+    features: [
+      'Assessment criteria editor',
+      'Scoring model configuration',
+      'Custom rule creation',
+      'Weight adjustment',
+    ],
+    actions: [
+      'Edit assessment criteria',
+      'Adjust scoring weights',
+      'Create custom rules',
+      'Save configuration',
+    ],
+    help_topics: ['assessment editor', 'scoring configuration', 'custom criteria'],
+    faq: [
+      {
+        question: 'Can I customize the assessment criteria?',
+        answer: 'Yes, you can modify scoring weights, add custom criteria, and adjust how the AI evaluates applications for migration.',
+      },
+    ],
+  },
+
+  '/assess/roadmap': {
+    page_name: 'Assessment Roadmap',
+    route: '/assess/roadmap',
+    route_pattern: '/assess/roadmap',
+    flow_type: 'assessment',
+    description: 'View the migration roadmap generated from assessment results with timeline and dependencies.',
+    features: [
+      'Migration roadmap visualization',
+      'Timeline view',
+      'Dependency mapping',
+      'Phase planning',
+    ],
+    actions: [
+      'View roadmap',
+      'Adjust timeline',
+      'Export roadmap',
+      'Proceed to planning',
+    ],
+    help_topics: ['migration roadmap', 'timeline', 'phase planning'],
+    faq: [
+      {
+        question: 'How is the roadmap generated?',
+        answer: 'The roadmap is created based on 6R recommendations, application dependencies, risk levels, and business priorities from the assessment.',
+      },
+    ],
+  },
+
+  '/assess/migration-readiness': {
+    page_name: 'Migration Readiness',
+    route: '/assess/migration-readiness',
+    route_pattern: '/assess/migration-readiness*',
+    flow_type: 'assessment',
+    description: 'Evaluate application readiness for cloud migration with detailed scoring and gap analysis.',
+    features: [
+      'Readiness scoring',
+      'Gap analysis',
+      'Blocker identification',
+      'Remediation recommendations',
+    ],
+    actions: [
+      'View readiness scores',
+      'Analyze gaps',
+      'Address blockers',
+      'Export readiness report',
+    ],
+    help_topics: ['migration readiness', 'cloud readiness', 'gap analysis'],
+    faq: [
+      {
+        question: 'What does the readiness score measure?',
+        answer: 'The readiness score evaluates technical compatibility, dependency complexity, data migration requirements, and operational considerations for cloud migration.',
+      },
+    ],
+  },
+
+  '/assess/tech-debt': {
+    page_name: 'Technical Debt Analysis',
+    route: '/assess/tech-debt',
+    route_pattern: '/assess/tech-debt*',
+    flow_type: 'assessment',
+    description: 'Analyze technical debt in applications to inform migration strategy decisions.',
+    features: [
+      'Technical debt scoring',
+      'Code quality metrics',
+      'Modernization recommendations',
+      'Effort estimation',
+    ],
+    actions: [
+      'View tech debt analysis',
+      'Review recommendations',
+      'Estimate remediation effort',
+      'Export tech debt report',
+    ],
+    help_topics: ['technical debt', 'code quality', 'modernization'],
+    faq: [
+      {
+        question: 'How does technical debt affect migration?',
+        answer: 'High technical debt may indicate the need for refactoring or rearchitecting rather than simple rehosting, affecting time and cost estimates.',
+      },
+    ],
+  },
+
+  '/assess/summary': {
+    page_name: 'Assessment Summary',
+    route: '/assess/summary',
+    route_pattern: '/assess/summary*',
+    flow_type: 'assessment',
+    description: 'View comprehensive summary of assessment results across all applications.',
+    features: [
+      'Executive summary',
+      '6R distribution charts',
+      'Risk overview',
+      'Export capabilities',
+    ],
+    actions: [
+      'View summary',
+      'Export executive report',
+      'Share with stakeholders',
+      'Proceed to planning',
+    ],
+    help_topics: ['assessment summary', 'executive report', '6R results'],
+    faq: [
+      {
+        question: 'What does the summary include?',
+        answer: 'The summary shows 6R recommendations distribution, overall risk levels, estimated effort, and key findings from the assessment.',
+      },
+    ],
+  },
+
   // ============================================
   // PLAN FLOW PAGES
   // ============================================
