@@ -395,6 +395,14 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
           </div>
         )}
 
+        {/* Ready for Planning Status - shown when accepted */}
+        {is_accepted && (
+          <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+            <CheckCircle className="h-5 w-5 text-green-600" />
+            <span className="text-green-700 font-medium">Ready for Planning</span>
+          </div>
+        )}
+
         {/* Action Buttons */}
         <div className="flex flex-wrap items-center gap-2 pt-2 border-t">
           <Button
