@@ -24,6 +24,7 @@ from .enums import (
     ServerRole,
     RiskLevel,
     TShirtSize,
+    VirtualizationType,
 )
 from .models import Asset
 from .relationships import (
@@ -71,6 +72,7 @@ __all__ = [
     "ServerRole",
     "RiskLevel",
     "TShirtSize",
+    "VirtualizationType",
     # Model classes
     "Asset",
     "AssetDependency",

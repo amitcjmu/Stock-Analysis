@@ -5,7 +5,7 @@ These fields support comprehensive migration planning with explicit columns
 for high-query frequency fields.
 """
 
-from sqlalchemy import Boolean, Column, Float, String, Text
+from sqlalchemy import Boolean, Column, Enum, Float, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 
 from .base import (
@@ -13,6 +13,7 @@ from .base import (
     MEDIUM_STRING_LENGTH,
     LARGE_STRING_LENGTH,
 )
+from .enums import VirtualizationType
 
 
 class CMDBFieldsMixin:
@@ -319,6 +320,104 @@ class CMDBFieldsMixin:
             "display_name": "Backup Policy",
             "short_hint": "Backup and recovery details",
             "category": "migration",
+        },
+    )
+
+    # Critical Assessment Fields (Issue #798)
+    virtualization_platform = Column(
+        String(MEDIUM_STRING_LENGTH),
+        nullable=True,
+        index=True,
+        comment="Virtualization platform: VMware, Hyper-V, KVM, etc.",
+        info={
+            "display_name": "Virtualization Platform",
+            "short_hint": "VMware / Hyper-V / KVM / Physical",
+            "category": "technical",
+        },
+    )
+
+    virtualization_type = Column(
+        Enum(
+            VirtualizationType,
+            values_callable=lambda obj: [e.value for e in obj],
+            create_type=False,
+        ),
+        nullable=True,
+        index=True,
+        comment="Virtualization type: virtual, physical, container, other",
+        info={
+            "display_name": "Virtualization Type",
+            "short_hint": "Virtual / Physical / Container / Other",
+            "category": "technical",
+        },
+    )
+
+    data_volume_characteristics = Column(
+        Text,
+        nullable=True,
+        comment="Data volume characteristics and patterns",
+        info={
+            "display_name": "Data Volume Characteristics",
+            "short_hint": "Data volume patterns and characteristics",
+            "category": "technical",
+        },
+    )
+
+    user_load_patterns = Column(
+        Text,
+        nullable=True,
+        comment="User load patterns and traffic characteristics",
+        info={
+            "display_name": "User Load Patterns",
+            "short_hint": "User load and traffic patterns",
+            "category": "technical",
+        },
+    )
+
+    business_logic_complexity = Column(
+        String(SMALL_STRING_LENGTH),
+        nullable=True,
+        index=True,
+        comment="Business logic complexity: low, medium, high, critical",
+        info={
+            "display_name": "Business Logic Complexity",
+            "short_hint": "Low / Medium / High / Critical",
+            "category": "assessment",
+        },
+    )
+
+    configuration_complexity = Column(
+        String(SMALL_STRING_LENGTH),
+        nullable=True,
+        index=True,
+        comment="Configuration complexity: low, medium, high, critical",
+        info={
+            "display_name": "Configuration Complexity",
+            "short_hint": "Low / Medium / High / Critical",
+            "category": "assessment",
+        },
+    )
+
+    change_tolerance = Column(
+        String(SMALL_STRING_LENGTH),
+        nullable=True,
+        index=True,
+        comment="Change tolerance level: low, medium, high",
+        info={
+            "display_name": "Change Tolerance",
+            "short_hint": "Low / Medium / High",
+            "category": "business",
+        },
+    )
+
+    eol_technology_assessment = Column(
+        Text,
+        nullable=True,
+        comment="End-of-life technology assessment details",
+        info={
+            "display_name": "EOL Technology Assessment",
+            "short_hint": "End-of-life technology assessment",
+            "category": "assessment",
         },
     )
 

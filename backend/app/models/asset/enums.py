@@ -211,3 +211,12 @@ class TShirtSize(str, enum.Enum):
     L = "l"  # Large
     XL = "xl"  # Extra large
     XXL = "xxl"  # Double extra large
+
+
+class VirtualizationType(str, enum.Enum):
+    """Virtualization type classification."""
+
+    VIRTUAL = "virtual"  # Virtual machine
+    PHYSICAL = "physical"  # Physical server
+    CONTAINER = "container"  # Containerized
+    OTHER = "other"  # Other/Unknown
