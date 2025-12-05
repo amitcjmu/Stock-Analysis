@@ -1,8 +1,9 @@
 import React from 'react'
 import { useState } from 'react'
 import { useEffect } from 'react'
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { AssessmentFlowLayout } from '@/components/assessment/AssessmentFlowLayout';
+import { StartAssessmentModal } from '@/components/assessment/StartAssessmentModal';
 import { ApplicationSummaryCard } from '@/components/assessment/ApplicationSummaryCard'; // Only used for print mode multi-app summary
 import { ComponentBreakdownView } from '@/components/assessment/ComponentBreakdownView';
 import { TechDebtSummaryChart } from '@/components/assessment/TechDebtSummaryChart';
@@ -23,7 +24,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Save, FileText } from 'lucide-react'
+import { Save, FileText, XCircle, Plus } from 'lucide-react'
 import { AlertCircle, ArrowRight, Loader2, CheckCircle, Eye, Download } from 'lucide-react'
 import { cn } from '@/lib/utils';
 
@@ -40,11 +41,21 @@ const AppOnPagePage: React.FC = () => {
     updateSixRDecision
   } = useAssessmentFlow(flowId);
 
+  const navigate = useNavigate();
+
   const [selectedApp, setSelectedApp] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [printMode, setPrintMode] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const [acceptedApps, setAcceptedApps] = useState<Set<string>>(new Set()); // Track locally accepted apps
+
+  // Data integrity error state (RETRY-FIX: apps_not_found scenario)
+  const [dataIntegrityError, setDataIntegrityError] = useState<{
+    hasError: boolean;
+    missingApps: string[];
+    errorMessage: string;
+  } | null>(null);
+  const [showNewAssessmentModal, setShowNewAssessmentModal] = useState(false);
 
   // Set first application as selected by default
   useEffect(() => {
@@ -52,6 +63,35 @@ const AppOnPagePage: React.FC = () => {
       setSelectedApp(state.selectedApplications[0].application_id);
     }
   }, [state.selectedApplications, selectedApp]);
+
+  // Issue #719: Detect data integrity issues on page load
+  // If selectedApplicationIds (what was selected) > selectedApplications (what exists), apps are missing
+  useEffect(() => {
+    if (!state.dataFetched || dataIntegrityError?.hasError) return;
+
+    const selectedCount = state.selectedApplicationIds.length;
+    const existingCount = state.selectedApplications.length;
+
+    // Only detect if there's a clear discrepancy AND we have failed apps (no 6R decisions)
+    if (selectedCount > 0 && existingCount > 0 && selectedCount > existingCount) {
+      // Find missing app IDs
+      const existingIds = new Set(state.selectedApplications.map(app => app.application_id));
+      const missingIds = state.selectedApplicationIds.filter(id => !existingIds.has(id));
+
+      if (missingIds.length > 0) {
+        console.warn(
+          `[Issue-719] Data integrity issue detected on page load: ` +
+          `${missingIds.length} of ${selectedCount} selected apps missing from database`
+        );
+        setDataIntegrityError({
+          hasError: true,
+          missingApps: missingIds,
+          errorMessage: `${missingIds.length} application(s) in this assessment no longer exist in the system. ` +
+            `This can happen when canonical applications are deleted after an assessment was created.`
+        });
+      }
+    }
+  }, [state.dataFetched, state.selectedApplicationIds, state.selectedApplications, dataIntegrityError?.hasError]);
 
   // Get current application data
   const currentAppDecision = selectedApp ? state.sixrDecisions[selectedApp] : null;
@@ -77,6 +117,8 @@ const AppOnPagePage: React.FC = () => {
 
   const handleRetryRecommendations = async (): Promise<void> => {
     setIsRetrying(true);
+    setDataIntegrityError(null); // Clear any previous error
+
     try {
       await resumeFlow({
         phase: 'recommendation_generation',
@@ -84,8 +126,34 @@ const AppOnPagePage: React.FC = () => {
       });
       // Refresh data after retry completes
       await refreshApplicationData();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to retry recommendation generation:', error);
+
+      // Issue #719: Extract data integrity error details from API response
+      // Backend returns HTTP 409 with: { detail: { error: "data_integrity_error", apps_not_found: [...] } }
+      // ApiError class at src/lib/api/apiClient.ts stores JSON body directly at error.response
+      const responseData = error?.response;
+      const errorDetail = responseData?.detail || responseData || error;
+      const errorMessage = errorDetail?.message || errorDetail?.error || error?.message || 'Unknown error';
+
+      // Check multiple possible locations for apps_not_found
+      const appsNotFound = errorDetail?.apps_not_found || responseData?.apps_not_found || [];
+
+      if (appsNotFound.length > 0 || errorDetail?.error === 'data_integrity_error') {
+        // This is a data integrity error - apps don't exist in canonical_applications
+        setDataIntegrityError({
+          hasError: true,
+          missingApps: appsNotFound,
+          errorMessage: errorDetail?.message || `${appsNotFound.length} application(s) in this assessment no longer exist in the system. This can happen when canonical applications are deleted after an assessment was created.`
+        });
+      } else if (errorMessage.includes('Data integrity') || errorMessage.includes('not found in database')) {
+        // Fallback detection from error message
+        setDataIntegrityError({
+          hasError: true,
+          missingApps: [],
+          errorMessage: 'Some applications in this assessment no longer exist in the system. Please start a new assessment with valid applications.'
+        });
+      }
     } finally {
       setIsRetrying(false);
     }
@@ -221,14 +289,23 @@ const AppOnPagePage: React.FC = () => {
 
           {/* Assessment Status */}
           <div className="flex flex-wrap items-center gap-3">
-            <Badge variant={assessmentComplete ? "default" : "secondary"} className="flex items-center space-x-1">
+            <Badge
+              variant={assessmentComplete ? "default" : dataIntegrityError?.hasError ? "destructive" : "secondary"}
+              className="flex items-center space-x-1"
+            >
               {assessmentComplete ? (
                 <CheckCircle className="h-3 w-3" />
+              ) : dataIntegrityError?.hasError ? (
+                <XCircle className="h-3 w-3" />
               ) : (
                 <Loader2 className="h-3 w-3 animate-spin" />
               )}
               <span>
-                {assessmentComplete ? 'Assessment Complete' : 'Assessment In Progress'}
+                {assessmentComplete
+                  ? 'Assessment Complete'
+                  : dataIntegrityError?.hasError
+                    ? 'Data Integrity Error'
+                    : 'Assessment In Progress'}
               </span>
             </Badge>
 
@@ -261,8 +338,52 @@ const AppOnPagePage: React.FC = () => {
           </div>
         )}
 
-        {/* Failed Recommendations Warning */}
-        {hasFailedApps && !isRetrying && (
+        {/* Data Integrity Error - RETRY-FIX: Apps no longer exist in database */}
+        {dataIntegrityError?.hasError && (
+          <div className="p-4 bg-red-50 border border-red-200 rounded-lg print:hidden">
+            <div className="flex items-start gap-4">
+              <XCircle className="h-6 w-6 text-red-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-red-900">
+                  Data Integrity Issue - Cannot Retry
+                </p>
+                <p className="text-sm text-red-700 mt-1">
+                  {dataIntegrityError.errorMessage}
+                </p>
+                {dataIntegrityError.missingApps.length > 0 && (
+                  <p className="text-xs text-red-600 mt-2 font-mono">
+                    Missing App IDs: {dataIntegrityError.missingApps.slice(0, 3).join(', ')}
+                    {dataIntegrityError.missingApps.length > 3 && ` ... and ${dataIntegrityError.missingApps.length - 3} more`}
+                  </p>
+                )}
+                <div className="mt-4 flex items-center gap-3">
+                  <Button
+                    onClick={() => setShowNewAssessmentModal(true)}
+                    className="bg-red-600 hover:bg-red-700 text-white"
+                    size="sm"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Start New Assessment
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate('/assess/overview')}
+                    className="border-red-300 text-red-700 hover:bg-red-100"
+                  >
+                    View All Assessments
+                  </Button>
+                </div>
+                <p className="text-xs text-red-600 mt-3">
+                  Tip: The new assessment flow validates applications before creation, preventing this issue.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Failed Recommendations Warning - Only show if no data integrity error */}
+        {hasFailedApps && !isRetrying && !dataIntegrityError?.hasError && (
           <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg print:hidden">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
@@ -519,6 +640,13 @@ const AppOnPagePage: React.FC = () => {
           .page-break:first-child { page-break-before: auto; }
         }
       `}</style>
+
+      {/* Start New Assessment Modal - RETRY-FIX: Shown when data integrity error prevents retry */}
+      <StartAssessmentModal
+        isOpen={showNewAssessmentModal}
+        onClose={() => setShowNewAssessmentModal(false)}
+        assessmentFlowId={flowId}
+      />
     </AssessmentFlowLayout>
   );
 };

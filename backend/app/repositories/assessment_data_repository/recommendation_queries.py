@@ -5,15 +5,157 @@ Mixin for recommendation generation data fetching.
 Per ADR-024: All queries include tenant scoping.
 """
 
-from typing import Any, Dict
+from typing import Any, Dict, List, Set
+from uuid import UUID
+
+from sqlalchemy import select
 
 from app.core.logging import get_logger
+from app.models.assessment_flow import AssessmentFlow
 
 logger = get_logger(__name__)
 
 
 class RecommendationQueriesMixin:
     """Mixin for recommendation generation data queries"""
+
+    async def _get_existing_sixr_decision_app_ids(self, flow_id: str) -> Set[str]:
+        """
+        Get application IDs that already have 6R decisions for this flow.
+
+        Used to filter out applications during retry operations to avoid
+        regenerating recommendations for apps that already succeeded.
+
+        Decisions are stored in phase_results JSONB at:
+        phase_results['recommendation_generation']['results']['recommendation_generation']['applications']
+
+        Args:
+            flow_id: Assessment flow UUID
+
+        Returns:
+            Set of application IDs (as strings) with existing 6R decisions
+        """
+        try:
+            flow_uuid = UUID(flow_id) if isinstance(flow_id, str) else flow_id
+
+            # Query AssessmentFlow to get phase_results
+            stmt = select(AssessmentFlow.phase_results).where(
+                AssessmentFlow.id == flow_uuid,
+                AssessmentFlow.client_account_id == self.client_account_id,
+                AssessmentFlow.engagement_id == self.engagement_id,
+            )
+            result = await self.db.execute(stmt)
+            phase_results = result.scalar_one_or_none()
+
+            if not phase_results:
+                logger.info(f"[RETRY-FIX] No phase_results found for flow_id={flow_id}")
+                return set()
+
+            # Navigate nested structure to find applications with 6R decisions
+            # Structure: recommendation_generation -> results -> recommendation_generation -> applications
+            recommendation_gen = phase_results.get("recommendation_generation", {})
+            results_data = recommendation_gen.get("results", {})
+            inner_rec_gen = results_data.get("recommendation_generation", {})
+            applications = inner_rec_gen.get("applications", [])
+
+            # Extract application IDs that have a six_r_strategy
+            existing_app_ids = {
+                str(app.get("application_id"))
+                for app in applications
+                if app.get("application_id") and app.get("six_r_strategy")
+            }
+
+            logger.info(
+                f"[RETRY-FIX] Found {len(existing_app_ids)} existing 6R decisions "
+                f"in phase_results for flow_id={flow_id}"
+            )
+            return existing_app_ids
+
+        except Exception as e:
+            logger.warning(
+                f"[RETRY-FIX] Error fetching existing 6R decisions from phase_results: {e}"
+            )
+            return set()
+
+    async def _get_selected_app_ids_with_fallbacks(self, flow: Any) -> list:
+        """
+        [ISSUE-999] Get selected application IDs with multiple fallback strategies.
+
+        Extracted to reduce cyclomatic complexity of get_recommendation_data.
+
+        Fallback order:
+        1. selected_canonical_application_ids (new field)
+        2. application_asset_groups canonical_application_id
+        3. Resolve selected_asset_ids via AssessmentApplicationResolver
+
+        Returns:
+            List of selected canonical application IDs as strings
+        """
+        # Primary: Use selected_canonical_application_ids (new field)
+        selected_app_ids: List[str] = flow.selected_canonical_application_ids or []
+
+        # Fallback 1: Try application_asset_groups if new field is empty
+        if not selected_app_ids and flow.application_asset_groups:
+            selected_app_ids = [
+                group.get("canonical_application_id")
+                for group in flow.application_asset_groups
+                if group.get("canonical_application_id")
+            ]
+
+        # Fallback 2: Resolve selected_asset_ids to canonical applications
+        if not selected_app_ids and (
+            flow.selected_asset_ids or flow.selected_application_ids
+        ):
+            asset_ids = flow.selected_asset_ids or flow.selected_application_ids
+            logger.info(
+                f"[ISSUE-999] Resolving {len(asset_ids)} selected_asset_ids "
+                "to canonical applications"
+            )
+            try:
+                from app.services.assessment.application_resolver import (
+                    AssessmentApplicationResolver,
+                )
+
+                resolver = AssessmentApplicationResolver(
+                    db=self.db,
+                    client_account_id=self.client_account_id,
+                    engagement_id=self.engagement_id,
+                )
+
+                # Get collection_flow_id from flow metadata if available
+                collection_flow_id = None
+                if hasattr(flow, "flow_metadata") and flow.flow_metadata:
+                    source_collection = flow.flow_metadata.get("source_collection", {})
+                    coll_id = source_collection.get("collection_flow_id")
+                    if coll_id:
+                        collection_flow_id = (
+                            UUID(coll_id) if isinstance(coll_id, str) else coll_id
+                        )
+
+                # Resolve assets to canonical applications
+                application_groups = await resolver.resolve_assets_to_applications(
+                    asset_ids=[
+                        UUID(aid) if isinstance(aid, str) else aid for aid in asset_ids
+                    ],
+                    collection_flow_id=collection_flow_id,
+                )
+
+                # Extract canonical_application_ids from resolved groups
+                selected_app_ids = [
+                    str(group.canonical_application_id)
+                    for group in application_groups
+                    if group.canonical_application_id
+                ]
+                logger.info(
+                    f"[ISSUE-999] Resolved {len(asset_ids)} assets to "
+                    f"{len(selected_app_ids)} canonical applications"
+                )
+            except Exception as e:
+                logger.warning(
+                    f"[ISSUE-999] Failed to resolve assets to applications: {e}"
+                )
+
+        return selected_app_ids
 
     async def get_recommendation_data(self, flow_id: str) -> Dict[str, Any]:
         """
@@ -55,97 +197,72 @@ class RecommendationQueriesMixin:
                 "risk": self._extract_phase_results(flow, "risk_assessment"),
             }
 
-            # ISSUE-999: Get selected application IDs from flow
-            # Use selected_canonical_application_ids (new field) with fallback to legacy field
-            selected_app_ids = flow.selected_canonical_application_ids or []
-
-            # Fallback: Try application_asset_groups if new field is empty
-            if not selected_app_ids and flow.application_asset_groups:
-                selected_app_ids = [
-                    group.get("canonical_application_id")
-                    for group in flow.application_asset_groups
-                    if group.get("canonical_application_id")
-                ]
-
-            # CC FIX: Third fallback - resolve selected_asset_ids to canonical applications
-            # This mirrors the logic in assessment-applications endpoint
-            if not selected_app_ids and (
-                flow.selected_asset_ids or flow.selected_application_ids
-            ):
-                asset_ids = flow.selected_asset_ids or flow.selected_application_ids
-                logger.info(
-                    f"[ISSUE-999] Resolving {len(asset_ids)} selected_asset_ids to canonical applications"
-                )
-                try:
-                    from uuid import UUID
-                    from app.services.assessment.application_resolver import (
-                        AssessmentApplicationResolver,
-                    )
-
-                    resolver = AssessmentApplicationResolver(
-                        db=self.db,
-                        client_account_id=self.client_account_id,
-                        engagement_id=self.engagement_id,
-                    )
-
-                    # Get collection_flow_id from flow metadata if available
-                    collection_flow_id = None
-                    if hasattr(flow, "flow_metadata") and flow.flow_metadata:
-                        source_collection = flow.flow_metadata.get(
-                            "source_collection", {}
-                        )
-                        coll_id = source_collection.get("collection_flow_id")
-                        if coll_id:
-                            collection_flow_id = (
-                                UUID(coll_id) if isinstance(coll_id, str) else coll_id
-                            )
-
-                    # Resolve assets to canonical applications
-                    application_groups = await resolver.resolve_assets_to_applications(
-                        asset_ids=[
-                            UUID(aid) if isinstance(aid, str) else aid
-                            for aid in asset_ids
-                        ],
-                        collection_flow_id=collection_flow_id,
-                    )
-
-                    # Extract canonical_application_ids from resolved groups
-                    selected_app_ids = [
-                        str(group.canonical_application_id)
-                        for group in application_groups
-                        if group.canonical_application_id
-                    ]
-                    logger.info(
-                        f"[ISSUE-999] Resolved {len(asset_ids)} assets to "
-                        f"{len(selected_app_ids)} canonical applications"
-                    )
-                except Exception as e:
-                    logger.warning(
-                        f"[ISSUE-999] Failed to resolve assets to applications: {e}"
-                    )
+            # ISSUE-999: Get selected application IDs using helper with fallbacks
+            selected_app_ids = await self._get_selected_app_ids_with_fallbacks(flow)
 
             logger.info(
                 f"[ISSUE-999] Retrieved {len(selected_app_ids)} selected application IDs "
                 f"for recommendation generation"
             )
 
+            # RETRY-FIX: Filter out applications that already have 6R decisions
+            # This ensures retry operations only process failed applications
+            existing_decision_app_ids = await self._get_existing_sixr_decision_app_ids(
+                flow_id
+            )
+            apps_with_decisions_count = 0
+            if existing_decision_app_ids and selected_app_ids:
+                original_count = len(selected_app_ids)
+                selected_app_ids = [
+                    app_id
+                    for app_id in selected_app_ids
+                    if str(app_id) not in existing_decision_app_ids
+                ]
+                apps_with_decisions_count = original_count - len(selected_app_ids)
+                if apps_with_decisions_count > 0:
+                    logger.info(
+                        f"[RETRY-FIX] Filtered out {apps_with_decisions_count} apps with existing 6R "
+                        f"decisions, {len(selected_app_ids)} remaining for processing"
+                    )
+
             # Get applications filtered by selected IDs
+            applications = []
+            app_assets_map = {}
+            apps_not_found = []
+
             if selected_app_ids:
                 applications = await self._get_selected_applications(selected_app_ids)
+                found_app_ids = {str(app.id) for app in applications}
+                apps_not_found = [
+                    app_id
+                    for app_id in selected_app_ids
+                    if str(app_id) not in found_app_ids
+                ]
+
+                if apps_not_found:
+                    logger.warning(
+                        f"[RETRY-FIX] {len(apps_not_found)} selected apps not found in "
+                        f"canonical_applications table: {apps_not_found}"
+                    )
+
                 # Fetch comprehensive asset data for each application
-                app_assets_map = await self._get_applications_with_assets(
-                    selected_app_ids
+                if applications:
+                    app_assets_map = await self._get_applications_with_assets(
+                        [str(app.id) for app in applications]
+                    )
+            elif apps_with_decisions_count > 0:
+                # All apps were filtered out because they have decisions - return empty
+                # to signal that retry is not needed (all apps already completed)
+                logger.info(
+                    f"[RETRY-FIX] All {apps_with_decisions_count} selected apps already have "
+                    f"6R decisions - no retry needed for flow_id={flow_id}"
                 )
             else:
-                # Fallback: Get all applications if no selection
+                # No selected apps at all - this shouldn't happen normally
                 logger.warning(
-                    f"[ISSUE-999] No selected_canonical_application_ids found, "
-                    f"using all applications (flow_id={flow_id})"
+                    f"[ISSUE-999] No selected_canonical_application_ids found "
+                    f"for flow_id={flow_id}"
                 )
-                applications = await self._get_applications()
-                # For fallback, also fetch assets
-                app_ids = [app.id for app in applications]
-                app_assets_map = await self._get_applications_with_assets(app_ids)
 
             # Get business constraints (from flow metadata or defaults)
             business_constraints = self._extract_business_constraints(flow)
@@ -167,6 +284,16 @@ class RecommendationQueriesMixin:
                 "budget_constraints": business_constraints.get("budget", {}),
                 "engagement_id": str(self.engagement_id),
                 "flow_id": str(flow_id),
+                # RETRY-FIX: Metadata about filtering and data issues
+                "_meta": {
+                    "apps_with_existing_decisions": apps_with_decisions_count,
+                    "apps_not_found_in_db": apps_not_found,
+                    "apps_to_process": len(serialized_apps),
+                    "all_apps_completed": (
+                        apps_with_decisions_count > 0 and len(serialized_apps) == 0
+                    ),
+                    "has_missing_apps": len(apps_not_found) > 0,
+                },
             }
 
         except Exception as e:

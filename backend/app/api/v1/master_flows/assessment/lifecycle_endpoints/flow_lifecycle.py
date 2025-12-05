@@ -22,6 +22,77 @@ from . import router
 logger = logging.getLogger(__name__)
 
 
+async def _validate_canonical_applications_exist(
+    db: AsyncSession,
+    assessment_flow: Any,
+    client_account_id: str,
+    engagement_id: str,
+    flow_id: str,
+) -> None:
+    """
+    [ISSUE-719] Pre-validate that selected canonical applications exist in database.
+
+    Raises HTTPException 409 if any selected apps are missing.
+    Extracted to reduce cyclomatic complexity of resume_assessment_flow_via_mfo.
+    """
+    from uuid import UUID
+    from sqlalchemy import select
+    from app.models.canonical_applications.canonical_application import (
+        CanonicalApplication,
+    )
+
+    # Get selected canonical app IDs from the assessment flow
+    selected_app_ids = assessment_flow.selected_canonical_application_ids or []
+
+    # Fallback: Try application_asset_groups if new field is empty
+    if not selected_app_ids and assessment_flow.application_asset_groups:
+        selected_app_ids = [
+            group.get("canonical_application_id")
+            for group in assessment_flow.application_asset_groups
+            if group.get("canonical_application_id")
+        ]
+
+    if not selected_app_ids:
+        return  # No apps to validate
+
+    # Query which apps exist in canonical_applications table
+    app_uuids = [
+        UUID(app_id) if isinstance(app_id, str) else app_id
+        for app_id in selected_app_ids
+    ]
+    stmt = select(CanonicalApplication.id).where(
+        CanonicalApplication.id.in_(app_uuids),
+        CanonicalApplication.client_account_id == UUID(client_account_id),
+        CanonicalApplication.engagement_id == UUID(engagement_id),
+    )
+    result_query = await db.execute(stmt)
+    found_ids = {str(row[0]) for row in result_query.fetchall()}
+
+    # Identify missing apps
+    apps_not_found = [
+        str(app_id) for app_id in selected_app_ids if str(app_id) not in found_ids
+    ]
+
+    if apps_not_found:
+        logger.error(
+            f"[ISSUE-719] Data integrity error: {len(apps_not_found)} of "
+            f"{len(selected_app_ids)} selected canonical applications not found "
+            f"in database for flow {flow_id}: {apps_not_found}"
+        )
+        # Return HTTP 409 Conflict with details for frontend to display
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error": "data_integrity_error",
+                "message": f"{len(apps_not_found)} selected applications not found in database. "
+                f"Please start a new assessment with valid applications.",
+                "apps_not_found": apps_not_found,
+                "total_selected": len(selected_app_ids),
+                "flow_id": flow_id,
+            },
+        )
+
+
 @router.post("/{flow_id}/assessment/initialize")
 async def initialize_assessment_flow_via_mfo(
     flow_id: str,
@@ -150,6 +221,19 @@ async def resume_assessment_flow_via_mfo(
             try:
                 current_phase = AssessmentPhase(current_phase_str)
 
+                # [ISSUE-719] PRE-VALIDATION: Check data integrity BEFORE queueing background task
+                if (
+                    current_phase == AssessmentPhase.RECOMMENDATION_GENERATION
+                    and assessment_flow
+                ):
+                    await _validate_canonical_applications_exist(
+                        db=db,
+                        assessment_flow=assessment_flow,
+                        client_account_id=client_account_id,
+                        engagement_id=engagement_id,
+                        flow_id=flow_id,
+                    )
+
                 # Skip background task for finalization phase (no agents needed)
                 if current_phase == AssessmentPhase.FINALIZATION:
                     logger.info(
@@ -211,6 +295,9 @@ async def resume_assessment_flow_via_mfo(
             }
         )
 
+    except HTTPException:
+        # Re-raise HTTPExceptions (like our 409 data integrity error) as-is
+        raise
     except Exception as e:
         logger.error(
             f"Failed to resume assessment flow {flow_id}: {str(e)}", exc_info=True

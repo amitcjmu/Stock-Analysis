@@ -158,6 +158,47 @@ class RecommendationExecutorMixin:
             applications = crew_inputs.get("context_data", {}).get("applications", [])
             app_count = len(applications)
 
+            # RETRY-FIX: Check metadata for data issues
+            meta = crew_inputs.get("context_data", {}).get("_meta", {})
+            all_apps_completed = meta.get("all_apps_completed", False)
+            apps_not_found = meta.get("apps_not_found_in_db", [])
+
+            # Skip agent execution if no apps to process
+            if app_count == 0:
+                if all_apps_completed:
+                    logger.info(
+                        f"[RETRY-FIX] All applications already have 6R decisions - "
+                        f"skipping agent execution for flow {assessment_flow_id}"
+                    )
+                    return {
+                        "success": True,
+                        "message": "All applications already have 6R recommendations",
+                        "skipped": True,
+                        "reason": "all_apps_completed",
+                        "phase": "recommendation_generation",
+                    }
+                elif apps_not_found:
+                    logger.error(
+                        f"[RETRY-FIX] Cannot retry: {len(apps_not_found)} selected apps "
+                        f"not found in canonical_applications table: {apps_not_found}"
+                    )
+                    return {
+                        "success": False,
+                        "error": f"Data integrity issue: {len(apps_not_found)} selected "
+                        f"applications not found in database",
+                        "apps_not_found": apps_not_found,
+                        "phase": "recommendation_generation",
+                    }
+                else:
+                    logger.warning(
+                        f"[RETRY-FIX] No applications to process for flow {assessment_flow_id}"
+                    )
+                    return {
+                        "success": False,
+                        "error": "No applications available for recommendation generation",
+                        "phase": "recommendation_generation",
+                    }
+
             # Create detailed application list for agent prompt
             app_list_text = "\n".join(
                 [
