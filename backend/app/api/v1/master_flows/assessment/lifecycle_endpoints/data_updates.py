@@ -193,7 +193,7 @@ async def update_architecture_standards_via_mfo(
 
 
 @router.put("/{flow_id}/assessment/phase-data")
-async def update_assessment_phase_data(
+async def update_assessment_phase_data(  # noqa: C901
     flow_id: str,
     phase_data: Dict[str, Any],
     db: AsyncSession = Depends(get_db),
@@ -317,10 +317,87 @@ async def update_assessment_phase_data(
                 }
             )
 
+        # Handle six_r_decision phase - User acceptance of AI-generated 6R recommendations
+        elif phase == "six_r_decision":
+            from app.models.assessment_flow import AssessmentFlow
+            from uuid import UUID
+
+            app_id = data.get("app_id")
+            decision = data.get("decision", {})
+
+            if not app_id:
+                raise HTTPException(
+                    status_code=400,
+                    detail="app_id is required for six_r_decision phase",
+                )
+
+            # Validate UUID format
+            try:
+                flow_uuid = UUID(flow_id)
+                app_uuid_str = str(UUID(app_id))  # Validate and normalize
+            except ValueError as uuid_err:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid UUID format: {str(uuid_err)}",
+                )
+
+            # Get current flow to update phase_results
+            stmt = select(AssessmentFlow).where(
+                AssessmentFlow.id == flow_uuid,
+                AssessmentFlow.client_account_id == UUID(client_account_id),
+                AssessmentFlow.engagement_id == UUID(engagement_id),
+            )
+            result = await db.execute(stmt)
+            flow = result.scalar_one_or_none()
+
+            if not flow:
+                raise HTTPException(status_code=404, detail="Assessment flow not found")
+
+            # Update phase_results with user acceptance
+            phase_results = flow.phase_results or {}
+
+            # Navigate to recommendation_generation results
+            rec_gen = phase_results.get("recommendation_generation", {})
+            rec_results = rec_gen.get("results", {})
+            inner_rec = rec_results.get("recommendation_generation", {})
+            applications = inner_rec.get("applications", [])
+
+            # Find and update the specific application's user_modifications
+            updated = False
+            for app in applications:
+                if str(app.get("application_id")) == app_uuid_str:
+                    # Merge user_modifications from decision
+                    app["user_modifications"] = decision.get("user_modifications", {})
+                    updated = True
+                    break
+
+            if updated:
+                # Write back the updated phase_results
+                flow.phase_results = phase_results
+                await db.commit()
+                logger.info(
+                    f"[six_r_decision] Updated user acceptance for app {app_id} in flow {flow_id}"
+                )
+
+            return sanitize_for_json(
+                {
+                    "flow_id": flow_id,
+                    "phase": phase,
+                    "app_id": app_id,
+                    "status": "updated" if updated else "not_found",
+                    "message": (
+                        f"6R decision accepted for application {app_id}"
+                        if updated
+                        else f"Application {app_id} not found in recommendations"
+                    ),
+                }
+            )
+
         else:
+            supported = "component_analysis, tech_debt_analysis, six_r_decision"
             raise HTTPException(
                 status_code=400,
-                detail=f"Unsupported phase: {phase}. Supported phases: component_analysis, tech_debt_analysis",
+                detail=f"Unsupported phase: {phase}. Supported phases: {supported}",
             )
 
     except HTTPException:

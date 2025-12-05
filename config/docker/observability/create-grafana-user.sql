@@ -7,6 +7,10 @@
 -- Generate password with: openssl rand -base64 32
 CREATE USER grafana_readonly WITH PASSWORD '<REPLACE_WITH_STRONG_PASSWORD>';
 
+-- CRITICAL: Allow user to bypass Row Level Security (RLS)
+-- Without this, RLS policies will filter out all data and dashboards show "No data"
+ALTER ROLE grafana_readonly BYPASSRLS;
+
 -- Grant database connection
 GRANT CONNECT ON DATABASE migration_db TO grafana_readonly;
 

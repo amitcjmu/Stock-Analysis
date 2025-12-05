@@ -32,3 +32,16 @@ export { AnalysisHistory } from './AnalysisHistory';
 
 // Assessment Flow ApplicationSelector (Issue #860 - replaces deprecated 6R selector)
 export { ApplicationSelector } from './ApplicationSelector';
+
+// Treatment Recommendations Display (Issue #719 - Treatment Display Polish)
+export { RecommendationCard } from './RecommendationCard';
+export type {
+  RecommendationCardProps,
+  SixRStrategyType,
+  EffortLevel,
+  CostRange,
+  AlternativeStrategy
+} from './RecommendationCard';
+export { SIX_R_STRATEGIES, EFFORT_LEVELS, COST_RANGES } from './RecommendationCard';
+export { TreatmentRecommendations } from './TreatmentRecommendations';
+export type { TreatmentRecommendationsProps, Recommendation } from './TreatmentRecommendations';

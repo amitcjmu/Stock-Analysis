@@ -1,8 +1,8 @@
 # Questionnaire Patterns Master
 
-**Last Updated**: 2025-11-30
-**Version**: 1.0
-**Consolidates**: 13 memories
+**Last Updated**: 2025-12-05
+**Version**: 1.1
+**Consolidates**: 14 memories
 **Status**: Active
 
 ---
@@ -14,7 +14,7 @@
 > 2. **Race Condition Fix**: Wait for `manual_collection` phase before polling questionnaires
 > 3. **Multi-Tenant Scoping**: Always scope by (client_account_id, engagement_id, asset_id)
 > 4. **Failed Retry Pattern**: UPDATE failed questionnaires instead of INSERT (avoids constraint violation)
-> 5. **Asset-Aware Generation**: Enforce asset selection before gap-based questionnaire generation
+> 5. **Bootstrap Field Transformation**: Normalize bootstrap fields to standard question format
 
 ---
 
@@ -213,6 +213,64 @@ if not selected_app_ids and not selected_asset_ids:
 
 ---
 
+### Pattern 6: Bootstrap Field Transformation (Added 2025-12-05)
+
+**Problem**: Bootstrap questionnaires use different field structure, causing infinite "Generating Questionnaire" hang.
+
+**Root Cause**: Bootstrap fields have `{id, name, type}` but frontend expects `{field_id, question_text, input_type}`.
+
+**Solution**: Transform bootstrap fields to standard question format in backend:
+
+```python
+def _transform_bootstrap_fields_to_questions(fields: List[dict]) -> List[dict]:
+    """Transform bootstrap questionnaire fields to standard question format.
+
+    Bootstrap questionnaires (asset_selection phase) use a different field structure:
+    - `id` instead of `field_id`
+    - `name` instead of `question_text`
+    - `type` instead of `input_type`
+    - `description` instead of `help_text`
+
+    Issue #1202/#1203 Fix: Without this transformation, the frontend's conversion fails
+    silently, leaving the UI in an infinite "Generating Questionnaire" state.
+    """
+    transformed = []
+    for field in fields:
+        transformed.append({
+            "field_id": field.get("id", ""),
+            "question_text": field.get("name", ""),
+            "input_type": field.get("type", "multiselect"),
+            "help_text": field.get("description", ""),
+            "required": field.get("required", True),
+            "options": field.get("options", []),
+            "category": "asset_selection",  # Ensure proper section grouping
+            "validation": field.get("validation", {}),
+        })
+    return transformed
+```
+
+**Usage**: Apply when returning bootstrap questionnaire responses:
+
+```python
+return [
+    AdaptiveQuestionnaireResponse(
+        id="bootstrap_asset_selection",
+        questions=_transform_bootstrap_fields_to_questions(
+            bootstrap_q.get("fields", [])
+        ),
+        # ... other fields
+    )
+]
+```
+
+**Key Files**:
+- `backend/app/api/v1/endpoints/collection_crud_questionnaires/queries.py`
+- `backend/app/services/collection/asset_selection_bootstrap.py`
+
+**Source**: Issue #1202/#1203 fix (2025-12-05)
+
+---
+
 ## Bug Fix Patterns
 
 ### Bug: "0/0 fields" Instead of Questionnaire Display (Issue #677)
@@ -255,6 +313,58 @@ if existing_questionnaires and flow.current_phase == "questionnaire_generation":
 ```
 
 **Source**: Consolidated from `issue-677-questionnaire-display-race-condition-fix`
+
+---
+
+### Bug: Infinite "Generating Questionnaire" Hang (Issues #1202, #1203)
+
+**Date Fixed**: December 2025
+**Symptoms**: UI shows "Generating Questionnaire" forever in asset_selection phase
+
+**Root Cause**: Bootstrap questionnaire field structure mismatch:
+- Bootstrap uses: `{id, name, type, description}`
+- Frontend expects: `{field_id, question_text, input_type, help_text}`
+
+**Why It Hangs**:
+1. Backend returns bootstrap fields without transformation
+2. Frontend's `convertQuestionnairesToFormData` fails silently
+3. Error caught but state not updated → `formData=null`
+4. Polling continues indefinitely (`!state.formData` stays true)
+5. UI stuck showing "Generating Questionnaire"
+
+**Backend Fix** - Transform bootstrap fields (see Pattern 6):
+```python
+questions=_transform_bootstrap_fields_to_questions(
+    bootstrap_q.get("fields", [])
+)
+```
+
+**Frontend Fix** - Don't silently swallow errors:
+```typescript
+} catch (error) {
+  console.error('Failed to convert questionnaire:', error);
+
+  // Update state with error to stop polling and show error UI
+  setState((prev) => ({
+    ...prev,
+    isLoading: false,
+    error: error instanceof Error ? error.message : 'Failed to process questionnaire',
+    questionnaires: questionnaires,
+  }));
+
+  toast({
+    title: "Questionnaire Error",
+    description: "Failed to process the questionnaire. Please try refreshing the page.",
+    variant: "destructive",
+  });
+}
+```
+
+**Key Files Changed**:
+- `backend/app/api/v1/endpoints/collection_crud_questionnaires/queries.py`
+- `src/hooks/collection/useAdaptiveFormFlow.ts`
+
+**Source**: Issues #1202, #1203 fix (2025-12-05)
 
 ---
 
@@ -336,6 +446,33 @@ collection_flow_id=flow.flow_id  # UUID
 **Right**:
 ```python
 collection_flow_id=str(flow.id)  # Integer PK
+```
+
+---
+
+### Don't: Silently Swallow Conversion Errors
+
+**Why it's bad**: Causes infinite polling loops with no error visibility.
+
+**Wrong**:
+```typescript
+} catch (error) {
+  console.error('Failed to convert questionnaire:', error);
+  // State never updated - polling continues forever
+}
+```
+
+**Right**:
+```typescript
+} catch (error) {
+  console.error('Failed to convert questionnaire:', error);
+  setState((prev) => ({
+    ...prev,
+    error: error.message,
+    isLoading: false,
+  }));
+  showErrorToast();
+}
 ```
 
 ---
@@ -443,6 +580,19 @@ SELECT current_phase, status FROM migration.collection_flows WHERE flow_id = 'xx
 
 ---
 
+### Issue: Infinite "Generating Questionnaire" hang
+
+**Diagnosis**:
+1. Check browser console for conversion errors
+2. Check flow phase: `SELECT current_phase FROM migration.collection_flows WHERE flow_id = 'xxx';`
+3. If phase = 'asset_selection', check bootstrap questionnaire structure
+
+**If bootstrap has wrong field names**: Apply `_transform_bootstrap_fields_to_questions()` fix.
+
+**If error silently caught**: Apply frontend error handling fix.
+
+---
+
 ### Issue: Duplicate questions in questionnaire
 
 **Diagnosis**:
@@ -494,6 +644,7 @@ HAVING COUNT(*) > 1;
 | `issue_980_questionnaire_wiring_complete_2025_11` | 2025-11 | Wiring complete |
 | `questionnaire_persistence_investigation_summary` | 2025-08 | Investigation |
 | `questionnaire_persistence_resolution_2025_08` | 2025-08 | Resolution |
+| Issues #1202, #1203 fix | 2025-12 | Bootstrap field transformation |
 
 **Archive Location**: `.serena/archive/questionnaire/`
 
@@ -504,9 +655,10 @@ HAVING COUNT(*) > 1;
 | Date | Change | Author |
 |------|--------|--------|
 | 2025-11-30 | Initial consolidation of 13 memories | Claude Code |
+| 2025-12-05 | Added Pattern 6 (Bootstrap Field Transformation) and Bug Fix for Issues #1202/#1203 | Claude Code |
 
 ---
 
 ## Search Keywords
 
-questionnaire, deduplication, adaptive_form, generation, persistence, race_condition, multi_tenant, asset_aware, phase_transition
+questionnaire, deduplication, adaptive_form, generation, persistence, race_condition, multi_tenant, asset_aware, phase_transition, bootstrap, field_transformation, silent_error

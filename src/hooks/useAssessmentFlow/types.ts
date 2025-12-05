@@ -78,6 +78,7 @@ export interface SixRDecision {
   move_group_hints: string[];
   user_modifications?: Record<string, string | number | boolean>;
   app_on_page_data?: Record<string, string | number | boolean>;
+  is_accepted?: boolean; // Issue #719 - User accepted recommendation, ready for planning
 }
 
 export interface AssessmentApplication {

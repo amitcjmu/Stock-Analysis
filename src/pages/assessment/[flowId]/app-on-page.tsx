@@ -1,12 +1,19 @@
 import React from 'react'
 import { useState } from 'react'
 import { useEffect } from 'react'
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { AssessmentFlowLayout } from '@/components/assessment/AssessmentFlowLayout';
-import { ApplicationSummaryCard } from '@/components/assessment/ApplicationSummaryCard';
+import { StartAssessmentModal } from '@/components/assessment/StartAssessmentModal';
+import { ApplicationSummaryCard } from '@/components/assessment/ApplicationSummaryCard'; // Only used for print mode multi-app summary
 import { ComponentBreakdownView } from '@/components/assessment/ComponentBreakdownView';
 import { TechDebtSummaryChart } from '@/components/assessment/TechDebtSummaryChart';
-import { SixRDecisionRationale } from '@/components/assessment/SixRDecisionRationale';
+// SixRDecisionRationale removed - replaced by RecommendationCard (Issue #719)
+import {
+  RecommendationCard,
+  type SixRStrategyType,
+  type EffortLevel,
+  type CostRange
+} from '@/components/assessment';
 import { ArchitectureExceptionsPanel } from '@/components/assessment/ArchitectureExceptionsPanel';
 import { DependencyVisualization } from '@/components/assessment/DependencyVisualization';
 import { BusinessImpactAssessment } from '@/components/assessment/BusinessImpactAssessment';
@@ -17,7 +24,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Save, FileText } from 'lucide-react'
+import { Save, FileText, XCircle, Plus } from 'lucide-react'
 import { AlertCircle, ArrowRight, Loader2, CheckCircle, Eye, Download } from 'lucide-react'
 import { cn } from '@/lib/utils';
 
@@ -30,13 +37,25 @@ const AppOnPagePage: React.FC = () => {
     finalizeAssessment,
     refreshApplicationData,
     toggleAutoPolling,
-    resumeFlow
+    resumeFlow,
+    updateSixRDecision
   } = useAssessmentFlow(flowId);
+
+  const navigate = useNavigate();
 
   const [selectedApp, setSelectedApp] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [printMode, setPrintMode] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [acceptedApps, setAcceptedApps] = useState<Set<string>>(new Set()); // Track locally accepted apps
+
+  // Data integrity error state (RETRY-FIX: apps_not_found scenario)
+  const [dataIntegrityError, setDataIntegrityError] = useState<{
+    hasError: boolean;
+    missingApps: string[];
+    errorMessage: string;
+  } | null>(null);
+  const [showNewAssessmentModal, setShowNewAssessmentModal] = useState(false);
 
   // Set first application as selected by default
   useEffect(() => {
@@ -44,6 +63,35 @@ const AppOnPagePage: React.FC = () => {
       setSelectedApp(state.selectedApplications[0].application_id);
     }
   }, [state.selectedApplications, selectedApp]);
+
+  // Issue #719: Detect data integrity issues on page load
+  // If selectedApplicationIds (what was selected) > selectedApplications (what exists), apps are missing
+  useEffect(() => {
+    if (!state.dataFetched || dataIntegrityError?.hasError) return;
+
+    const selectedCount = state.selectedApplicationIds.length;
+    const existingCount = state.selectedApplications.length;
+
+    // Only detect if there's a clear discrepancy AND we have failed apps (no 6R decisions)
+    if (selectedCount > 0 && existingCount > 0 && selectedCount > existingCount) {
+      // Find missing app IDs
+      const existingIds = new Set(state.selectedApplications.map(app => app.application_id));
+      const missingIds = state.selectedApplicationIds.filter(id => !existingIds.has(id));
+
+      if (missingIds.length > 0) {
+        console.warn(
+          `[Issue-719] Data integrity issue detected on page load: ` +
+          `${missingIds.length} of ${selectedCount} selected apps missing from database`
+        );
+        setDataIntegrityError({
+          hasError: true,
+          missingApps: missingIds,
+          errorMessage: `${missingIds.length} application(s) in this assessment no longer exist in the system. ` +
+            `This can happen when canonical applications are deleted after an assessment was created.`
+        });
+      }
+    }
+  }, [state.dataFetched, state.selectedApplicationIds, state.selectedApplications, dataIntegrityError?.hasError]);
 
   // Get current application data
   const currentAppDecision = selectedApp ? state.sixrDecisions[selectedApp] : null;
@@ -69,6 +117,8 @@ const AppOnPagePage: React.FC = () => {
 
   const handleRetryRecommendations = async (): Promise<void> => {
     setIsRetrying(true);
+    setDataIntegrityError(null); // Clear any previous error
+
     try {
       await resumeFlow({
         phase: 'recommendation_generation',
@@ -76,12 +126,87 @@ const AppOnPagePage: React.FC = () => {
       });
       // Refresh data after retry completes
       await refreshApplicationData();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to retry recommendation generation:', error);
+
+      // Qodo Bot: Robustly extract response payload and status across API clients
+      const resp = (error as { response?: { status?: number; data?: unknown; detail?: unknown } })?.response || {};
+      const status = resp?.status ?? (error as { status?: number })?.status;
+      const payload = resp?.data ?? resp?.detail ?? (error as { data?: unknown })?.data ?? resp ?? error;
+
+      const detail = payload?.detail ?? payload;
+      const errorMessage =
+        detail?.message ||
+        detail?.error ||
+        payload?.message ||
+        payload?.error ||
+        error?.message ||
+        'Unknown error';
+
+      // Prefer 409 status to classify data integrity error
+      const appsNotFound =
+        detail?.apps_not_found ??
+        payload?.apps_not_found ??
+        payload?.data?.apps_not_found ??
+        [];
+
+      if (
+        status === 409 &&
+        (appsNotFound.length > 0 || detail?.error === 'data_integrity_error')
+      ) {
+        setDataIntegrityError({
+          hasError: true,
+          missingApps: appsNotFound,
+          errorMessage:
+            detail?.message ||
+            `${appsNotFound.length} application(s) in this assessment no longer exist in the system. This can happen when canonical applications are deleted after an assessment was created.`,
+        });
+      } else if (
+        typeof errorMessage === 'string' &&
+        (errorMessage.includes('Data integrity') ||
+          errorMessage.includes('not found in database'))
+      ) {
+        // Fallback detection from error message
+        setDataIntegrityError({
+          hasError: true,
+          missingApps: [],
+          errorMessage:
+            'Some applications in this assessment no longer exist in the system. Please start a new assessment with valid applications.',
+        });
+      }
     } finally {
       setIsRetrying(false);
     }
   };
+
+  // Issue #719: Accept recommendation handler - marks app as ready for planning
+  const handleAcceptRecommendation = async (appId: string): Promise<void> => {
+    try {
+      // Update backend via updateSixRDecision
+      await updateSixRDecision(appId, { is_accepted: true });
+
+      // Update local state immediately for responsive UI
+      setAcceptedApps(prev => new Set([...prev, appId]));
+
+      // Show success feedback
+      const appName = state.selectedApplications.find(a => a.application_id === appId)?.application_name || appId;
+      console.log(`Recommendation accepted for: ${appName}`);
+    } catch (error) {
+      console.error('Failed to accept recommendation:', error);
+    }
+  };
+
+  // Helper to check if an app is accepted (either from backend or local state)
+  const isAppAccepted = (appId: string): boolean => {
+    return (
+      acceptedApps.has(appId) ||
+      state.appsReadyForPlanning.includes(appId) ||
+      state.sixrDecisions[appId]?.is_accepted === true
+    );
+  };
+
+  // Count of apps ready for planning
+  const appsReadyCount = state.selectedApplications.filter(app => isAppAccepted(app.application_id)).length;
 
   // CC FIX: Assessment is complete when ALL selected applications have 6R decisions
   // Previous logic compared counts, but sixrDecisions may contain MORE entries (22) than selectedApplications (2)
@@ -184,14 +309,23 @@ const AppOnPagePage: React.FC = () => {
 
           {/* Assessment Status */}
           <div className="flex flex-wrap items-center gap-3">
-            <Badge variant={assessmentComplete ? "default" : "secondary"} className="flex items-center space-x-1">
+            <Badge
+              variant={assessmentComplete ? "default" : dataIntegrityError?.hasError ? "destructive" : "secondary"}
+              className="flex items-center space-x-1"
+            >
               {assessmentComplete ? (
                 <CheckCircle className="h-3 w-3" />
+              ) : dataIntegrityError?.hasError ? (
+                <XCircle className="h-3 w-3" />
               ) : (
                 <Loader2 className="h-3 w-3 animate-spin" />
               )}
               <span>
-                {assessmentComplete ? 'Assessment Complete' : 'Assessment In Progress'}
+                {assessmentComplete
+                  ? 'Assessment Complete'
+                  : dataIntegrityError?.hasError
+                    ? 'Data Integrity Error'
+                    : 'Assessment In Progress'}
               </span>
             </Badge>
 
@@ -200,7 +334,7 @@ const AppOnPagePage: React.FC = () => {
             </Badge>
 
             <Badge variant="outline">
-              {state.appsReadyForPlanning.length} ready for planning
+              {appsReadyCount} ready for planning
             </Badge>
           </div>
         </div>
@@ -224,8 +358,52 @@ const AppOnPagePage: React.FC = () => {
           </div>
         )}
 
-        {/* Failed Recommendations Warning */}
-        {hasFailedApps && !isRetrying && (
+        {/* Data Integrity Error - RETRY-FIX: Apps no longer exist in database */}
+        {dataIntegrityError?.hasError && (
+          <div className="p-4 bg-red-50 border border-red-200 rounded-lg print:hidden">
+            <div className="flex items-start gap-4">
+              <XCircle className="h-6 w-6 text-red-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-red-900">
+                  Data Integrity Issue - Cannot Retry
+                </p>
+                <p className="text-sm text-red-700 mt-1">
+                  {dataIntegrityError.errorMessage}
+                </p>
+                {dataIntegrityError.missingApps.length > 0 && (
+                  <p className="text-xs text-red-600 mt-2 font-mono">
+                    Missing App IDs: {dataIntegrityError.missingApps.slice(0, 3).join(', ')}
+                    {dataIntegrityError.missingApps.length > 3 && ` ... and ${dataIntegrityError.missingApps.length - 3} more`}
+                  </p>
+                )}
+                <div className="mt-4 flex items-center gap-3">
+                  <Button
+                    onClick={() => setShowNewAssessmentModal(true)}
+                    className="bg-red-600 hover:bg-red-700 text-white"
+                    size="sm"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Start New Assessment
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate('/assess/overview')}
+                    className="border-red-300 text-red-700 hover:bg-red-100"
+                  >
+                    View All Assessments
+                  </Button>
+                </div>
+                <p className="text-xs text-red-600 mt-3">
+                  Tip: The new assessment flow validates applications before creation, preventing this issue.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Failed Recommendations Warning - Only show if no data integrity error */}
+        {hasFailedApps && !isRetrying && !dataIntegrityError?.hasError && (
           <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg print:hidden">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
@@ -274,14 +452,33 @@ const AppOnPagePage: React.FC = () => {
 
         {selectedApp && currentAppDecision && (
           <>
-            {/* Application Summary Card */}
-            <ApplicationSummaryCard
-              applicationId={selectedApp}
-              applicationName={state.selectedApplications.find(a => a.application_id === selectedApp)?.application_name}
-              decision={currentAppDecision}
-              components={currentAppComponents}
-              techDebt={currentAppTechDebt}
-              printMode={printMode}
+            {/* Enhanced 6R Recommendation Card - Above Tabs (Issue #719) */}
+            <RecommendationCard
+              application_id={selectedApp}
+              application_name={
+                state.selectedApplications.find(app => app.application_id === selectedApp)?.application_name || 'Application'
+              }
+              application_version={
+                state.selectedApplications.find(app => app.application_id === selectedApp)?.version
+              }
+              recommended_strategy={(currentAppDecision?.overall_strategy || 'retain') as SixRStrategyType}
+              confidence={currentAppDecision?.confidence_score || 0}
+              effort={currentAppDecision?.effort_estimate as EffortLevel | undefined}
+              cost_range={currentAppDecision?.cost_range as CostRange | undefined}
+              rationale={currentAppDecision?.rationale || 'No rationale provided'}
+              risk_factors={currentAppDecision?.risk_factors || []}
+              alternatives={currentAppDecision?.alternative_strategies?.map(alt => ({
+                strategy: alt.strategy as SixRStrategyType,
+                confidence: alt.confidence || 0,
+                effort: alt.effort_estimate as EffortLevel | undefined,
+                cost_range: alt.cost_range as CostRange | undefined
+              }))}
+              is_accepted={isAppAccepted(selectedApp)}
+              onAccept={handleAcceptRecommendation}
+              onRequestSME={(appId) => {
+                console.log('SME review requested for:', appId);
+                alert('SME review request submitted. You will be notified when feedback is available.');
+              }}
             />
 
             {/* Main Content Tabs */}
@@ -297,18 +494,12 @@ const AppOnPagePage: React.FC = () => {
               )}
 
               <TabsContent value="overview" className="space-y-6">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <SixRDecisionRationale
-                    decision={currentAppDecision}
-                    printMode={printMode}
-                  />
-
-                  <ArchitectureExceptionsPanel
-                    decision={currentAppDecision}
-                    standards={state.engagementStandards}
-                    printMode={printMode}
-                  />
-                </div>
+                {/* Architecture Exceptions Panel */}
+                <ArchitectureExceptionsPanel
+                  decision={currentAppDecision}
+                  standards={state.engagementStandards}
+                  printMode={printMode}
+                />
 
                 <TechDebtSummaryChart
                   techDebt={currentAppTechDebt}
@@ -352,9 +543,19 @@ const AppOnPagePage: React.FC = () => {
               {printMode && (
                 <div className="print:block hidden space-y-8">
                   <div className="page-break">
-                    <SixRDecisionRationale
-                      decision={currentAppDecision}
-                      printMode={printMode}
+                    {/* Print mode uses RecommendationCard for 6R strategy display (Issue #719) */}
+                    <RecommendationCard
+                      application_id={selectedApp}
+                      application_name={
+                        state.selectedApplications.find(app => app.application_id === selectedApp)?.application_name || 'Application'
+                      }
+                      recommended_strategy={(currentAppDecision?.overall_strategy || 'retain') as SixRStrategyType}
+                      confidence={currentAppDecision?.confidence_score || 0}
+                      effort={currentAppDecision?.effort_estimate as EffortLevel | undefined}
+                      cost_range={currentAppDecision?.cost_range as CostRange | undefined}
+                      rationale={currentAppDecision?.rationale || 'No rationale provided'}
+                      risk_factors={currentAppDecision?.risk_factors || []}
+                      is_accepted={isAppAccepted(selectedApp)}
                     />
                   </div>
 
@@ -459,6 +660,13 @@ const AppOnPagePage: React.FC = () => {
           .page-break:first-child { page-break-before: auto; }
         }
       `}</style>
+
+      {/* Start New Assessment Modal - RETRY-FIX: Shown when data integrity error prevents retry */}
+      <StartAssessmentModal
+        isOpen={showNewAssessmentModal}
+        onClose={() => setShowNewAssessmentModal(false)}
+        assessmentFlowId={flowId}
+      />
     </AssessmentFlowLayout>
   );
 };
