@@ -1,17 +1,20 @@
 import React from 'react'
-import { useState, useRef } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { useEffect } from 'react'
-import { MessageCircle } from 'lucide-react'
+import { MessageCircle, Lightbulb, HelpCircle, ChevronRight } from 'lucide-react'
 import { Send, X, Bot, User, Star, ThumbsUp } from 'lucide-react'
 import { apiCall, API_CONFIG } from '../../config/api';
 import { Markdown } from '../../utils/markdown';
 import { useAuth } from '../../contexts/AuthContext';
+import { usePageContext } from '../../hooks/usePageContext';
 
 interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: string;
+  suggested_actions?: string[];
+  related_help_topics?: string[];
 }
 
 interface ChatInterfaceProps {
@@ -21,16 +24,35 @@ interface ChatInterfaceProps {
   breadcrumbPath?: string;
 }
 
+interface ContextualChatResponse {
+  status: string;
+  response: string;
+  model_used: string;
+  timestamp: string;
+  context_used?: Record<string, unknown>;
+  suggested_actions?: string[];
+  related_help_topics?: string[];
+}
+
 const ChatInterface: React.FC<ChatInterfaceProps> = ({ isOpen, onClose, currentPage = 'Asset Inventory', breadcrumbPath }) => {
   const { user } = useAuth();
+  const { pageContext, flowState, breadcrumb, helpTopics, serializedContext } = usePageContext();
   const [activeTab, setActiveTab] = useState<'chat' | 'feedback'>('chat');
 
-  // Chat state
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: '1',
-      role: 'assistant',
-      content: `Hello! I'm your AI assistant for IT infrastructure migration. I can help you with:
+  // Get page-specific greeting based on context
+  const getInitialGreeting = useCallback((): string => {
+    if (pageContext) {
+      const flowGreetings: Record<string, string> = {
+        discovery: `Welcome to ${pageContext.page_name}! I can help you with data import, mapping, and quality analysis. What would you like to know?`,
+        collection: `You're on ${pageContext.page_name}. I can assist with questionnaires and data collection. How can I help?`,
+        assessment: `Welcome to ${pageContext.page_name}! I can explain 6R strategies and help with migration assessments. What do you need?`,
+        planning: `You're in ${pageContext.page_name}. I can help with wave planning and migration timelines. What's on your mind?`,
+        decommission: `Welcome to ${pageContext.page_name}! I can guide you through legacy system decommissioning. How can I assist?`,
+        finops: `You're viewing ${pageContext.page_name}. I can help with cloud costs and FinOps questions. What would you like to know?`,
+      };
+      return flowGreetings[pageContext.flow_type] || `You're on ${pageContext.page_name}. How can I help you today?`;
+    }
+    return `Hello! I'm your AI assistant for IT infrastructure migration. I can help you with:
 
 • Asset inventory analysis and migration planning
 • Application dependency mapping
@@ -38,8 +60,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ isOpen, onClose, currentP
 • Cloud cost estimation and optimization
 • Technical questions about your infrastructure
 
-How can I assist you with your migration today?`,
-      timestamp: new Date().toISOString()
+How can I assist you with your migration today?`;
+  }, [pageContext]);
+
+  // Chat state
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    {
+      id: '1',
+      role: 'assistant',
+      content: getInitialGreeting(),
+      timestamp: new Date().toISOString(),
+      suggested_actions: pageContext?.actions?.slice(0, 3) || [],
+      related_help_topics: helpTopics?.slice(0, 5) || []
     }
   ]);
   const [inputMessage, setInputMessage] = useState('');
@@ -52,6 +84,7 @@ How can I assist you with your migration today?`,
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const previousRouteRef = useRef<string | null>(null);
 
   const scrollToBottom = (): unknown => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -60,6 +93,25 @@ How can I assist you with your migration today?`,
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Update greeting when page context changes (route navigation)
+  useEffect(() => {
+    const currentRoute = pageContext?.route || window.location.pathname;
+
+    if (previousRouteRef.current && previousRouteRef.current !== currentRoute) {
+      // Route changed - update the initial greeting
+      setMessages([{
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: getInitialGreeting(),
+        timestamp: new Date().toISOString(),
+        suggested_actions: pageContext?.actions?.slice(0, 3) || [],
+        related_help_topics: helpTopics?.slice(0, 5) || []
+      }]);
+    }
+
+    previousRouteRef.current = currentRoute;
+  }, [pageContext, helpTopics, getInitialGreeting]);
 
   // Restrictive system prompt for Gemma chatbot
   const getRestrictiveSystemPrompt = (): unknown => {
@@ -117,26 +169,49 @@ If a question is outside these bounds, respond: "I'm specialized in IT migration
     setIsLoading(true);
 
     try {
-      const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.CHAT, {
+      // Use contextual chat endpoint with full page context
+      const response = await apiCall('/chat/contextual', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           message: inputMessage,
-          context: `User is currently on: ${currentPage}. Focus responses on migration and infrastructure topics only.`,
           conversation_history: messages.map(msg => ({
             role: msg.role,
             content: msg.content
-          }))
+          })),
+          page_context: pageContext ? {
+            page_name: pageContext.page_name,
+            route: pageContext.route,
+            flow_type: pageContext.flow_type,
+            description: pageContext.description,
+            features: pageContext.features,
+            actions: pageContext.actions,
+            help_topics: pageContext.help_topics,
+            workflow: pageContext.workflow,
+            faq: pageContext.faq,
+            tips: pageContext.tips
+          } : null,
+          flow_context: flowState ? {
+            flow_id: flowState.flow_id,
+            flow_type: flowState.flow_type,
+            current_phase: flowState.current_phase,
+            completion_percentage: flowState.completion_percentage,
+            status: flowState.status,
+            pending_actions: flowState.pending_actions
+          } : null,
+          breadcrumb: breadcrumb || breadcrumbPath
         })
-      });
+      }) as ContextualChatResponse;
 
       const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         content: response.response || 'I apologize, but I couldn\'t generate a response. Please try again with a migration or infrastructure-related question.',
-        timestamp: response.timestamp || new Date().toISOString()
+        timestamp: response.timestamp || new Date().toISOString(),
+        suggested_actions: response.suggested_actions || [],
+        related_help_topics: response.related_help_topics || []
       };
 
       setMessages(prev => [...prev, assistantMessage]);
@@ -216,7 +291,10 @@ If a question is outside these bounds, respond: "I'm specialized in IT migration
                   {activeTab === 'chat' ? 'AI Migration Assistant' : 'Submit Feedback'}
                 </h3>
                 <p className="text-sm text-gray-500">
-                  {activeTab === 'chat' ? 'Specialized in IT migration & infrastructure' : `For ${currentPage} page`}
+                  {activeTab === 'chat'
+                    ? (pageContext ? `Context: ${pageContext.page_name}` : 'Specialized in IT migration & infrastructure')
+                    : `For ${pageContext?.page_name || currentPage} page`
+                  }
                 </p>
               </div>
             </div>
@@ -289,6 +367,49 @@ If a question is outside these bounds, respond: "I'm specialized in IT migration
                           }`}>
                             {new Date(message.timestamp).toLocaleTimeString()}
                           </p>
+
+                          {/* Suggested Actions */}
+                          {message.role === 'assistant' && message.suggested_actions && message.suggested_actions.length > 0 && (
+                            <div className="mt-3 pt-2 border-t border-gray-200">
+                              <div className="flex items-center gap-1 text-xs text-gray-500 mb-1">
+                                <Lightbulb className="h-3 w-3" />
+                                <span>Suggested Actions:</span>
+                              </div>
+                              <div className="flex flex-wrap gap-1">
+                                {message.suggested_actions.slice(0, 3).map((action, idx) => (
+                                  <button
+                                    key={idx}
+                                    onClick={() => setInputMessage(`How do I ${action.toLowerCase()}?`)}
+                                    className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-blue-50 text-blue-700 rounded-full hover:bg-blue-100 transition-colors"
+                                  >
+                                    <ChevronRight className="h-3 w-3" />
+                                    {action}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Related Help Topics */}
+                          {message.role === 'assistant' && message.related_help_topics && message.related_help_topics.length > 0 && (
+                            <div className="mt-2">
+                              <div className="flex items-center gap-1 text-xs text-gray-500 mb-1">
+                                <HelpCircle className="h-3 w-3" />
+                                <span>Related Help:</span>
+                              </div>
+                              <div className="flex flex-wrap gap-1">
+                                {message.related_help_topics.slice(0, 3).map((topic, idx) => (
+                                  <button
+                                    key={idx}
+                                    onClick={() => setInputMessage(topic)}
+                                    className="inline-flex items-center px-2 py-1 text-xs bg-gray-50 text-gray-600 rounded-full hover:bg-gray-100 transition-colors"
+                                  >
+                                    {topic}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -318,7 +439,7 @@ If a question is outside these bounds, respond: "I'm specialized in IT migration
                     value={inputMessage}
                     onChange={(e) => setInputMessage(e.target.value)}
                     onKeyPress={handleKeyPress}
-                    placeholder="Ask about migration planning, asset analysis, or infrastructure..."
+                    placeholder={pageContext ? `Ask about ${pageContext.page_name.toLowerCase()}...` : "Ask about migration planning, asset analysis, or infrastructure..."}
                     className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                     rows={2}
                     disabled={isLoading}
@@ -352,7 +473,7 @@ If a question is outside these bounds, respond: "I'm specialized in IT migration
                   <div>
                     <h3 className="text-lg font-medium text-gray-900 mb-2">How was your experience?</h3>
                     <p className="text-sm text-gray-600 mb-4">
-                      Page: {currentPage} • Breadcrumb: {breadcrumbPath || window.location.pathname}
+                      Page: {pageContext?.page_name || currentPage} • {breadcrumb || breadcrumbPath || window.location.pathname}
                     </p>
 
                     {/* Rating */}
