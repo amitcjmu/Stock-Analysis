@@ -7,6 +7,12 @@ import { ApplicationSummaryCard } from '@/components/assessment/ApplicationSumma
 import { ComponentBreakdownView } from '@/components/assessment/ComponentBreakdownView';
 import { TechDebtSummaryChart } from '@/components/assessment/TechDebtSummaryChart';
 import { SixRDecisionRationale } from '@/components/assessment/SixRDecisionRationale';
+import {
+  RecommendationCard,
+  type SixRStrategyType,
+  type EffortLevel,
+  type CostRange
+} from '@/components/assessment';
 import { ArchitectureExceptionsPanel } from '@/components/assessment/ArchitectureExceptionsPanel';
 import { DependencyVisualization } from '@/components/assessment/DependencyVisualization';
 import { BusinessImpactAssessment } from '@/components/assessment/BusinessImpactAssessment';
@@ -297,7 +303,38 @@ const AppOnPagePage: React.FC = () => {
               )}
 
               <TabsContent value="overview" className="space-y-6">
+                {/* Enhanced 6R Recommendation Card (Issue #719 - Treatment Display Polish) */}
+                <RecommendationCard
+                  application_id={selectedApp}
+                  application_name={
+                    state.selectedApplications.find(app => app.application_id === selectedApp)?.application_name || 'Application'
+                  }
+                  application_version={
+                    state.selectedApplications.find(app => app.application_id === selectedApp)?.version
+                  }
+                  recommended_strategy={(currentAppDecision?.overall_strategy || 'retain') as SixRStrategyType}
+                  confidence={currentAppDecision?.confidence_score || 0}
+                  effort={currentAppDecision?.effort_estimate as EffortLevel | undefined}
+                  cost_range={currentAppDecision?.cost_range as CostRange | undefined}
+                  rationale={currentAppDecision?.rationale || 'No rationale provided'}
+                  risk_factors={currentAppDecision?.risk_factors || []}
+                  alternatives={currentAppDecision?.alternative_strategies?.map(alt => ({
+                    strategy: alt.strategy as SixRStrategyType,
+                    confidence: alt.confidence || 0,
+                    effort: alt.effort_estimate as EffortLevel | undefined,
+                    cost_range: alt.cost_range as CostRange | undefined
+                  }))}
+                  onAccept={(appId) => {
+                    console.log('Recommendation accepted for:', appId);
+                  }}
+                  onRequestSME={(appId) => {
+                    console.log('SME review requested for:', appId);
+                    alert('SME review request submitted. You will be notified when feedback is available.');
+                  }}
+                />
+
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Legacy 6R Decision Rationale - kept for backward compatibility */}
                   <SixRDecisionRationale
                     decision={currentAppDecision}
                     printMode={printMode}
