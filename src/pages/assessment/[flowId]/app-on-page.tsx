@@ -36,13 +36,15 @@ const AppOnPagePage: React.FC = () => {
     finalizeAssessment,
     refreshApplicationData,
     toggleAutoPolling,
-    resumeFlow
+    resumeFlow,
+    updateSixRDecision
   } = useAssessmentFlow(flowId);
 
   const [selectedApp, setSelectedApp] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [printMode, setPrintMode] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [acceptedApps, setAcceptedApps] = useState<Set<string>>(new Set()); // Track locally accepted apps
 
   // Set first application as selected by default
   useEffect(() => {
@@ -88,6 +90,35 @@ const AppOnPagePage: React.FC = () => {
       setIsRetrying(false);
     }
   };
+
+  // Issue #719: Accept recommendation handler - marks app as ready for planning
+  const handleAcceptRecommendation = async (appId: string): Promise<void> => {
+    try {
+      // Update backend via updateSixRDecision
+      await updateSixRDecision(appId, { is_accepted: true });
+
+      // Update local state immediately for responsive UI
+      setAcceptedApps(prev => new Set([...prev, appId]));
+
+      // Show success feedback
+      const appName = state.selectedApplications.find(a => a.application_id === appId)?.application_name || appId;
+      console.log(`Recommendation accepted for: ${appName}`);
+    } catch (error) {
+      console.error('Failed to accept recommendation:', error);
+    }
+  };
+
+  // Helper to check if an app is accepted (either from backend or local state)
+  const isAppAccepted = (appId: string): boolean => {
+    return (
+      acceptedApps.has(appId) ||
+      state.appsReadyForPlanning.includes(appId) ||
+      state.sixrDecisions[appId]?.is_accepted === true
+    );
+  };
+
+  // Count of apps ready for planning
+  const appsReadyCount = state.selectedApplications.filter(app => isAppAccepted(app.application_id)).length;
 
   // CC FIX: Assessment is complete when ALL selected applications have 6R decisions
   // Previous logic compared counts, but sixrDecisions may contain MORE entries (22) than selectedApplications (2)
@@ -206,7 +237,7 @@ const AppOnPagePage: React.FC = () => {
             </Badge>
 
             <Badge variant="outline">
-              {state.appsReadyForPlanning.length} ready for planning
+              {appsReadyCount} ready for planning
             </Badge>
           </div>
         </div>
@@ -301,11 +332,8 @@ const AppOnPagePage: React.FC = () => {
                 effort: alt.effort_estimate as EffortLevel | undefined,
                 cost_range: alt.cost_range as CostRange | undefined
               }))}
-              is_accepted={state.appsReadyForPlanning.includes(selectedApp)}
-              onAccept={(appId) => {
-                console.log('Recommendation accepted for:', appId);
-                // TODO: Implement accept logic via Assessment Flow API
-              }}
+              is_accepted={isAppAccepted(selectedApp)}
+              onAccept={handleAcceptRecommendation}
               onRequestSME={(appId) => {
                 console.log('SME review requested for:', appId);
                 alert('SME review request submitted. You will be notified when feedback is available.');
@@ -386,7 +414,7 @@ const AppOnPagePage: React.FC = () => {
                       cost_range={currentAppDecision?.cost_range as CostRange | undefined}
                       rationale={currentAppDecision?.rationale || 'No rationale provided'}
                       risk_factors={currentAppDecision?.risk_factors || []}
-                      is_accepted={state.appsReadyForPlanning.includes(selectedApp)}
+                      is_accepted={isAppAccepted(selectedApp)}
                     />
                   </div>
 
