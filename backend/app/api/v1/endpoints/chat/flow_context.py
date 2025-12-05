@@ -6,10 +6,10 @@ Milestone: Contextual AI Chat Assistant
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,6 +20,10 @@ from app.core.database import get_db
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+# Valid flow types for API validation
+VALID_FLOW_TYPES = {"discovery", "collection", "assessment", "decommission", "planning"}
+FlowType = Literal["discovery", "collection", "assessment", "decommission", "planning"]
 
 
 class FlowContextResponse(BaseModel):
@@ -60,7 +64,12 @@ async def get_flow_context_for_chat(
     Milestone: Contextual AI Chat Assistant
     """
     try:
-        logger.info(f"Getting flow context for chat: {flow_type}/{flow_id}")
+        # Validate flow_type against allowed values
+        if flow_type not in VALID_FLOW_TYPES:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid flow type. Allowed: {', '.join(sorted(VALID_FLOW_TYPES))}",
+            )
 
         # Validate flow_id is a valid UUID
         try:
@@ -73,6 +82,8 @@ async def get_flow_context_for_chat(
                 pending_actions=["Provide a valid flow ID"],
             )
 
+        logger.info(f"Getting flow context for chat: {flow_type}/{flow_uuid}")
+
         # Get flow context based on flow type
         flow_context = await _get_flow_context_by_type(
             flow_type=flow_type,
@@ -84,13 +95,16 @@ async def get_flow_context_for_chat(
 
         return FlowContextResponse(**flow_context)
 
+    except HTTPException:
+        raise  # Re-raise HTTPExceptions as-is
     except Exception as e:
         logger.error(f"Error getting flow context: {e}")
+        # Don't expose internal error details to users
         return FlowContextResponse(
             flow_id=flow_id,
             flow_type=flow_type,
             status="error",
-            pending_actions=[f"Error fetching flow state: {str(e)}"],
+            pending_actions=["Unable to fetch flow state. Please try again."],
         )
 
 
@@ -157,6 +171,7 @@ async def _get_discovery_flow_context(
     """Get discovery flow context."""
     from app.models.discovery_flow import DiscoveryFlow
 
+    # Note: DiscoveryFlow.flow_id is stored as string in DB, convert UUID for comparison
     query = select(DiscoveryFlow).where(
         DiscoveryFlow.flow_id == str(flow_id),
         DiscoveryFlow.client_account_id == client_account_id,
