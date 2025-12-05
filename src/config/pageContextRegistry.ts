@@ -485,6 +485,45 @@ export const PAGE_CONTEXT_REGISTRY: Record<string, PageContext> = {
     related_docs: ['/docs/e2e-flows/02_Collection/00_Collection_Flow_Complete_Guide.md'],
   },
 
+  '/collection/overview': {
+    page_name: 'Data Collection',
+    route: '/collection/overview',
+    route_pattern: '/collection/overview',
+    flow_type: 'collection',
+    description: 'Overview of data collection activities. Collect additional application details through questionnaires and forms.',
+    features: [
+      'Collection flow dashboard',
+      'View collection progress',
+      'Track questionnaire completion',
+      'Manage collection flows',
+      'Start new collection',
+    ],
+    actions: [
+      'Create new collection flow',
+      'Resume existing flow',
+      'View completed collections',
+      'Export collection data',
+    ],
+    help_topics: ['collection flow', 'questionnaires', 'data collection', 'adaptive forms'],
+    workflow: {
+      phase: 'Overview',
+      step: 0,
+      totalSteps: 5,
+      nextStep: 'Application Selection',
+    },
+    faq: [
+      {
+        question: 'What is the Collection phase?',
+        answer: 'Collection gathers additional business and technical details about applications that aren\'t in your CMDB, using adaptive questionnaires.',
+      },
+      {
+        question: 'How do I start a collection?',
+        answer: 'Click "New Collection" to select applications from your inventory that need additional data collection.',
+      },
+    ],
+    related_docs: ['/docs/e2e-flows/02_Collection/00_Collection_Flow_Complete_Guide.md'],
+  },
+
   '/collection/adaptive-forms': {
     page_name: 'Adaptive Forms',
     route: '/collection/adaptive-forms',
@@ -617,6 +656,38 @@ export const PAGE_CONTEXT_REGISTRY: Record<string, PageContext> = {
       {
         question: 'How do I see who hasn\'t completed their questionnaires?',
         answer: 'Filter by "Incomplete" status to see pending items and their assigned owners.',
+      },
+    ],
+    related_docs: ['/docs/e2e-flows/02_Collection/01_Overview_Page.md'],
+  },
+
+  '/collection/data-integration': {
+    page_name: 'Data Integration',
+    route: '/collection/data-integration',
+    route_pattern: '/collection/data-integration',
+    flow_type: 'collection',
+    description: 'Configure and manage data integrations for automated data collection from external systems.',
+    features: [
+      'Configure integrations',
+      'Connect to external systems',
+      'Automated data sync',
+      'Integration health monitoring',
+    ],
+    actions: [
+      'Add new integration',
+      'Configure connection settings',
+      'Test integration',
+      'View sync status',
+    ],
+    help_topics: ['data integration', 'automated collection', 'external systems', 'API connections'],
+    faq: [
+      {
+        question: 'What data sources can I integrate?',
+        answer: 'You can integrate with various CMDBs, cloud providers, and enterprise tools to automatically collect infrastructure data.',
+      },
+      {
+        question: 'How do I test an integration?',
+        answer: 'Use the "Test Connection" button to verify the integration settings before enabling automated sync.',
       },
     ],
     related_docs: ['/docs/e2e-flows/02_Collection/01_Overview_Page.md'],
