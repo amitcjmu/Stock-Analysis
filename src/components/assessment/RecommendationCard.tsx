@@ -22,8 +22,60 @@ import {
 import { cn } from '@/lib/utils';
 
 /**
+ * Style mapping for semantic colors
+ * Separates presentation from data for better maintainability
+ */
+const STRATEGY_STYLES = {
+  blue: {
+    bgColor: 'bg-blue-50',
+    borderColor: 'border-blue-200',
+    textColor: 'text-blue-700',
+    badgeColor: 'bg-blue-100 text-blue-800 border-blue-300',
+    iconBg: 'bg-blue-100'
+  },
+  purple: {
+    bgColor: 'bg-purple-50',
+    borderColor: 'border-purple-200',
+    textColor: 'text-purple-700',
+    badgeColor: 'bg-purple-100 text-purple-800 border-purple-300',
+    iconBg: 'bg-purple-100'
+  },
+  green: {
+    bgColor: 'bg-green-50',
+    borderColor: 'border-green-200',
+    textColor: 'text-green-700',
+    badgeColor: 'bg-green-100 text-green-800 border-green-300',
+    iconBg: 'bg-green-100'
+  },
+  amber: {
+    bgColor: 'bg-amber-50',
+    borderColor: 'border-amber-200',
+    textColor: 'text-amber-700',
+    badgeColor: 'bg-amber-100 text-amber-800 border-amber-300',
+    iconBg: 'bg-amber-100'
+  },
+  red: {
+    bgColor: 'bg-red-50',
+    borderColor: 'border-red-200',
+    textColor: 'text-red-700',
+    badgeColor: 'bg-red-100 text-red-800 border-red-300',
+    iconBg: 'bg-red-100'
+  },
+  gray: {
+    bgColor: 'bg-gray-50',
+    borderColor: 'border-gray-200',
+    textColor: 'text-gray-700',
+    badgeColor: 'bg-gray-100 text-gray-800 border-gray-300',
+    iconBg: 'bg-gray-100'
+  }
+} as const;
+
+type StrategyColor = keyof typeof STRATEGY_STYLES;
+
+/**
  * 6R Strategy Configuration
- * Each strategy has an icon, color scheme, and description
+ * Each strategy has an icon, semantic color, and description
+ * UI styles are derived from STRATEGY_STYLES mapping
  */
 export const SIX_R_STRATEGIES = {
   rehost: {
@@ -32,12 +84,7 @@ export const SIX_R_STRATEGIES = {
     shortLabel: 'Lift & Shift',
     description: 'Move to cloud without changes',
     icon: Home,
-    color: 'blue',
-    bgColor: 'bg-blue-50',
-    borderColor: 'border-blue-200',
-    textColor: 'text-blue-700',
-    badgeColor: 'bg-blue-100 text-blue-800 border-blue-300',
-    iconBg: 'bg-blue-100'
+    color: 'blue' as StrategyColor
   },
   replatform: {
     value: 'replatform',
@@ -45,12 +92,7 @@ export const SIX_R_STRATEGIES = {
     shortLabel: 'Lift-Tinker-Shift',
     description: 'Minor optimizations for cloud',
     icon: RefreshCw,
-    color: 'purple',
-    bgColor: 'bg-purple-50',
-    borderColor: 'border-purple-200',
-    textColor: 'text-purple-700',
-    badgeColor: 'bg-purple-100 text-purple-800 border-purple-300',
-    iconBg: 'bg-purple-100'
+    color: 'purple' as StrategyColor
   },
   refactor: {
     value: 'refactor',
@@ -58,12 +100,7 @@ export const SIX_R_STRATEGIES = {
     shortLabel: 'Cloud-Native',
     description: 'Significant code changes for cloud-native',
     icon: Wrench,
-    color: 'green',
-    bgColor: 'bg-green-50',
-    borderColor: 'border-green-200',
-    textColor: 'text-green-700',
-    badgeColor: 'bg-green-100 text-green-800 border-green-300',
-    iconBg: 'bg-green-100'
+    color: 'green' as StrategyColor
   },
   repurchase: {
     value: 'repurchase',
@@ -71,12 +108,7 @@ export const SIX_R_STRATEGIES = {
     shortLabel: 'SaaS',
     description: 'Replace with SaaS solution',
     icon: ShoppingCart,
-    color: 'amber',
-    bgColor: 'bg-amber-50',
-    borderColor: 'border-amber-200',
-    textColor: 'text-amber-700',
-    badgeColor: 'bg-amber-100 text-amber-800 border-amber-300',
-    iconBg: 'bg-amber-100'
+    color: 'amber' as StrategyColor
   },
   retire: {
     value: 'retire',
@@ -84,12 +116,7 @@ export const SIX_R_STRATEGIES = {
     shortLabel: 'Decommission',
     description: 'Decommission the application',
     icon: Trash2,
-    color: 'red',
-    bgColor: 'bg-red-50',
-    borderColor: 'border-red-200',
-    textColor: 'text-red-700',
-    badgeColor: 'bg-red-100 text-red-800 border-red-300',
-    iconBg: 'bg-red-100'
+    color: 'red' as StrategyColor
   },
   retain: {
     value: 'retain',
@@ -97,14 +124,14 @@ export const SIX_R_STRATEGIES = {
     shortLabel: 'Keep On-Prem',
     description: 'Keep on-premises for now',
     icon: Package,
-    color: 'gray',
-    bgColor: 'bg-gray-50',
-    borderColor: 'border-gray-200',
-    textColor: 'text-gray-700',
-    badgeColor: 'bg-gray-100 text-gray-800 border-gray-300',
-    iconBg: 'bg-gray-100'
+    color: 'gray' as StrategyColor
   }
 } as const;
+
+/**
+ * Helper to get styles for a strategy
+ */
+const getStrategyStyles = (color: StrategyColor) => STRATEGY_STYLES[color];
 
 export type SixRStrategyType = keyof typeof SIX_R_STRATEGIES;
 
@@ -208,6 +235,7 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
   className
 }) => {
   const strategyConfig = SIX_R_STRATEGIES[recommended_strategy] || SIX_R_STRATEGIES.retain;
+  const strategyStyles = getStrategyStyles(strategyConfig.color);
   const StrategyIcon = strategyConfig.icon;
   const confidenceInfo = getConfidenceLevel(confidence);
   const effortConfig = effort ? EFFORT_LEVELS[effort] : null;
@@ -217,11 +245,11 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
   return (
     <Card className={cn(
       'transition-all duration-200 hover:shadow-md',
-      strategyConfig.borderColor,
+      strategyStyles.borderColor,
       is_accepted && 'ring-2 ring-green-500 ring-opacity-50',
       className
     )}>
-      <CardHeader className={cn('pb-3', strategyConfig.bgColor)}>
+      <CardHeader className={cn('pb-3', strategyStyles.bgColor)}>
         <div className="flex items-start justify-between gap-4">
           {/* Application Info */}
           <div className="flex-1 min-w-0">
@@ -236,10 +264,10 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
           {/* Strategy Badge */}
           <div className={cn(
             'flex items-center gap-2 px-3 py-2 rounded-lg border',
-            strategyConfig.badgeColor
+            strategyStyles.badgeColor
           )}>
-            <div className={cn('p-1.5 rounded-full', strategyConfig.iconBg)}>
-              <StrategyIcon className={cn('h-5 w-5', strategyConfig.textColor)} />
+            <div className={cn('p-1.5 rounded-full', strategyStyles.iconBg)}>
+              <StrategyIcon className={cn('h-5 w-5', strategyStyles.textColor)} />
             </div>
             <div className="text-right">
               <div className="font-semibold text-sm">{strategyConfig.label}</div>
@@ -359,24 +387,25 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
 
             {is_expanded && (
               <div className="mt-3 space-y-2">
-                {alternatives.map((alt, idx) => {
+                {alternatives.map((alt) => {
                   const altConfig = SIX_R_STRATEGIES[alt.strategy] || SIX_R_STRATEGIES.retain;
+                  const altStyles = getStrategyStyles(altConfig.color);
                   const AltIcon = altConfig.icon;
                   const altEffort = alt.effort ? EFFORT_LEVELS[alt.effort] : null;
                   const altCost = alt.cost_range ? COST_RANGES[alt.cost_range] : null;
 
                   return (
                     <div
-                      key={idx}
+                      key={alt.strategy}
                       className={cn(
                         'flex items-center justify-between p-2 rounded-lg border',
-                        altConfig.bgColor,
-                        altConfig.borderColor
+                        altStyles.bgColor,
+                        altStyles.borderColor
                       )}
                     >
                       <div className="flex items-center gap-2">
-                        <AltIcon className={cn('h-4 w-4', altConfig.textColor)} />
-                        <span className={cn('font-medium text-sm', altConfig.textColor)}>
+                        <AltIcon className={cn('h-4 w-4', altStyles.textColor)} />
+                        <span className={cn('font-medium text-sm', altStyles.textColor)}>
                           {altConfig.label}
                         </span>
                         <Badge variant="outline" className="text-xs">
