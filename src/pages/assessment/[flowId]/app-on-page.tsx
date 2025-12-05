@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useEffect } from 'react'
 import { useParams } from 'react-router-dom';
 import { AssessmentFlowLayout } from '@/components/assessment/AssessmentFlowLayout';
-import { ApplicationSummaryCard } from '@/components/assessment/ApplicationSummaryCard';
+import { ApplicationSummaryCard } from '@/components/assessment/ApplicationSummaryCard'; // Only used for print mode multi-app summary
 import { ComponentBreakdownView } from '@/components/assessment/ComponentBreakdownView';
 import { TechDebtSummaryChart } from '@/components/assessment/TechDebtSummaryChart';
 // SixRDecisionRationale removed - replaced by RecommendationCard (Issue #719)
@@ -280,14 +280,36 @@ const AppOnPagePage: React.FC = () => {
 
         {selectedApp && currentAppDecision && (
           <>
-            {/* Application Summary Card */}
-            <ApplicationSummaryCard
-              applicationId={selectedApp}
-              applicationName={state.selectedApplications.find(a => a.application_id === selectedApp)?.application_name}
-              decision={currentAppDecision}
-              components={currentAppComponents}
-              techDebt={currentAppTechDebt}
-              printMode={printMode}
+            {/* Enhanced 6R Recommendation Card - Above Tabs (Issue #719) */}
+            <RecommendationCard
+              application_id={selectedApp}
+              application_name={
+                state.selectedApplications.find(app => app.application_id === selectedApp)?.application_name || 'Application'
+              }
+              application_version={
+                state.selectedApplications.find(app => app.application_id === selectedApp)?.version
+              }
+              recommended_strategy={(currentAppDecision?.overall_strategy || 'retain') as SixRStrategyType}
+              confidence={currentAppDecision?.confidence_score || 0}
+              effort={currentAppDecision?.effort_estimate as EffortLevel | undefined}
+              cost_range={currentAppDecision?.cost_range as CostRange | undefined}
+              rationale={currentAppDecision?.rationale || 'No rationale provided'}
+              risk_factors={currentAppDecision?.risk_factors || []}
+              alternatives={currentAppDecision?.alternative_strategies?.map(alt => ({
+                strategy: alt.strategy as SixRStrategyType,
+                confidence: alt.confidence || 0,
+                effort: alt.effort_estimate as EffortLevel | undefined,
+                cost_range: alt.cost_range as CostRange | undefined
+              }))}
+              is_accepted={state.appsReadyForPlanning.includes(selectedApp)}
+              onAccept={(appId) => {
+                console.log('Recommendation accepted for:', appId);
+                // TODO: Implement accept logic via Assessment Flow API
+              }}
+              onRequestSME={(appId) => {
+                console.log('SME review requested for:', appId);
+                alert('SME review request submitted. You will be notified when feedback is available.');
+              }}
             />
 
             {/* Main Content Tabs */}
@@ -303,39 +325,7 @@ const AppOnPagePage: React.FC = () => {
               )}
 
               <TabsContent value="overview" className="space-y-6">
-                {/* Enhanced 6R Recommendation Card (Issue #719 - Treatment Display Polish) */}
-                <RecommendationCard
-                  application_id={selectedApp}
-                  application_name={
-                    state.selectedApplications.find(app => app.application_id === selectedApp)?.application_name || 'Application'
-                  }
-                  application_version={
-                    state.selectedApplications.find(app => app.application_id === selectedApp)?.version
-                  }
-                  recommended_strategy={(currentAppDecision?.overall_strategy || 'retain') as SixRStrategyType}
-                  confidence={currentAppDecision?.confidence_score || 0}
-                  effort={currentAppDecision?.effort_estimate as EffortLevel | undefined}
-                  cost_range={currentAppDecision?.cost_range as CostRange | undefined}
-                  rationale={currentAppDecision?.rationale || 'No rationale provided'}
-                  risk_factors={currentAppDecision?.risk_factors || []}
-                  alternatives={currentAppDecision?.alternative_strategies?.map(alt => ({
-                    strategy: alt.strategy as SixRStrategyType,
-                    confidence: alt.confidence || 0,
-                    effort: alt.effort_estimate as EffortLevel | undefined,
-                    cost_range: alt.cost_range as CostRange | undefined
-                  }))}
-                  is_accepted={state.appsReadyForPlanning.includes(selectedApp)}
-                  onAccept={(appId) => {
-                    console.log('Recommendation accepted for:', appId);
-                    // TODO: Implement accept logic via Assessment Flow API
-                  }}
-                  onRequestSME={(appId) => {
-                    console.log('SME review requested for:', appId);
-                    alert('SME review request submitted. You will be notified when feedback is available.');
-                  }}
-                />
-
-                {/* Architecture Exceptions - full width now that SixRDecisionRationale is removed */}
+                {/* Architecture Exceptions Panel */}
                 <ArchitectureExceptionsPanel
                   decision={currentAppDecision}
                   standards={state.engagementStandards}
