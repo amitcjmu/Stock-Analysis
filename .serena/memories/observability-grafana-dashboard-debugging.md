@@ -53,70 +53,62 @@ sudo docker exec migration_postgres psql -U grafana_readonly -d migration_db -c 
 sudo docker exec migration_postgres psql -U postgres -d migration_db -c "ALTER ROLE grafana_readonly BYPASSRLS;"
 ```
 
-**Deployment Note**: Include in PostgreSQL user setup for all environments:
-```sql
-CREATE USER grafana_readonly WITH PASSWORD '<password>';
-GRANT USAGE ON SCHEMA migration TO grafana_readonly;
-GRANT SELECT ON ALL TABLES IN SCHEMA migration TO grafana_readonly;
-ALTER ROLE grafana_readonly BYPASSRLS;  -- CRITICAL!
-```
+**IMPORTANT**: BYPASSRLS is NOT persistent across container restarts. Must be reapplied after PostgreSQL container restarts.
 
 ---
 
-## Problem: PostgreSQL Password Empty in Grafana Container (Added 2025-12-04)
+## CRITICAL: "origin not allowed" 403 Error (Added 2025-12-04)
 
-**Symptom**: Grafana cannot connect to PostgreSQL datasource. `POSTGRES_GRAFANA_PASSWORD` environment variable is empty inside container.
+**Symptom**: Grafana shows "origin not allowed" with 403 status. Dashboards fail to load data.
 
-**Root Cause**: Docker Compose doesn't automatically load `.env.observability` file.
+**Root Cause**: Docker Compose variable substitution happens at PARSE TIME, not runtime.
+
+The docker-compose.observability.yml has:
+```yaml
+environment:
+  - GF_SERVER_ROOT_URL=${GF_SERVER_ROOT_URL:-http://localhost:9999}
+  - GF_SERVER_DOMAIN=${GF_SERVER_DOMAIN:-localhost}
+```
+
+The `${VAR:-default}` syntax uses shell environment variables at docker-compose parse time. Even with `env_file:` directive, those variables are only loaded INTO the container, NOT available for docker-compose substitution.
 
 **Verification**:
 ```bash
-docker exec migration_grafana printenv POSTGRES_GRAFANA_PASSWORD
-# If empty, env file not loaded
+# Check container env (will show WRONG values)
+sudo docker exec migration_grafana printenv | grep GF_SERVER
+# Shows: GF_SERVER_ROOT_URL=http://localhost:9999 (WRONG!)
+# Shows: GF_SERVER_DOMAIN=localhost (WRONG!)
+
+# Check .env.observability file (has CORRECT values)
+cat .env.observability | grep GF_SERVER
+# Shows: GF_SERVER_ROOT_URL=https://aiforceassessgrafana.cloudsmarthcl.com/
+# Shows: GF_SERVER_DOMAIN=aiforceassessgrafana.cloudsmarthcl.com
 ```
 
-**Fix**: Add `env_file` directive to `docker-compose.observability.yml`:
-```yaml
-services:
-  grafana:
-    image: grafana/grafana:10.2.0
-    env_file:
-      - .env.observability   # <-- Add this
-    # ... rest of config
-```
-
-**Apply to all observability services**: grafana, loki, tempo, prometheus
-
-**Alternative Fix** (runtime, doesn't persist):
+**Fix**: Use `--env-file` flag to load variables for docker-compose substitution:
 ```bash
-sudo docker-compose -f docker-compose.observability.yml --env-file .env.observability up -d grafana
+cd ~/AIForce-Assess/config/docker
+sudo docker compose --env-file .env.observability -f docker-compose.observability.yml up -d --force-recreate grafana
+```
+
+**After Fix - Verify**:
+```bash
+sudo docker exec migration_grafana printenv | grep GF_SERVER
+# Should show:
+# GF_SERVER_ROOT_URL=https://aiforceassessgrafana.cloudsmarthcl.com/
+# GF_SERVER_DOMAIN=aiforceassessgrafana.cloudsmarthcl.com
 ```
 
 ---
 
-## Problem: PostgreSQL GROUP BY SQL Errors (Added 2025-12-04)
+## Problem: PostgreSQL GROUP BY SQL Errors
 
 **Symptom**: Dashboard panel shows SQL error: `column "X" must appear in the GROUP BY clause or be used in an aggregate function`
 
-**Root Cause**: PostgreSQL requires ALL non-aggregated columns in SELECT to be in GROUP BY clause. Dashboard JSON queries often miss columns.
-
-**Example Error**:
-```
-column "agent_performance_daily.agent_name" must appear in the GROUP BY clause
-```
+**Root Cause**: PostgreSQL requires ALL non-aggregated columns in SELECT to be in GROUP BY clause.
 
 **Fix Pattern**:
 ```sql
--- WRONG - agent_name selected but not grouped
-SELECT
-  date_trunc('hour', created_at) AS time,
-  agent_name,
-  AVG(avg_duration_seconds) AS duration_sec
-FROM migration.agent_performance_daily
-WHERE $__timeFilter(created_at)
-GROUP BY 1    -- Only groups by time
-ORDER BY 1;
-
 -- CORRECT - all non-aggregated columns in GROUP BY
 SELECT
   date_trunc('hour', created_at) AS time,
@@ -128,130 +120,65 @@ GROUP BY 1, agent_name    -- Groups by time AND agent_name
 ORDER BY 1;
 ```
 
-**Dashboard Files to Check**: `agent-health.json`, `agent-activity.json`
+---
+
+## CORRECT Observability Stack Startup Procedure (Azure)
+
+### Complete Startup Command
+```bash
+cd ~/AIForce-Assess/config/docker
+
+# Start ALL observability services with correct env file
+sudo docker compose --env-file .env.observability -f docker-compose.observability.yml up -d
+
+# Apply BYPASSRLS (required after every PostgreSQL restart)
+sudo docker exec migration_postgres psql -U postgres -d migration_db -c "ALTER ROLE grafana_readonly BYPASSRLS;"
+
+# Verify Grafana environment
+sudo docker exec migration_grafana printenv | grep GF_SERVER
+# Should show Azure domain, NOT localhost
+```
+
+### Why --env-file is REQUIRED
+
+1. `env_file:` in docker-compose.yml → loads vars INTO container (runtime)
+2. `${VAR:-default}` in environment section → needs vars at PARSE TIME
+3. `--env-file` flag → loads vars for docker-compose substitution (parse time)
+
+Without `--env-file`, Grafana gets `localhost` defaults instead of Azure domain values.
+
+### After Restart Checklist
+1. [ ] Start observability stack with `--env-file` flag
+2. [ ] Apply BYPASSRLS to grafana_readonly user
+3. [ ] Verify GF_SERVER_* env vars are correct (not localhost)
+4. [ ] Test dashboard loads with data
 
 ---
 
-## Problem: Negative Flow Durations in Metrics
+## Available Grafana Dashboards (Updated 2025-12-05)
 
-**Symptom**: `updated_at` timestamp BEFORE `created_at` causing impossible negative durations.
+| Dashboard | UID | Description |
+|-----------|-----|-------------|
+| **LLM Usage Costs** | `llm-costs` | Cost by model/provider, total cost gauge, top expensive calls |
+| **MFO Flow Lifecycle** | `mfo-flows` | Master flows by status, child phase progression, flow creation rate |
+| **Agent Health** | `agent-health` | Agent performance summary, task execution, success rates |
+| **Agent Activity** | `agent-activity` | Agent calls over time, token usage, response times |
+| **Agent Task History** | `agent-task-history` | **NEW** - Detailed per-task execution, agent breakdown within flows |
+| **Feature Usage Analytics** | `feature-usage` | **NEW** - Feature usage over time, flow type distribution |
+| **Distributed Tracing** | `distributed-tracing` | **NEW** - Tempo traces, service graph, latency analysis |
+| **System Alerts & Health** | `system-alerts` | **NEW** - Health metrics with thresholds, alert status |
+| **CrewAI Flow Execution** | `crewai-flows` | Flows by type, tokens per flow type |
+| **App Logs Enhanced** | `app-logs-enhanced` | Loki-based logs with agent decisions, errors, phase transitions |
+| **App Logs** | `app-logs` | Basic container log view |
 
-**Root Cause**: Child entity creation copying parent's old timestamps:
-```python
-# WRONG - Copies old timestamps from parent
-child_flow = ChildFlow(
-    created_at=parent_flow.created_at,  # Old time
-    updated_at=parent_flow.updated_at   # Even older!
-)
-```
+### Dashboard Data Sources
 
-**Fix - Let SQLAlchemy Defaults Work**:
-```python
-# CORRECT - Omit timestamps, use database defaults
-child_flow = ChildFlow(
-    # created_at and updated_at omitted
-    # SQLAlchemy model has server_default=func.now()
-)
-```
-
-**When to Apply**: Any entity creation that derives from existing records.
-
----
-
-## Problem: LiteLLM Callbacks Not Firing
-
-**Symptom**: LLM calls execute but tracking callback never invoked.
-
-**Root Cause**: Using deprecated `litellm.callbacks` instead of modern callback lists.
-
-**Fix**:
-```python
-# WRONG - Legacy API
-litellm.callbacks = [callback_instance]
-
-# CORRECT - Modern API (LiteLLM 1.72+)
-if not hasattr(litellm, 'success_callback') or litellm.success_callback is None:
-    litellm.success_callback = []
-litellm.success_callback.append(callback_instance)
-
-if not hasattr(litellm, 'failure_callback') or litellm.failure_callback is None:
-    litellm.failure_callback = []
-litellm.failure_callback.append(callback_instance)
-```
-
-**Key Pattern**: Always APPEND to preserve existing callbacks (e.g., DeepInfra fixes).
-
----
-
-## Grafana Pie Chart Field Naming
-
-**Problem**: Pie chart only shows one category despite query returning multiple.
-
-**Root Cause**: Grafana expects specific field names for pie chart data.
-
-**Fix**:
-```sql
--- WRONG - Generic names
-SELECT flow_type, COUNT(*) AS count
-FROM table GROUP BY flow_type;
-
--- CORRECT - Grafana-friendly names
-SELECT
-  flow_type AS metric,      -- Grafana recognizes "metric"
-  COUNT(*)::float AS value  -- Grafana recognizes "value"
-FROM table
-GROUP BY flow_type
-ORDER BY value DESC;
-```
-
----
-
-## Observability Stack Deployment Checklist
-
-When deploying to a new environment (Azure, Staging, Prod):
-
-### 1. PostgreSQL User Setup
-```bash
-sudo docker exec migration_postgres psql -U postgres -d migration_db -c "
-CREATE USER grafana_readonly WITH PASSWORD '<secure-password>';
-GRANT USAGE ON SCHEMA migration TO grafana_readonly;
-GRANT SELECT ON ALL TABLES IN SCHEMA migration TO grafana_readonly;
-ALTER ROLE grafana_readonly BYPASSRLS;
-"
-```
-
-### 2. Environment File
-```bash
-# Required variables in .env.observability:
-GRAFANA_ADMIN_PASSWORD=<openssl rand -base64 32>
-POSTGRES_GRAFANA_PASSWORD=<same-as-above>
-
-# For Azure Front Door:
-GF_LIVE_ALLOWED_ORIGINS=https://<your-domain>
-GF_SECURITY_CSRF_TRUSTED_ORIGINS=https://<your-domain>
-```
-
-### 3. Start Stack
-```bash
-cd config/docker
-sudo docker-compose -f docker-compose.observability.yml --env-file .env.observability up -d
-```
-
-### 4. Verify
-```bash
-# Check containers
-sudo docker ps | grep migration_
-
-# Verify password loaded
-docker exec migration_grafana printenv POSTGRES_GRAFANA_PASSWORD
-
-# Test grafana_readonly access
-sudo docker exec migration_postgres psql -U grafana_readonly -d migration_db -c "SELECT COUNT(*) FROM migration.crewai_flow_state_extensions;"
-# Should return actual count, NOT 0
-```
+- **PostgreSQL** (`postgres`): `llm_usage_logs`, `agent_task_history`, `agent_performance_daily`, `crewai_flow_state_extensions`, child flow tables
+- **Loki** (`Loki`): Container logs with labels (container, level, flow_id, agent, phase)
+- **Tempo** (`Tempo`): Distributed traces (requires backend OTel instrumentation)
 
 ---
 
 ## Search Keywords
 
-grafana, observability, dashboard, no data, RLS, row level security, BYPASSRLS, grafana_readonly, env_file, GROUP BY, PostgreSQL, time range, alloy, loki, tempo, prometheus
+grafana, observability, dashboard, no data, RLS, row level security, BYPASSRLS, grafana_readonly, env_file, --env-file, GROUP BY, PostgreSQL, time range, origin not allowed, 403, localhost, azure, docker-compose, agent task history, feature usage, distributed tracing, system alerts
