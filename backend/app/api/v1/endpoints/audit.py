@@ -52,16 +52,18 @@ async def log_audit_event(
 
         # Extract flow_id from details if present
         flow_id = audit_data.details.get("flow_id") if audit_data.details else None
-        client_account_id = (
-            audit_data.details.get("client_account_id")
-            if audit_data.details
-            else context.client_account_id
-        )
-        engagement_id = (
-            audit_data.details.get("engagement_id")
-            if audit_data.details
-            else context.engagement_id
-        )
+
+        # Extract client_account_id with proper fallback to context
+        # Use context value if key is missing, None, or empty string
+        client_account_id = (audit_data.details or {}).get(
+            "client_account_id"
+        ) or context.client_account_id
+
+        # Extract engagement_id with proper fallback to context
+        # Use context value if key is missing, None, or empty string
+        engagement_id = (audit_data.details or {}).get(
+            "engagement_id"
+        ) or context.engagement_id
 
         # Create audit log entry
         audit_log = AccessAuditLog(

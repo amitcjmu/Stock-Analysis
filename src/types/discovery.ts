@@ -150,30 +150,116 @@ export interface FlowState {
   agent_execution_data: Record<string, unknown>;
 }
 
-// Discovery Flow Types for Phase 1 Migration
+/**
+ * Unified Discovery Flow Data Type
+ *
+ * Single source of truth for DiscoveryFlowData type definition.
+ * This type represents the complete structure of discovery flow data
+ * as returned from the backend API and used throughout the frontend.
+ *
+ * Based on actual API response structure from:
+ * - backend/app/api/v1/endpoints/unified_discovery/flow_status_handlers.py
+ * - src/hooks/useUnifiedDiscoveryFlow.ts (UnifiedDiscoveryFlowState)
+ * - src/services/api/discoveryFlowService.ts (DiscoveryFlowStatusResponse)
+ */
 export interface DiscoveryFlowData {
+  // Core identifiers
   id: string;
   flow_id: string;
   client_account_id: string;
   engagement_id: string;
   user_id: string;
+
+  // Flow metadata
   flow_name: string;
   flow_description?: string;
-  status: 'active' | 'completed' | 'failed' | 'paused' | 'waiting_for_user' | 'migrated';
+  name?: string; // Alternative field name used in some contexts
+
+  // Flow status and progress
+  status: string; // Can be: 'active' | 'completed' | 'failed' | 'paused' | 'waiting_for_user' | 'migrated' | 'cancelled' | etc.
   progress_percentage: number;
-  phases: {
-    data_import_completed: boolean;
-    field_mapping_completed: boolean;
-    data_cleansing_completed: boolean;
-    asset_inventory_completed: boolean;
-    dependency_analysis_completed: boolean;
-    tech_debt_assessment_completed: boolean;
-  };
+  progress?: number; // Alternative field name (for compatibility)
+
+  // Phase information
   current_phase: string;
   next_phase?: string;
+  previous_phase?: string;
+
+  // Phase completion tracking
+  // Support both object and array formats for backward compatibility
+  phases?: {
+    data_import_completed?: boolean;
+    field_mapping_completed?: boolean;
+    attribute_mapping_completed?: boolean;
+    data_cleansing_completed?: boolean;
+    asset_inventory_completed?: boolean;
+    dependency_analysis_completed?: boolean;
+    tech_debt_assessment_completed?: boolean;
+    // Alternative naming conventions
+    dataImportCompleted?: boolean;
+    dataCleansingCompleted?: boolean;
+  };
+  phase_completion?: Record<string, boolean>; // Generic phase completion object
+  phases_completed?: string[]; // Array format (backend standard)
+
+  // Phase state and metadata
+  phase_state?: Record<string, unknown>; // Additional phase-specific state data
+
+  // Timestamps
   created_at: string;
   updated_at: string;
   completed_at?: string;
+
+  // Optional operational data (may be present in API responses)
+  master_flow_id?: string;
+  data_import_id?: string;
+  field_mappings?: Record<string, unknown> | unknown[];
+  raw_data?: unknown[];
+  cleaned_data?: unknown[];
+  asset_inventory?: Record<string, unknown>;
+  dependencies?: Record<string, unknown>;
+  dependency_analysis?: Record<string, unknown>;
+  technical_debt?: Record<string, unknown>;
+  tech_debt_analysis?: Record<string, unknown>;
+  agent_insights?: unknown[];
+  errors?: string[];
+  warnings?: string[];
+
+  // Summary/metadata objects
+  summary?: {
+    data_import_completed?: boolean;
+    field_mapping_completed?: boolean;
+    data_cleansing_completed?: boolean;
+    asset_inventory_completed?: boolean;
+    dependency_analysis_completed?: boolean;
+    tech_debt_assessment_completed?: boolean;
+    total_records?: number;
+    records_processed?: number;
+    quality_score?: number;
+  };
+  import_metadata?: {
+    record_count?: number;
+    records_processed?: number;
+    quality_score?: number;
+    import_id?: string;
+    data_import_id?: string;
+  };
+
+  // Results objects (for compatibility with various pages)
+  results?: {
+    dependency_analysis?: Record<string, unknown>;
+    asset_inventory?: Record<string, unknown>;
+    data_cleansing?: Record<string, unknown>;
+    tech_debt_analysis?: Record<string, unknown>;
+  };
+  data_cleansing_results?: Record<string, unknown>;
+  inventory_results?: Record<string, unknown>;
+  dependency_results?: Record<string, unknown>;
+  tech_debt_results?: Record<string, unknown>;
+
+  // Additional metadata
+  metadata?: Record<string, unknown>;
+  crew_status?: Record<string, unknown>;
 }
 
 // API Response Types

@@ -34,12 +34,14 @@ export async function logTerminalStateAuditEvent(
     // Get auth context if available
     let authHeaders: Record<string, string> = {};
     try {
-      // Try to get auth headers from localStorage or context
-      const authToken = localStorage.getItem('auth_token');
-      if (authToken) {
-        authHeaders = {
-          'Authorization': `Bearer ${authToken}`,
-        };
+      // Check for browser environment before accessing localStorage (SSR-safe)
+      if (typeof window !== 'undefined') {
+        const authToken = localStorage.getItem('auth_token');
+        if (authToken) {
+          authHeaders = {
+            'Authorization': `Bearer ${authToken}`,
+          };
+        }
       }
     } catch (e) {
       // Auth context not available, continue without it
