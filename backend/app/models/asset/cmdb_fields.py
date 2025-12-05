@@ -49,7 +49,7 @@ class CMDBFieldsMixin:
         comment="Application type: cots, custom, custom_cots, other",
         info={
             "display_name": "Application Type",
-            "short_hint": "COTS / Custom / Custom-COTS / SaaS",
+            "short_hint": "COTS / Custom / Custom-COTS / SaaS / Other",
             "category": "business",
         },
     )

@@ -130,7 +130,8 @@ CATEGORY_TO_IMPORT_TYPES = {
     "technical": ["cmdb", "infrastructure"],
     "performance": ["cmdb", "infrastructure"],
     "business": ["cmdb"],
-    "migration": ["cmdb"],
+    "migration": ["cmdb"],  # Migration planning fields (6R, waves, readiness)
+    "assessment": ["cmdb"],  # Assessment fields (complexity, architecture analysis)
     "dependency": ["app_discovery"],  # Dependency fields
     "resilience": ["cmdb", "infrastructure"],
     "other": ["cmdb"],  # Default fallback
@@ -232,9 +233,8 @@ async def get_assets_table_fields(db: AsyncSession) -> List[Dict[str, Any]]:
                 # Log but don't fail - just use defaults
                 logger.debug(f"Could not extract metadata for {field_name}: {e}")
 
-            # Skip assessment and migration category fields
-            if category in ["assessment", "migration"]:
-                continue
+            # REMOVED: No longer filtering assessment/migration fields - they're valid for CMDB imports
+            # Migration and assessment fields are now available via CATEGORY_TO_IMPORT_TYPES mapping
 
             # Ensure display_name is never None - generate from field_name if needed
             if display_name is None:
