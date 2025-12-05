@@ -50,22 +50,6 @@ class AssessmentFieldsMixin:
         },
     )
 
-    # COMMENTED OUT: Duplicate of application_type in cmdb_fields.py
-    # Using cmdb_fields.py version for COTS/Custom/Custom-COTS/SaaS
-    # If architecture pattern field is needed, create new column: application_architecture
-    # application_type = Column(
-    #     String(SMALL_STRING_LENGTH),
-    #     comment=(
-    #         "Application architecture type (e.g., 'Monolithic', 'Microservices', "
-    #         "'SOA', 'Serverless', 'Event-Driven', 'Layered')."
-    #     ),
-    #     info={
-    #         "display_name": "Architecture Type",
-    #         "short_hint": "Monolithic / Microservices / SOA / Serverless / Event-Driven / Layered",
-    #         "category": "assessment",
-    #     },
-    # )
-
     # Discovery timestamps
     discovered_at = Column(
         DateTime(timezone=True),
