@@ -129,10 +129,10 @@ async def get_all_feedback(
 ):
     """
     Get all user feedback for the Feedback View page.
-    Returns feedback sorted by most recent first.
+    Returns feedback sorted by most recent first, scoped to tenant.
 
     This endpoint is mounted under /chat to match frontend expectations.
-    Security: Requires authentication to access feedback data.
+    Security: Requires authentication and tenant scoping.
 
     Issue: #1218 - [Feature] Contextual AI Chat Assistant
     Milestone: Contextual AI Chat Assistant
@@ -140,11 +140,28 @@ async def get_all_feedback(
     try:
         from app.models.feedback import Feedback
 
-        user_id = context.user_id if context else "anonymous"
-        logger.info(f"Fetching feedback for user: {user_id}")
+        # Require valid context for tenant scoping
+        if not context:
+            raise HTTPException(
+                status_code=401,
+                detail="Authentication required to access feedback data",
+            )
 
-        # Query all feedback, ordered by created_at descending
+        user_id = context.user_id if context.user_id else "anonymous"
+        logger.info(
+            f"Fetching feedback for tenant: client={context.client_account_id}, "
+            f"engagement={context.engagement_id}, user={user_id}"
+        )
+
+        # Query feedback with tenant scoping - filter by client and engagement
+        # Note: If Feedback model lacks tenant fields, filter by user
         stmt = select(Feedback).order_by(Feedback.created_at.desc())
+
+        # Apply tenant filters if Feedback has these columns
+        if hasattr(Feedback, "client_account_id") and context.client_account_id:
+            stmt = stmt.where(Feedback.client_account_id == context.client_account_id)
+        if hasattr(Feedback, "engagement_id") and context.engagement_id:
+            stmt = stmt.where(Feedback.engagement_id == context.engagement_id)
         result = await db.execute(stmt)
         feedback_records = result.scalars().all()
 

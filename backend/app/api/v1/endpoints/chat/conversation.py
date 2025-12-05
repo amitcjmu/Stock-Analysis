@@ -9,8 +9,9 @@ import logging
 from datetime import datetime
 from typing import Dict, List
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
+from app.core.context import RequestContext, get_request_context
 from app.services.multi_model_service import multi_model_service
 
 from .base import ChatMessage, ChatRequest
@@ -19,21 +20,57 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-# Simple in-memory storage for conversations (in production, use database)
+# Tenant-scoped in-memory storage for conversations
+# Key format: "{client_account_id}:{engagement_id}:{conversation_id}"
+# This ensures conversations are isolated per tenant
 conversations_store: Dict[str, List[ChatMessage]] = {}
+
+# Maximum conversations per tenant (DoS protection)
+MAX_CONVERSATIONS_PER_TENANT = 100
+MAX_MESSAGES_PER_CONVERSATION = 50
+
+
+def _get_tenant_key(context: RequestContext, conversation_id: str) -> str:
+    """Generate tenant-scoped key for conversation storage."""
+    client_id = context.client_account_id if context else 0
+    engagement_id = context.engagement_id if context else 0
+    return f"{client_id}:{engagement_id}:{conversation_id}"
+
+
+def _count_tenant_conversations(context: RequestContext) -> int:
+    """Count conversations for a tenant (DoS protection)."""
+    prefix = f"{context.client_account_id}:{context.engagement_id}:"
+    return sum(1 for key in conversations_store if key.startswith(prefix))
 
 
 @router.post("/conversation/{conversation_id}")
-async def chat_with_conversation(conversation_id: str, request: ChatRequest):
+async def chat_with_conversation(
+    conversation_id: str,
+    request: ChatRequest,
+    context: RequestContext = Depends(get_request_context),
+):
     """
     Continue a conversation with persistent context.
+    Scoped to tenant (client_account_id + engagement_id).
     """
     try:
-        # Get existing conversation or create new one
-        if conversation_id not in conversations_store:
-            conversations_store[conversation_id] = []
+        # Generate tenant-scoped key
+        tenant_key = _get_tenant_key(context, conversation_id)
 
-        conversation = conversations_store[conversation_id]
+        # Get existing conversation or create new one
+        if tenant_key not in conversations_store:
+            # Check tenant conversation limit (DoS protection)
+            if (
+                context
+                and _count_tenant_conversations(context) >= MAX_CONVERSATIONS_PER_TENANT
+            ):
+                raise HTTPException(
+                    status_code=429,
+                    detail=f"Maximum conversations ({MAX_CONVERSATIONS_PER_TENANT}) reached",
+                )
+            conversations_store[tenant_key] = []
+
+        conversation = conversations_store[tenant_key]
 
         # Add user message to conversation
         user_message = ChatMessage(
@@ -62,10 +99,10 @@ async def chat_with_conversation(conversation_id: str, request: ChatRequest):
             )
             conversation.append(assistant_message)
 
-            # Keep only last 20 messages to manage memory
-            if len(conversation) > 20:
-                conversation = conversation[-20:]
-                conversations_store[conversation_id] = conversation
+            # Keep only last MAX_MESSAGES_PER_CONVERSATION to manage memory
+            if len(conversation) > MAX_MESSAGES_PER_CONVERSATION:
+                conversation = conversation[-MAX_MESSAGES_PER_CONVERSATION:]
+                conversations_store[tenant_key] = conversation
 
             return {
                 "status": "success",
@@ -91,19 +128,24 @@ async def chat_with_conversation(conversation_id: str, request: ChatRequest):
 
 
 @router.get("/conversation/{conversation_id}")
-async def get_conversation(conversation_id: str):
+async def get_conversation(
+    conversation_id: str,
+    context: RequestContext = Depends(get_request_context),
+):
     """
-    Get conversation history.
+    Get conversation history (tenant-scoped).
     """
     try:
-        if conversation_id not in conversations_store:
+        tenant_key = _get_tenant_key(context, conversation_id)
+
+        if tenant_key not in conversations_store:
             return {
                 "status": "not_found",
                 "conversation_id": conversation_id,
                 "messages": [],
             }
 
-        conversation = conversations_store[conversation_id]
+        conversation = conversations_store[tenant_key]
         return {
             "status": "success",
             "conversation_id": conversation_id,
@@ -120,13 +162,18 @@ async def get_conversation(conversation_id: str):
 
 
 @router.delete("/conversation/{conversation_id}")
-async def clear_conversation(conversation_id: str):
+async def clear_conversation(
+    conversation_id: str,
+    context: RequestContext = Depends(get_request_context),
+):
     """
-    Clear conversation history.
+    Clear conversation history (tenant-scoped).
     """
     try:
-        if conversation_id in conversations_store:
-            del conversations_store[conversation_id]
+        tenant_key = _get_tenant_key(context, conversation_id)
+
+        if tenant_key in conversations_store:
+            del conversations_store[tenant_key]
 
         return {
             "status": "success",
