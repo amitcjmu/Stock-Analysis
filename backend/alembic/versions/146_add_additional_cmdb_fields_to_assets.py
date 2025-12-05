@@ -3,7 +3,7 @@
 Adds serial_number, architecture_type, and asset_status columns for enhanced CMDB support.
 
 Revision ID: 146_add_additional_cmdb_fields_to_assets
-Revises: 144_add_feedback_user_tracking
+Revises: 145_create_help_documents_table
 Create Date: 2025-12-05
 """
 
@@ -11,7 +11,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "146_add_additional_cmdb_fields_to_assets"
-down_revision = "144_add_feedback_user_tracking"
+down_revision = "145_create_help_documents_table"
 branch_labels = None
 depends_on = None
 
