@@ -30,6 +30,38 @@ from .commands import _start_agent_generation
 logger = logging.getLogger(__name__)
 
 
+def _transform_bootstrap_fields_to_questions(fields: List[dict]) -> List[dict]:
+    """Transform bootstrap questionnaire fields to standard question format.
+
+    Bootstrap questionnaires (asset_selection phase) use a different field structure:
+    - `id` instead of `field_id`
+    - `name` instead of `question_text`
+    - `type` instead of `input_type`
+    - `description` instead of `help_text`
+
+    This function normalizes the structure so frontend's convertQuestionnairesToFormData
+    can properly process bootstrap questionnaires.
+
+    Issue #1202/#1203 Fix: Without this transformation, the frontend's conversion fails
+    silently, leaving the UI in an infinite "Generating Questionnaire" state.
+    """
+    transformed = []
+    for field in fields:
+        transformed.append(
+            {
+                "field_id": field.get("id", ""),
+                "question_text": field.get("name", ""),
+                "input_type": field.get("type", "multiselect"),
+                "help_text": field.get("description", ""),
+                "required": field.get("required", True),
+                "options": field.get("options", []),
+                "category": "asset_selection",  # Ensure proper section grouping
+                "validation": field.get("validation", {}),
+            }
+        )
+    return transformed
+
+
 async def _get_flow_by_id(
     flow_id: str, db: AsyncSession, context: RequestContext
 ) -> CollectionFlow:
@@ -345,7 +377,9 @@ async def get_adaptive_questionnaires(
                             "Choose which applications you want to collect detailed information about.",
                         ),
                         target_gaps=[],
-                        questions=bootstrap_q.get("fields", []),
+                        questions=_transform_bootstrap_fields_to_questions(
+                            bootstrap_q.get("fields", [])
+                        ),
                         validation_rules=bootstrap_q.get("validation_rules", {}),
                         completion_status="pending",
                         responses_collected={},
@@ -392,7 +426,9 @@ async def get_adaptive_questionnaires(
                                     "Choose which applications you want to collect detailed information about.",
                                 ),
                                 target_gaps=[],
-                                questions=bootstrap_q.get("fields", []),
+                                questions=_transform_bootstrap_fields_to_questions(
+                                    bootstrap_q.get("fields", [])
+                                ),
                                 validation_rules=bootstrap_q.get(
                                     "validation_rules", {}
                                 ),

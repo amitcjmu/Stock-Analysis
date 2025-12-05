@@ -284,7 +284,23 @@ export const useAdaptiveFormFlow = (
             });
           }
         } catch (error) {
+          // Issue #1202/#1203 Fix: Don't silently swallow errors - update state to stop polling
+          // Previously, silent error handling left formData=null, causing infinite polling loop
           console.error('Failed to convert questionnaire:', error);
+
+          // Update state with error to stop polling and show error UI
+          setState((prev) => ({
+            ...prev,
+            isLoading: false,
+            error: error instanceof Error ? error.message : 'Failed to process questionnaire',
+            questionnaires: questionnaires, // Store raw questionnaires even if conversion failed
+          }));
+
+          toast({
+            title: "Questionnaire Error",
+            description: "Failed to process the questionnaire. Please try refreshing the page.",
+            variant: "destructive",
+          });
         }
       }
     }, [applicationId, applications, toast, state.flowId, setState]),
