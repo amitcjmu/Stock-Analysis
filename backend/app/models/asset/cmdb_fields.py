@@ -18,6 +18,19 @@ from .base import (
 class CMDBFieldsMixin:
     """Mixin providing CMDB-specific fields for the Asset model"""
 
+    # Identification Fields
+    serial_number = Column(
+        String(MEDIUM_STRING_LENGTH),
+        nullable=True,
+        index=True,
+        comment="Serial number or unique identifier for the asset",
+        info={
+            "display_name": "Serial Number",
+            "short_hint": "Unique serial identifier",
+            "category": "identification",
+        },
+    )
+
     # Business/Organizational Fields
     business_unit = Column(
         String(MEDIUM_STRING_LENGTH),
@@ -49,7 +62,7 @@ class CMDBFieldsMixin:
         comment="Application type: cots, custom, custom_cots, other",
         info={
             "display_name": "Application Type",
-            "short_hint": "COTS / Custom / Custom-COTS / SaaS",
+            "short_hint": "COTS / Custom / Custom-COTS / SaaS / Other",
             "category": "business",
         },
     )
@@ -66,6 +79,18 @@ class CMDBFieldsMixin:
         },
     )
 
+    asset_status = Column(
+        String(SMALL_STRING_LENGTH),
+        nullable=True,
+        index=True,
+        comment="Current operational status of the asset (e.g., 'active', 'inactive', 'maintenance', 'decommissioned')",
+        info={
+            "display_name": "Asset Status",
+            "short_hint": "Active / Inactive / Maintenance / Decommissioned",
+            "category": "business",
+        },
+    )
+
     # Infrastructure Fields
     hosting_model = Column(
         String(20),
@@ -75,6 +100,18 @@ class CMDBFieldsMixin:
         info={
             "display_name": "Hosting Model",
             "short_hint": "On-Prem / Cloud / Hybrid / Colo",
+            "category": "technical",
+        },
+    )
+
+    architecture_type = Column(
+        String(20),
+        nullable=True,
+        index=True,
+        comment="Application architecture type: monolithic, microservices, serverless, hybrid",
+        info={
+            "display_name": "Architecture Type",
+            "short_hint": "Monolithic / Microservices / Serverless / Hybrid",
             "category": "technical",
         },
     )

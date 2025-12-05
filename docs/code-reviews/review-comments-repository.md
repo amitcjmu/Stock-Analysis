@@ -364,6 +364,29 @@ test('should complete app-discovery import workflow', async ({ page }) => {
 
 ---
 
+## Alembic Database Migrations
+
+### ❌ Creating Migrations Without Merging Main First
+**Issue:** Creating migration that references migration from main branch that doesn't exist in feature branch  
+**Why:** Alembic fails with `KeyError: 'revision_id'` - backend won't start  
+**Example:** Creating migration 146 referencing `145_create_help_documents_table` when 145 only exists in main  
+**Check:** 
+- **ALWAYS** merge main first: `git fetch origin main && git merge origin/main`
+- Check latest migration in branch: `ls -1 backend/alembic/versions/*.py | sort -V | tail -1`
+- Set `down_revision` to latest migration from your branch
+- Rebuild backend: `docker-compose build backend`
+- Test startup: `docker-compose restart backend` and check logs for errors
+
+**Reference:** Migration 146 (Dec 2025) - Backend startup failure
+
+### ❌ Not Following Migration Naming Standards
+**Issue:** Migration names too specific or don't follow project patterns  
+**Why:** Hard to track, inconsistent with existing migrations  
+**Example:** `146_add_serial_number_architecture_type_asset_status.py` vs `146_add_additional_cmdb_fields_to_assets.py`  
+**Check:** Use descriptive category names, check existing patterns in `backend/alembic/versions/`
+
+**Reference:** Migration 146 naming correction (Dec 2025)
+
 ## Git & Version Control
 
 ### ❌ Not Pulling Latest Before Push
@@ -374,6 +397,7 @@ test('should complete app-discovery import workflow', async ({ page }) => {
 - `git merge origin/main`
 - Resolve conflicts completely
 - Test after merge
+- **For migrations: Merge main FIRST, then create migration**
 
 ### ❌ Unclear Commit Messages
 **Issue:** Vague commit messages like "fix bug" or "update code"  
@@ -551,6 +575,7 @@ Use this before submitting PRs:
 - [ ] Consistent logging throughout
 - [ ] Tests added for bug fixes
 - [ ] Pulled and merged latest from main
+- [ ] **For migrations: Merged main first, verified latest migration, tested backend startup**
 - [ ] Pre-commit checks passing
 - [ ] Manual verification completed
 - [ ] **Refactoring integrity verified (line counts, field counts, signature preservation)**
@@ -579,9 +604,9 @@ Use this before submitting PRs:
 
 ---
 
-**Last Updated:** November 21, 2025  
+**Last Updated:** December 5, 2025  
 **Initial Contributors:** Ram, CryptoYogiLLC  
-**Source PRs:** #581 - Discovery Flow Status Fixes, #1046 - Qodo Review Compliance, #1091 - Data Cleansing Feature, #1107 - Data Cleansing Bug Fixes, #1046 - Multi-Type Data Import Feature
+**Source PRs:** #581 - Discovery Flow Status Fixes, #1046 - Qodo Review Compliance, #1091 - Data Cleansing Feature, #1107 - Data Cleansing Bug Fixes, #1046 - Multi-Type Data Import Feature, Migration 146 - Alembic Migration Issues (Dec 2025)
 
 ---
 

@@ -116,6 +116,10 @@ FIELD_IMPORT_TYPES = {
     "rpo_minutes": ["cmdb", "infrastructure"],
     # App discovery specific fields
     "application_name": ["cmdb", "app_discovery"],
+    # CMDB-specific fields
+    "serial_number": ["cmdb"],
+    "architecture_type": ["cmdb"],
+    "asset_status": ["cmdb"],
     # Dependency fields are handled separately in get_asset_dependency_fields()
 }
 
@@ -130,7 +134,8 @@ CATEGORY_TO_IMPORT_TYPES = {
     "technical": ["cmdb", "infrastructure"],
     "performance": ["cmdb", "infrastructure"],
     "business": ["cmdb"],
-    "migration": ["cmdb"],
+    "migration": ["cmdb"],  # Migration planning fields (6R, waves, readiness)
+    "assessment": ["cmdb"],  # Assessment fields (complexity, architecture analysis)
     "dependency": ["app_discovery"],  # Dependency fields
     "resilience": ["cmdb", "infrastructure"],
     "other": ["cmdb"],  # Default fallback
@@ -232,13 +237,25 @@ async def get_assets_table_fields(db: AsyncSession) -> List[Dict[str, Any]]:
                 # Log but don't fail - just use defaults
                 logger.debug(f"Could not extract metadata for {field_name}: {e}")
 
-            # Skip assessment and migration category fields
-            if category in ["assessment", "migration"]:
-                continue
+            # REMOVED: No longer filtering assessment/migration fields - they're valid for CMDB imports
+            # Migration and assessment fields are now available via CATEGORY_TO_IMPORT_TYPES mapping
 
             # Ensure display_name is never None - generate from field_name if needed
             if display_name is None:
                 display_name = generate_display_name_from_field_name(field_name)
+
+            # Determine import types for this field
+            import_types = get_field_import_types(field_name, category)
+
+            # Audit logging: Log when fields become available for import (Qodo compliance)
+            logger.info(
+                "Field available for import",
+                extra={
+                    "field_name": field_name,
+                    "import_types": import_types,
+                    "category": category,
+                },
+            )
 
             field_info = {
                 "name": field_name,
@@ -252,7 +269,7 @@ async def get_assets_table_fields(db: AsyncSession) -> List[Dict[str, Any]]:
                 "max_length": col.character_maximum_length,
                 "precision": col.numeric_precision,
                 "scale": col.numeric_scale,
-                "import_types": get_field_import_types(field_name, category),
+                "import_types": import_types,
             }
 
             fields.append(field_info)
@@ -261,32 +278,43 @@ async def get_assets_table_fields(db: AsyncSession) -> List[Dict[str, Any]]:
 
         # Add fields from related tables for complete CMDB mapping support
         # asset_resilience: RTO/RPO fields
-        fields.extend(
-            [
-                {
-                    "name": "rto_minutes",
-                    "display_name": "RTO (Minutes)",
-                    "short_hint": "Recovery Time Objective",
-                    "type": "integer",
-                    "required": False,
-                    "description": "Recovery Time Objective in minutes (Asset Resilience)",
-                    "category": "resilience",
-                    "nullable": True,
-                    "import_types": get_field_import_types("rto_minutes", "resilience"),
+        related_table_fields = [
+            {
+                "name": "rto_minutes",
+                "display_name": "RTO (Minutes)",
+                "short_hint": "Recovery Time Objective",
+                "type": "integer",
+                "required": False,
+                "description": "Recovery Time Objective in minutes (Asset Resilience)",
+                "category": "resilience",
+                "nullable": True,
+                "import_types": get_field_import_types("rto_minutes", "resilience"),
+            },
+            {
+                "name": "rpo_minutes",
+                "display_name": "RPO (Minutes)",
+                "short_hint": "Recovery Point Objective",
+                "type": "integer",
+                "required": False,
+                "description": "Recovery Point Objective in minutes (Asset Resilience)",
+                "category": "resilience",
+                "nullable": True,
+                "import_types": get_field_import_types("rpo_minutes", "resilience"),
+            },
+        ]
+
+        # Audit logging for related table fields
+        for field in related_table_fields:
+            logger.info(
+                "Field available for import",
+                extra={
+                    "field_name": field["name"],
+                    "import_types": field["import_types"],
+                    "category": field["category"],
                 },
-                {
-                    "name": "rpo_minutes",
-                    "display_name": "RPO (Minutes)",
-                    "short_hint": "Recovery Point Objective",
-                    "type": "integer",
-                    "required": False,
-                    "description": "Recovery Point Objective in minutes (Asset Resilience)",
-                    "category": "resilience",
-                    "nullable": True,
-                    "import_types": get_field_import_types("rpo_minutes", "resilience"),
-                },
-            ]
-        )
+            )
+
+        fields.extend(related_table_fields)
 
         # Note: Dependency fields are NOT added here for CMDB imports.
         # They are only included when explicitly requested for app_discovery imports
