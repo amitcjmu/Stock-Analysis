@@ -91,6 +91,7 @@ How can I assist you with your migration today?`;
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [historyLoaded, setHistoryLoaded] = useState(false);
+  const [initialContextSet, setInitialContextSet] = useState(false);
 
   // Feedback state
   const [rating, setRating] = useState(0);
@@ -157,9 +158,31 @@ How can I assist you with your migration today?`;
   // Update greeting when page context changes (route navigation) - append instead of replace
   useEffect(() => {
     const currentRoute = pageContext?.route || window.location.pathname;
+    const hasValidPageName = pageContext?.page_name && pageContext.page_name !== 'Unknown Page';
 
-    if (previousRouteRef.current && previousRouteRef.current !== currentRoute && historyLoaded) {
-      // Route changed - add a page transition message instead of resetting all messages
+    // First time we get valid page context - replace the initial greeting (not add another)
+    if (!initialContextSet && hasValidPageName && historyLoaded) {
+      setMessages(prev => {
+        // Replace the first message with the context-aware greeting
+        if (prev.length > 0 && prev[0].id === '1') {
+          return [{
+            id: '1',
+            role: 'assistant' as const,
+            content: getInitialGreeting(),
+            timestamp: new Date().toISOString(),
+            suggested_actions: pageContext?.actions?.slice(0, 3) || [],
+            related_help_topics: helpTopics?.slice(0, 5) || []
+          }, ...prev.slice(1)];
+        }
+        return prev;
+      });
+      setInitialContextSet(true);
+      previousRouteRef.current = currentRoute;
+      return;
+    }
+
+    // After initial context, only add navigation message for actual route changes
+    if (initialContextSet && previousRouteRef.current && previousRouteRef.current !== currentRoute && historyLoaded) {
       setMessages(prev => [
         ...prev,
         {
@@ -174,7 +197,7 @@ How can I assist you with your migration today?`;
     }
 
     previousRouteRef.current = currentRoute;
-  }, [pageContext, helpTopics, getInitialGreeting, historyLoaded]);
+  }, [pageContext, helpTopics, getInitialGreeting, historyLoaded, initialContextSet]);
 
   // Restrictive system prompt for Gemma chatbot
   const getRestrictiveSystemPrompt = (): unknown => {
