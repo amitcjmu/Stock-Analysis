@@ -126,32 +126,52 @@ const AppOnPagePage: React.FC = () => {
       });
       // Refresh data after retry completes
       await refreshApplicationData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to retry recommendation generation:', error);
 
-      // Issue #719: Extract data integrity error details from API response
-      // Backend returns HTTP 409 with: { detail: { error: "data_integrity_error", apps_not_found: [...] } }
-      // ApiError class at src/lib/api/apiClient.ts stores JSON body directly at error.response
-      const responseData = error?.response;
-      const errorDetail = responseData?.detail || responseData || error;
-      const errorMessage = errorDetail?.message || errorDetail?.error || error?.message || 'Unknown error';
+      // Qodo Bot: Robustly extract response payload and status across API clients
+      const resp = (error as { response?: { status?: number; data?: unknown; detail?: unknown } })?.response || {};
+      const status = resp?.status ?? (error as { status?: number })?.status;
+      const payload = resp?.data ?? resp?.detail ?? (error as { data?: unknown })?.data ?? resp ?? error;
 
-      // Check multiple possible locations for apps_not_found
-      const appsNotFound = errorDetail?.apps_not_found || responseData?.apps_not_found || [];
+      const detail = payload?.detail ?? payload;
+      const errorMessage =
+        detail?.message ||
+        detail?.error ||
+        payload?.message ||
+        payload?.error ||
+        error?.message ||
+        'Unknown error';
 
-      if (appsNotFound.length > 0 || errorDetail?.error === 'data_integrity_error') {
-        // This is a data integrity error - apps don't exist in canonical_applications
+      // Prefer 409 status to classify data integrity error
+      const appsNotFound =
+        detail?.apps_not_found ??
+        payload?.apps_not_found ??
+        payload?.data?.apps_not_found ??
+        [];
+
+      if (
+        status === 409 &&
+        (appsNotFound.length > 0 || detail?.error === 'data_integrity_error')
+      ) {
         setDataIntegrityError({
           hasError: true,
           missingApps: appsNotFound,
-          errorMessage: errorDetail?.message || `${appsNotFound.length} application(s) in this assessment no longer exist in the system. This can happen when canonical applications are deleted after an assessment was created.`
+          errorMessage:
+            detail?.message ||
+            `${appsNotFound.length} application(s) in this assessment no longer exist in the system. This can happen when canonical applications are deleted after an assessment was created.`,
         });
-      } else if (errorMessage.includes('Data integrity') || errorMessage.includes('not found in database')) {
+      } else if (
+        typeof errorMessage === 'string' &&
+        (errorMessage.includes('Data integrity') ||
+          errorMessage.includes('not found in database'))
+      ) {
         // Fallback detection from error message
         setDataIntegrityError({
           hasError: true,
           missingApps: [],
-          errorMessage: 'Some applications in this assessment no longer exist in the system. Please start a new assessment with valid applications.'
+          errorMessage:
+            'Some applications in this assessment no longer exist in the system. Please start a new assessment with valid applications.',
         });
       }
     } finally {

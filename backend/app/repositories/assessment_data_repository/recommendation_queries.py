@@ -51,18 +51,26 @@ class RecommendationQueriesMixin:
                 logger.info(f"[RETRY-FIX] No phase_results found for flow_id={flow_id}")
                 return set()
 
-            # Navigate nested structure to find applications with 6R decisions
+            # Navigate nested structure defensively to find applications with 6R decisions
             # Structure: recommendation_generation -> results -> recommendation_generation -> applications
-            recommendation_gen = phase_results.get("recommendation_generation", {})
-            results_data = recommendation_gen.get("results", {})
-            inner_rec_gen = results_data.get("recommendation_generation", {})
-            applications = inner_rec_gen.get("applications", [])
+            # Qodo Bot: More defensive null handling with `or {}`
+            recommendation_gen = (
+                phase_results.get("recommendation_generation", {}) or {}
+            )
+            results_data = recommendation_gen.get("results", {}) or {}
+            inner_rec_gen = results_data.get("recommendation_generation", {}) or {}
+            applications = inner_rec_gen.get("applications", []) or []
 
-            # Extract application IDs that have a six_r_strategy
+            # Qodo Bot: Accept either 'six_r_strategy' or 'overall_strategy' to detect completed apps
+            def has_strategy(app: Dict[str, Any]) -> bool:
+                strat = app.get("six_r_strategy") or app.get("overall_strategy")
+                return isinstance(strat, str) and len(strat.strip()) > 0
+
+            # Extract application IDs that have a valid 6R strategy
             existing_app_ids = {
                 str(app.get("application_id"))
                 for app in applications
-                if app.get("application_id") and app.get("six_r_strategy")
+                if app.get("application_id") and has_strategy(app)
             }
 
             logger.info(
