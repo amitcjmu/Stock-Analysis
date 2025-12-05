@@ -12,108 +12,15 @@ from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 from app.services.crewai_flows.handlers.callback_handler_integration import (
     CallbackHandlerIntegration,
 )
+from app.services.flow_orchestration.execution_engine_crew_assessment.recommendation_validator import (
+    validate_recommendation_structure,
+)
 
 logger = get_logger(__name__)
 
 
 class RecommendationExecutorMixin:
     """Mixin for recommendation generation phase execution"""
-
-    def _validate_recommendation_structure(
-        self, parsed_result: Dict[str, Any], expected_app_count: int
-    ) -> Dict[str, Any]:
-        """
-        Validate per-application recommendation structure.
-
-        ISSUE-999: Ensures agent returned proper 6R strategies for all applications.
-
-        Args:
-            parsed_result: Parsed JSON from recommendation agent
-            expected_app_count: Number of applications that should have recommendations
-
-        Returns:
-            Validation summary with counts and issues
-        """
-        validation = {
-            "is_valid": True,
-            "applications_with_6r": 0,
-            "missing_applications": 0,
-            "invalid_strategies": [],
-            "missing_fields": [],
-        }
-
-        try:
-            applications = parsed_result.get("applications", [])
-            validation["applications_with_6r"] = len(applications)
-            validation["missing_applications"] = max(
-                0, expected_app_count - len(applications)
-            )
-
-            # Valid 6R strategies per standardized framework
-            valid_strategies = {
-                "rehost",
-                "replatform",
-                "refactor",
-                "rearchitect",
-                "replace",
-                "retire",
-            }
-
-            # Validate each application recommendation
-            required_fields = {
-                "application_id",
-                "application_name",
-                "six_r_strategy",
-                "confidence_score",
-                "reasoning",
-            }
-
-            for i, app_rec in enumerate(applications):
-                # Check for missing required fields
-                missing = required_fields - set(app_rec.keys())
-                if missing:
-                    validation["missing_fields"].append(
-                        {
-                            "index": i,
-                            "application_id": app_rec.get("application_id"),
-                            "missing": list(missing),
-                        }
-                    )
-                    validation["is_valid"] = False
-
-                # Validate 6R strategy value
-                strategy = app_rec.get("six_r_strategy", "").lower()
-                if strategy not in valid_strategies:
-                    validation["invalid_strategies"].append(
-                        {
-                            "index": i,
-                            "application_id": app_rec.get("application_id"),
-                            "application_name": app_rec.get("application_name"),
-                            "invalid_strategy": strategy,
-                        }
-                    )
-                    validation["is_valid"] = False
-
-            # Log validation issues
-            if not validation["is_valid"]:
-                logger.warning(
-                    f"[ISSUE-999] Recommendation validation issues: "
-                    f"{len(validation['invalid_strategies'])} invalid strategies, "
-                    f"{len(validation['missing_fields'])} incomplete recommendations"
-                )
-
-            if validation["missing_applications"] > 0:
-                logger.warning(
-                    f"[ISSUE-999] Missing {validation['missing_applications']} "
-                    f"application recommendations (expected {expected_app_count}, got {len(applications)})"
-                )
-
-        except Exception as e:
-            logger.error(f"[ISSUE-999] Error validating recommendation structure: {e}")
-            validation["is_valid"] = False
-            validation["validation_error"] = str(e)
-
-        return validation
 
     async def _execute_recommendation_generation(
         self,
@@ -164,7 +71,17 @@ class RecommendationExecutorMixin:
             apps_not_found = meta.get("apps_not_found_in_db", [])
 
             # Skip agent execution if no apps to process
+            # Qodo Bot: Normalize early returns into persistable results
             if app_count == 0:
+                meta_payload = {
+                    "apps_with_existing_decisions": meta.get(
+                        "apps_with_existing_decisions", 0
+                    ),
+                    "apps_not_found_in_db": apps_not_found,
+                    "apps_to_process": 0,
+                    "all_apps_completed": bool(all_apps_completed),
+                    "has_missing_apps": bool(apps_not_found),
+                }
                 if all_apps_completed:
                     logger.info(
                         f"[RETRY-FIX] All applications already have 6R decisions - "
@@ -172,32 +89,46 @@ class RecommendationExecutorMixin:
                     )
                     return {
                         "success": True,
-                        "message": "All applications already have 6R recommendations",
                         "skipped": True,
                         "reason": "all_apps_completed",
                         "phase": "recommendation_generation",
+                        "results": {
+                            "recommendation_generation": {
+                                "applications": [],
+                                "meta": meta_payload,
+                            }
+                        },
                     }
-                elif apps_not_found:
+                if apps_not_found:
                     logger.error(
                         f"[RETRY-FIX] Cannot retry: {len(apps_not_found)} selected apps "
                         f"not found in canonical_applications table: {apps_not_found}"
                     )
                     return {
                         "success": False,
-                        "error": f"Data integrity issue: {len(apps_not_found)} selected "
-                        f"applications not found in database",
-                        "apps_not_found": apps_not_found,
                         "phase": "recommendation_generation",
+                        "results": {
+                            "recommendation_generation": {
+                                "applications": [],
+                                "meta": meta_payload,
+                                "error": "data_integrity_error",
+                            }
+                        },
                     }
-                else:
-                    logger.warning(
-                        f"[RETRY-FIX] No applications to process for flow {assessment_flow_id}"
-                    )
-                    return {
-                        "success": False,
-                        "error": "No applications available for recommendation generation",
-                        "phase": "recommendation_generation",
-                    }
+                logger.warning(
+                    f"[RETRY-FIX] No applications to process for flow {assessment_flow_id}"
+                )
+                return {
+                    "success": False,
+                    "phase": "recommendation_generation",
+                    "results": {
+                        "recommendation_generation": {
+                            "applications": [],
+                            "meta": meta_payload,
+                            "error": "no_apps_to_process",
+                        }
+                    },
+                }
 
             # Create detailed application list for agent prompt
             app_list_text = "\n".join(
@@ -407,7 +338,7 @@ Base recommendations on EVIDENCE from the assessment results, not assumptions.
             parsed_result = sanitize_for_json(parsed_result)
 
             # ISSUE-999: Validate per-application recommendations structure
-            validation_result = self._validate_recommendation_structure(
+            validation_result = validate_recommendation_structure(
                 parsed_result, app_count
             )
 
