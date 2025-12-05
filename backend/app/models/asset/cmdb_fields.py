@@ -5,7 +5,7 @@ These fields support comprehensive migration planning with explicit columns
 for high-query frequency fields.
 """
 
-from sqlalchemy import Boolean, Column, Enum, Float, String, Text
+from sqlalchemy import Boolean, Column, Float, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 
 from .base import (
@@ -13,7 +13,6 @@ from .base import (
     MEDIUM_STRING_LENGTH,
     LARGE_STRING_LENGTH,
 )
-from .enums import VirtualizationType, ComplexityLevel, ChangeTolerance
 
 
 class CMDBFieldsMixin:
@@ -337,11 +336,7 @@ class CMDBFieldsMixin:
     )
 
     virtualization_type = Column(
-        Enum(
-            VirtualizationType,
-            values_callable=lambda obj: [e.value for e in obj],
-            create_type=False,
-        ),
+        String(20),
         nullable=True,
         index=True,
         comment="Virtualization type: virtual, physical, container, other",
@@ -375,11 +370,7 @@ class CMDBFieldsMixin:
     )
 
     business_logic_complexity = Column(
-        Enum(
-            ComplexityLevel,
-            values_callable=lambda obj: [e.value for e in obj],
-            create_type=False,
-        ),
+        String(SMALL_STRING_LENGTH),
         nullable=True,
         index=True,
         comment="Business logic complexity: low, medium, high, critical",
@@ -391,11 +382,7 @@ class CMDBFieldsMixin:
     )
 
     configuration_complexity = Column(
-        Enum(
-            ComplexityLevel,
-            values_callable=lambda obj: [e.value for e in obj],
-            create_type=False,
-        ),
+        String(SMALL_STRING_LENGTH),
         nullable=True,
         index=True,
         comment="Configuration complexity: low, medium, high, critical",
@@ -407,11 +394,7 @@ class CMDBFieldsMixin:
     )
 
     change_tolerance = Column(
-        Enum(
-            ChangeTolerance,
-            values_callable=lambda obj: [e.value for e in obj],
-            create_type=False,
-        ),
+        String(SMALL_STRING_LENGTH),
         nullable=True,
         index=True,
         comment="Change tolerance level: low, medium, high",

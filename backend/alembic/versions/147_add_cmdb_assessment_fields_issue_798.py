@@ -20,69 +20,7 @@ depends_on = None
 
 
 def upgrade() -> None:
-    """Add 8 new CMDB assessment columns."""
-    # Create virtualization_type enum if it doesn't exist
-    op.execute(
-        """
-        DO $$
-        BEGIN
-            IF NOT EXISTS (
-                SELECT 1 FROM pg_type
-                WHERE typname = 'virtualizationtype'
-                AND typnamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'migration')
-            ) THEN
-                CREATE TYPE migration.virtualizationtype AS ENUM (
-                    'virtual',
-                    'physical',
-                    'container',
-                    'other'
-                );
-            END IF;
-        END $$;
-        """
-    )
-
-    # Create complexitylevel enum if it doesn't exist
-    # Reused for business_logic_complexity and configuration_complexity
-    op.execute(
-        """
-        DO $$
-        BEGIN
-            IF NOT EXISTS (
-                SELECT 1 FROM pg_type
-                WHERE typname = 'complexitylevel'
-                AND typnamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'migration')
-            ) THEN
-                CREATE TYPE migration.complexitylevel AS ENUM (
-                    'low',
-                    'medium',
-                    'high',
-                    'critical'
-                );
-            END IF;
-        END $$;
-        """
-    )
-
-    # Create changetolerance enum if it doesn't exist
-    op.execute(
-        """
-        DO $$
-        BEGIN
-            IF NOT EXISTS (
-                SELECT 1 FROM pg_type
-                WHERE typname = 'changetolerance'
-                AND typnamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'migration')
-            ) THEN
-                CREATE TYPE migration.changetolerance AS ENUM (
-                    'low',
-                    'medium',
-                    'high'
-                );
-            END IF;
-        END $$;
-        """
-    )
+    """Add 8 new CMDB assessment columns with CHECK constraints."""
 
     # Add virtualization_platform column
     op.execute(
@@ -109,7 +47,7 @@ def upgrade() -> None:
         """
     )
 
-    # Add virtualization_type column
+    # Add virtualization_type column (VARCHAR with CHECK constraint)
     op.execute(
         """
         DO $$
@@ -122,10 +60,17 @@ def upgrade() -> None:
                   AND column_name = 'virtualization_type'
             ) THEN
                 ALTER TABLE migration.assets
-                ADD COLUMN virtualization_type migration.virtualizationtype;
+                ADD COLUMN virtualization_type VARCHAR(20);
 
                 CREATE INDEX IF NOT EXISTS ix_assets_virtualization_type
                 ON migration.assets(virtualization_type);
+
+                ALTER TABLE migration.assets
+                ADD CONSTRAINT chk_assets_virtualization_type
+                CHECK (
+                    virtualization_type IN ('virtual', 'physical', 'container', 'other')
+                    OR virtualization_type IS NULL
+                );
 
                 COMMENT ON COLUMN migration.assets.virtualization_type IS
                     'Virtualization type: virtual, physical, container, other';
@@ -178,7 +123,7 @@ def upgrade() -> None:
         """
     )
 
-    # Add business_logic_complexity column (using complexitylevel enum)
+    # Add business_logic_complexity column (VARCHAR with CHECK constraint)
     op.execute(
         """
         DO $$
@@ -191,10 +136,17 @@ def upgrade() -> None:
                   AND column_name = 'business_logic_complexity'
             ) THEN
                 ALTER TABLE migration.assets
-                ADD COLUMN business_logic_complexity migration.complexitylevel;
+                ADD COLUMN business_logic_complexity VARCHAR(50);
 
                 CREATE INDEX IF NOT EXISTS ix_assets_business_logic_complexity
                 ON migration.assets(business_logic_complexity);
+
+                ALTER TABLE migration.assets
+                ADD CONSTRAINT chk_assets_business_logic_complexity
+                CHECK (
+                    business_logic_complexity IN ('low', 'medium', 'high', 'critical')
+                    OR business_logic_complexity IS NULL
+                );
 
                 COMMENT ON COLUMN migration.assets.business_logic_complexity IS
                     'Business logic complexity: low, medium, high, critical';
@@ -203,7 +155,7 @@ def upgrade() -> None:
         """
     )
 
-    # Add configuration_complexity column (using complexitylevel enum)
+    # Add configuration_complexity column (VARCHAR with CHECK constraint)
     op.execute(
         """
         DO $$
@@ -216,10 +168,17 @@ def upgrade() -> None:
                   AND column_name = 'configuration_complexity'
             ) THEN
                 ALTER TABLE migration.assets
-                ADD COLUMN configuration_complexity migration.complexitylevel;
+                ADD COLUMN configuration_complexity VARCHAR(50);
 
                 CREATE INDEX IF NOT EXISTS ix_assets_configuration_complexity
                 ON migration.assets(configuration_complexity);
+
+                ALTER TABLE migration.assets
+                ADD CONSTRAINT chk_assets_configuration_complexity
+                CHECK (
+                    configuration_complexity IN ('low', 'medium', 'high', 'critical')
+                    OR configuration_complexity IS NULL
+                );
 
                 COMMENT ON COLUMN migration.assets.configuration_complexity IS
                     'Configuration complexity: low, medium, high, critical';
@@ -228,7 +187,7 @@ def upgrade() -> None:
         """
     )
 
-    # Add change_tolerance column (using changetolerance enum)
+    # Add change_tolerance column (VARCHAR with CHECK constraint)
     op.execute(
         """
         DO $$
@@ -241,10 +200,14 @@ def upgrade() -> None:
                   AND column_name = 'change_tolerance'
             ) THEN
                 ALTER TABLE migration.assets
-                ADD COLUMN change_tolerance migration.changetolerance;
+                ADD COLUMN change_tolerance VARCHAR(50);
 
                 CREATE INDEX IF NOT EXISTS ix_assets_change_tolerance
                 ON migration.assets(change_tolerance);
+
+                ALTER TABLE migration.assets
+                ADD CONSTRAINT chk_assets_change_tolerance
+                CHECK (change_tolerance IN ('low', 'medium', 'high') OR change_tolerance IS NULL);
 
                 COMMENT ON COLUMN migration.assets.change_tolerance IS
                     'Change tolerance level: low, medium, high';
@@ -301,6 +264,8 @@ def downgrade() -> None:
                   AND table_name = 'assets'
                   AND column_name = 'change_tolerance'
             ) THEN
+                ALTER TABLE migration.assets
+                DROP CONSTRAINT IF EXISTS chk_assets_change_tolerance;
                 DROP INDEX IF EXISTS migration.ix_assets_change_tolerance;
                 ALTER TABLE migration.assets
                 DROP COLUMN change_tolerance;
@@ -313,6 +278,8 @@ def downgrade() -> None:
                   AND table_name = 'assets'
                   AND column_name = 'configuration_complexity'
             ) THEN
+                ALTER TABLE migration.assets
+                DROP CONSTRAINT IF EXISTS chk_assets_configuration_complexity;
                 DROP INDEX IF EXISTS migration.ix_assets_configuration_complexity;
                 ALTER TABLE migration.assets
                 DROP COLUMN configuration_complexity;
@@ -325,6 +292,8 @@ def downgrade() -> None:
                   AND table_name = 'assets'
                   AND column_name = 'business_logic_complexity'
             ) THEN
+                ALTER TABLE migration.assets
+                DROP CONSTRAINT IF EXISTS chk_assets_business_logic_complexity;
                 DROP INDEX IF EXISTS migration.ix_assets_business_logic_complexity;
                 ALTER TABLE migration.assets
                 DROP COLUMN business_logic_complexity;
@@ -359,6 +328,8 @@ def downgrade() -> None:
                   AND table_name = 'assets'
                   AND column_name = 'virtualization_type'
             ) THEN
+                ALTER TABLE migration.assets
+                DROP CONSTRAINT IF EXISTS chk_assets_virtualization_type;
                 DROP INDEX IF EXISTS migration.ix_assets_virtualization_type;
                 ALTER TABLE migration.assets
                 DROP COLUMN virtualization_type;
@@ -374,41 +345,6 @@ def downgrade() -> None:
                 DROP INDEX IF EXISTS migration.ix_assets_virtualization_platform;
                 ALTER TABLE migration.assets
                 DROP COLUMN virtualization_platform;
-            END IF;
-        END $$;
-        """
-    )
-
-    # Drop enum types if no other columns use them
-    op.execute(
-        """
-        DO $$
-        BEGIN
-            IF NOT EXISTS (
-                SELECT 1
-                FROM information_schema.columns
-                WHERE table_schema = 'migration'
-                  AND udt_name = 'virtualizationtype'
-            ) THEN
-                DROP TYPE IF EXISTS migration.virtualizationtype;
-            END IF;
-
-            IF NOT EXISTS (
-                SELECT 1
-                FROM information_schema.columns
-                WHERE table_schema = 'migration'
-                  AND udt_name = 'complexitylevel'
-            ) THEN
-                DROP TYPE IF EXISTS migration.complexitylevel;
-            END IF;
-
-            IF NOT EXISTS (
-                SELECT 1
-                FROM information_schema.columns
-                WHERE table_schema = 'migration'
-                  AND udt_name = 'changetolerance'
-            ) THEN
-                DROP TYPE IF EXISTS migration.changetolerance;
             END IF;
         END $$;
         """
