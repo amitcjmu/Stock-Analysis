@@ -42,6 +42,48 @@ def upgrade() -> None:
         """
     )
 
+    # Create complexitylevel enum if it doesn't exist
+    # Reused for business_logic_complexity and configuration_complexity
+    op.execute(
+        """
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM pg_type
+                WHERE typname = 'complexitylevel'
+                AND typnamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'migration')
+            ) THEN
+                CREATE TYPE migration.complexitylevel AS ENUM (
+                    'low',
+                    'medium',
+                    'high',
+                    'critical'
+                );
+            END IF;
+        END $$;
+        """
+    )
+
+    # Create changetolerance enum if it doesn't exist
+    op.execute(
+        """
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM pg_type
+                WHERE typname = 'changetolerance'
+                AND typnamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'migration')
+            ) THEN
+                CREATE TYPE migration.changetolerance AS ENUM (
+                    'low',
+                    'medium',
+                    'high'
+                );
+            END IF;
+        END $$;
+        """
+    )
+
     # Add virtualization_platform column
     op.execute(
         """
@@ -136,7 +178,7 @@ def upgrade() -> None:
         """
     )
 
-    # Add business_logic_complexity column
+    # Add business_logic_complexity column (using complexitylevel enum)
     op.execute(
         """
         DO $$
@@ -149,7 +191,7 @@ def upgrade() -> None:
                   AND column_name = 'business_logic_complexity'
             ) THEN
                 ALTER TABLE migration.assets
-                ADD COLUMN business_logic_complexity VARCHAR(50);
+                ADD COLUMN business_logic_complexity migration.complexitylevel;
 
                 CREATE INDEX IF NOT EXISTS ix_assets_business_logic_complexity
                 ON migration.assets(business_logic_complexity);
@@ -161,7 +203,7 @@ def upgrade() -> None:
         """
     )
 
-    # Add configuration_complexity column
+    # Add configuration_complexity column (using complexitylevel enum)
     op.execute(
         """
         DO $$
@@ -174,7 +216,7 @@ def upgrade() -> None:
                   AND column_name = 'configuration_complexity'
             ) THEN
                 ALTER TABLE migration.assets
-                ADD COLUMN configuration_complexity VARCHAR(50);
+                ADD COLUMN configuration_complexity migration.complexitylevel;
 
                 CREATE INDEX IF NOT EXISTS ix_assets_configuration_complexity
                 ON migration.assets(configuration_complexity);
@@ -186,7 +228,7 @@ def upgrade() -> None:
         """
     )
 
-    # Add change_tolerance column
+    # Add change_tolerance column (using changetolerance enum)
     op.execute(
         """
         DO $$
@@ -199,7 +241,7 @@ def upgrade() -> None:
                   AND column_name = 'change_tolerance'
             ) THEN
                 ALTER TABLE migration.assets
-                ADD COLUMN change_tolerance VARCHAR(50);
+                ADD COLUMN change_tolerance migration.changetolerance;
 
                 CREATE INDEX IF NOT EXISTS ix_assets_change_tolerance
                 ON migration.assets(change_tolerance);
@@ -337,7 +379,7 @@ def downgrade() -> None:
         """
     )
 
-    # Drop enum type if no other columns use it
+    # Drop enum types if no other columns use them
     op.execute(
         """
         DO $$
@@ -349,6 +391,24 @@ def downgrade() -> None:
                   AND udt_name = 'virtualizationtype'
             ) THEN
                 DROP TYPE IF EXISTS migration.virtualizationtype;
+            END IF;
+
+            IF NOT EXISTS (
+                SELECT 1
+                FROM information_schema.columns
+                WHERE table_schema = 'migration'
+                  AND udt_name = 'complexitylevel'
+            ) THEN
+                DROP TYPE IF EXISTS migration.complexitylevel;
+            END IF;
+
+            IF NOT EXISTS (
+                SELECT 1
+                FROM information_schema.columns
+                WHERE table_schema = 'migration'
+                  AND udt_name = 'changetolerance'
+            ) THEN
+                DROP TYPE IF EXISTS migration.changetolerance;
             END IF;
         END $$;
         """

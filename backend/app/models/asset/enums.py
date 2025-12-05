@@ -220,3 +220,11 @@ class VirtualizationType(str, enum.Enum):
     PHYSICAL = "physical"  # Physical server
     CONTAINER = "container"  # Containerized
     OTHER = "other"  # Other/Unknown
+
+
+class ChangeTolerance(str, enum.Enum):
+    """Change tolerance level enumeration."""
+
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"

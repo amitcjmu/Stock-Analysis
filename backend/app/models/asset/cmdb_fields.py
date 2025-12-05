@@ -13,7 +13,7 @@ from .base import (
     MEDIUM_STRING_LENGTH,
     LARGE_STRING_LENGTH,
 )
-from .enums import VirtualizationType
+from .enums import VirtualizationType, ComplexityLevel, ChangeTolerance
 
 
 class CMDBFieldsMixin:
@@ -375,7 +375,11 @@ class CMDBFieldsMixin:
     )
 
     business_logic_complexity = Column(
-        String(SMALL_STRING_LENGTH),
+        Enum(
+            ComplexityLevel,
+            values_callable=lambda obj: [e.value for e in obj],
+            create_type=False,
+        ),
         nullable=True,
         index=True,
         comment="Business logic complexity: low, medium, high, critical",
@@ -387,7 +391,11 @@ class CMDBFieldsMixin:
     )
 
     configuration_complexity = Column(
-        String(SMALL_STRING_LENGTH),
+        Enum(
+            ComplexityLevel,
+            values_callable=lambda obj: [e.value for e in obj],
+            create_type=False,
+        ),
         nullable=True,
         index=True,
         comment="Configuration complexity: low, medium, high, critical",
@@ -399,7 +407,11 @@ class CMDBFieldsMixin:
     )
 
     change_tolerance = Column(
-        String(SMALL_STRING_LENGTH),
+        Enum(
+            ChangeTolerance,
+            values_callable=lambda obj: [e.value for e in obj],
+            create_type=False,
+        ),
         nullable=True,
         index=True,
         comment="Change tolerance level: low, medium, high",
