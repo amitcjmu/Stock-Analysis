@@ -193,6 +193,16 @@ if [ "$INCLUDE_OBSERVABILITY" = true ]; then
         echo -e "${RED}❌ Observability compose file not found${NC}"
         exit 1
     fi
+    # CRITICAL: --env-file must be BEFORE -f flags for variable substitution
+    # Without this, Grafana gets localhost defaults instead of Azure domain values
+    # See: .serena/memories/observability-grafana-dashboard-debugging.md
+    if [ -f "config/docker/.env.observability" ]; then
+        COMPOSE_ARGS=(--env-file config/docker/.env.observability "${COMPOSE_ARGS[@]}")
+        echo -e "${GREEN}✅ Loading observability environment from .env.observability${NC}"
+    else
+        echo -e "${YELLOW}⚠️  No .env.observability file found - Grafana will use localhost defaults${NC}"
+        echo -e "${YELLOW}   Create config/docker/.env.observability with GF_SERVER_* variables for production${NC}"
+    fi
     COMPOSE_ARGS+=(-f config/docker/docker-compose.observability.yml)
     echo -e "${BLUE}📊 Including observability stack (Grafana, Loki, Prometheus, Tempo)${NC}"
     echo ""
@@ -209,7 +219,7 @@ if [ "$FORCE_REBUILD" = true ]; then
         BUILD_ARGS+=(--no-cache)
     fi
 
-    if docker-compose "${COMPOSE_ARGS[@]}" "${BUILD_ARGS[@]}"; then
+    if docker compose "${COMPOSE_ARGS[@]}" "${BUILD_ARGS[@]}"; then
         echo ""
         echo -e "${GREEN}✅ Containers rebuilt successfully${NC}"
     else
@@ -233,13 +243,13 @@ if [ "$INCLUDE_OBSERVABILITY" = false ]; then
     START_ARGS+=(--remove-orphans)
 fi
 
-if docker-compose "${COMPOSE_ARGS[@]}" "${START_ARGS[@]}"; then
+if docker compose "${COMPOSE_ARGS[@]}" "${START_ARGS[@]}"; then
     echo ""
     echo -e "${GREEN}✅ Services started successfully!${NC}"
 else
     echo ""
     echo -e "${RED}❌ Failed to start services. Checking logs...${NC}"
-    docker-compose "${COMPOSE_ARGS[@]}" logs --tail=50
+    docker compose "${COMPOSE_ARGS[@]}" logs --tail=50
     exit 1
 fi
 
@@ -248,13 +258,13 @@ sleep 3
 
 echo ""
 echo "📊 Service Status:"
-docker-compose "${COMPOSE_ARGS[@]}" ps
+docker compose "${COMPOSE_ARGS[@]}" ps
 
 # Check if all services are running
-if docker-compose "${COMPOSE_ARGS[@]}" ps | grep -q "Exit\|exited"; then
+if docker compose "${COMPOSE_ARGS[@]}" ps | grep -q "Exit\|exited"; then
     echo ""
     echo -e "${RED}❌ Some services failed to start. Checking logs...${NC}"
-    docker-compose "${COMPOSE_ARGS[@]}" logs --tail=50
+    docker compose "${COMPOSE_ARGS[@]}" logs --tail=50
     echo ""
     echo -e "${YELLOW}💡 Troubleshooting tips:${NC}"
     echo "  1. Check if ports 8000, 8081, 5433, 6379 are already in use"
@@ -265,16 +275,39 @@ fi
 
 echo ""
 echo -e "${GREEN}🎉 All services are running!${NC}"
+
+# Apply BYPASSRLS for Grafana if observability is enabled
+# This is required after every PostgreSQL restart for RLS-enabled tables
+if [ "$INCLUDE_OBSERVABILITY" = true ]; then
+    echo ""
+    echo -e "${BLUE}🔐 Configuring PostgreSQL for Grafana access...${NC}"
+
+    # Wait for PostgreSQL to be ready
+    sleep 2
+
+    # Check if grafana_readonly user exists and apply BYPASSRLS
+    if docker exec migration_postgres psql -U postgres -d migration_db -tAc "SELECT 1 FROM pg_roles WHERE rolname='grafana_readonly'" 2>/dev/null | grep -q 1; then
+        if docker exec migration_postgres psql -U postgres -d migration_db -c "ALTER ROLE grafana_readonly BYPASSRLS;" 2>/dev/null; then
+            echo -e "${GREEN}✅ BYPASSRLS applied to grafana_readonly user${NC}"
+        else
+            echo -e "${YELLOW}⚠️  Could not apply BYPASSRLS (non-critical if user doesn't exist yet)${NC}"
+        fi
+    else
+        echo -e "${YELLOW}⚠️  grafana_readonly user not found - run create-grafana-user.sql first${NC}"
+        echo -e "${YELLOW}   See: config/docker/observability/create-grafana-user.sql${NC}"
+    fi
+fi
+
 echo ""
 echo "📋 Available commands:"
 if [ "$INCLUDE_OBSERVABILITY" = true ]; then
-    echo "  • View logs:   docker-compose -f config/docker/docker-compose.yml -f config/docker/docker-compose.observability.yml logs -f [service]"
+    echo "  • View logs:   docker compose --env-file config/docker/.env.observability -f config/docker/docker-compose.yml -f config/docker/docker-compose.observability.yml logs -f [service]"
     echo "  • Stop (all):  ./docker-stop.sh --with-observability"
-    echo "  • Status:      docker-compose -f config/docker/docker-compose.yml -f config/docker/docker-compose.observability.yml ps"
+    echo "  • Status:      docker compose --env-file config/docker/.env.observability -f config/docker/docker-compose.yml -f config/docker/docker-compose.observability.yml ps"
 else
-    echo "  • View logs:   docker-compose -f config/docker/docker-compose.yml logs -f [service]"
+    echo "  • View logs:   docker compose -f config/docker/docker-compose.yml logs -f [service]"
     echo "  • Stop:        ./docker-stop.sh"
-    echo "  • Status:      docker-compose -f config/docker/docker-compose.yml ps"
+    echo "  • Status:      docker compose -f config/docker/docker-compose.yml ps"
 fi
 echo ""
 echo "🌐 Access your application:"

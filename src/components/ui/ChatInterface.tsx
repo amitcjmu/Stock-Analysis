@@ -1,17 +1,23 @@
 import React from 'react'
-import { useState, useRef } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { useEffect } from 'react'
-import { MessageCircle } from 'lucide-react'
-import { Send, X, Bot, User, Star, ThumbsUp } from 'lucide-react'
+import { MessageCircle, Lightbulb, HelpCircle, ChevronRight } from 'lucide-react'
+import { Send, X, Bot, User, Star, ThumbsUp, History } from 'lucide-react'
 import { apiCall, API_CONFIG } from '../../config/api';
 import { Markdown } from '../../utils/markdown';
 import { useAuth } from '../../contexts/AuthContext';
+import { usePageContext } from '../../hooks/usePageContext';
+
+// Session storage key for persisting conversation ID
+const CONVERSATION_ID_KEY = 'chat_conversation_id';
 
 interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: string;
+  suggested_actions?: string[];
+  related_help_topics?: string[];
 }
 
 interface ChatInterfaceProps {
@@ -21,16 +27,35 @@ interface ChatInterfaceProps {
   breadcrumbPath?: string;
 }
 
+interface ContextualChatResponse {
+  status: string;
+  response: string;
+  model_used: string;
+  timestamp: string;
+  context_used?: Record<string, unknown>;
+  suggested_actions?: string[];
+  related_help_topics?: string[];
+}
+
 const ChatInterface: React.FC<ChatInterfaceProps> = ({ isOpen, onClose, currentPage = 'Asset Inventory', breadcrumbPath }) => {
   const { user } = useAuth();
+  const { pageContext, flowState, breadcrumb, helpTopics, serializedContext } = usePageContext();
   const [activeTab, setActiveTab] = useState<'chat' | 'feedback'>('chat');
 
-  // Chat state
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: '1',
-      role: 'assistant',
-      content: `Hello! I'm your AI assistant for IT infrastructure migration. I can help you with:
+  // Get page-specific greeting based on context
+  const getInitialGreeting = useCallback((): string => {
+    if (pageContext) {
+      const flowGreetings: Record<string, string> = {
+        discovery: `Welcome to ${pageContext.page_name}! I can help you with data import, mapping, and quality analysis. What would you like to know?`,
+        collection: `You're on ${pageContext.page_name}. I can assist with questionnaires and data collection. How can I help?`,
+        assessment: `Welcome to ${pageContext.page_name}! I can explain 6R strategies and help with migration assessments. What do you need?`,
+        planning: `You're in ${pageContext.page_name}. I can help with wave planning and migration timelines. What's on your mind?`,
+        decommission: `Welcome to ${pageContext.page_name}! I can guide you through legacy system decommissioning. How can I assist?`,
+        finops: `You're viewing ${pageContext.page_name}. I can help with cloud costs and FinOps questions. What would you like to know?`,
+      };
+      return flowGreetings[pageContext.flow_type] || `You're on ${pageContext.page_name}. How can I help you today?`;
+    }
+    return `Hello! I'm your AI assistant for IT infrastructure migration. I can help you with:
 
 • Asset inventory analysis and migration planning
 • Application dependency mapping
@@ -38,12 +63,35 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ isOpen, onClose, currentP
 • Cloud cost estimation and optimization
 • Technical questions about your infrastructure
 
-How can I assist you with your migration today?`,
-      timestamp: new Date().toISOString()
+How can I assist you with your migration today?`;
+  }, [pageContext]);
+
+  // Chat state with session persistence
+  const [conversationId, setConversationId] = useState<string>(() => {
+    // Initialize from sessionStorage or create new
+    if (typeof window !== 'undefined') {
+      const stored = sessionStorage.getItem(CONVERSATION_ID_KEY);
+      if (stored) return stored;
+      const newId = `chat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      sessionStorage.setItem(CONVERSATION_ID_KEY, newId);
+      return newId;
+    }
+    return `chat-${Date.now()}`;
+  });
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    {
+      id: '1',
+      role: 'assistant',
+      content: getInitialGreeting(),
+      timestamp: new Date().toISOString(),
+      suggested_actions: pageContext?.actions?.slice(0, 3) || [],
+      related_help_topics: helpTopics?.slice(0, 5) || []
     }
   ]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
+  const [initialContextSet, setInitialContextSet] = useState(false);
 
   // Feedback state
   const [rating, setRating] = useState(0);
@@ -52,6 +100,7 @@ How can I assist you with your migration today?`,
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const previousRouteRef = useRef<string | null>(null);
 
   const scrollToBottom = (): unknown => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -60,6 +109,113 @@ How can I assist you with your migration today?`,
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Load conversation history from backend on mount (only when authenticated)
+  useEffect(() => {
+    const loadConversationHistory = async (): Promise<void> => {
+      // Skip if already loaded or user not authenticated
+      if (historyLoaded || !user) {
+        if (!user) setHistoryLoaded(true); // Mark as loaded to prevent repeated attempts
+        return;
+      }
+
+      try {
+        const response = await apiCall(`/chat/conversation/${conversationId}`, {
+          method: 'GET',
+        }) as { status: string; messages: Array<{ role: string; content: string; timestamp: string }> };
+
+        if (response.status === 'success' && response.messages && response.messages.length > 0) {
+          // Convert backend messages to our format
+          const loadedMessages: ChatMessage[] = response.messages.map((msg, idx) => ({
+            id: `loaded-${idx}-${Date.now()}`,
+            role: msg.role as 'user' | 'assistant',
+            content: msg.content,
+            timestamp: msg.timestamp,
+          }));
+
+          // Add a page-context greeting at the end if we loaded history
+          loadedMessages.push({
+            id: Date.now().toString(),
+            role: 'assistant',
+            content: `*You're now on ${pageContext?.page_name || 'this page'}. How can I continue helping you?*`,
+            timestamp: new Date().toISOString(),
+            suggested_actions: pageContext?.actions?.slice(0, 3) || [],
+            related_help_topics: helpTopics?.slice(0, 5) || []
+          });
+
+          setMessages(loadedMessages);
+        }
+      } catch {
+        // If no conversation exists yet, that's fine - use initial greeting
+      } finally {
+        setHistoryLoaded(true);
+      }
+    };
+
+    loadConversationHistory();
+  }, [conversationId, historyLoaded, pageContext, helpTopics, user]);
+
+  // Update greeting when page context changes (route navigation) - append instead of replace
+  useEffect(() => {
+    const currentRoute = pageContext?.route || window.location.pathname;
+    const hasValidPageName = pageContext?.page_name && pageContext.page_name !== 'Unknown Page';
+
+    // First time we get valid page context - replace the initial greeting (not add another)
+    if (!initialContextSet && hasValidPageName && historyLoaded) {
+      setMessages(prev => {
+        // Replace the first message with the context-aware greeting
+        if (prev.length > 0 && prev[0].id === '1') {
+          return [{
+            id: '1',
+            role: 'assistant' as const,
+            content: getInitialGreeting(),
+            timestamp: new Date().toISOString(),
+            suggested_actions: pageContext?.actions?.slice(0, 3) || [],
+            related_help_topics: helpTopics?.slice(0, 5) || []
+          }, ...prev.slice(1)];
+        }
+        return prev;
+      });
+      setInitialContextSet(true);
+      previousRouteRef.current = currentRoute;
+      return;
+    }
+
+    // After initial context, handle route changes
+    if (initialContextSet && previousRouteRef.current && previousRouteRef.current !== currentRoute && historyLoaded) {
+      setMessages(prev => {
+        // Check if there are actual user messages (not just greetings)
+        const hasUserMessages = prev.some(msg => msg.role === 'user');
+
+        if (hasUserMessages) {
+          // Only add navigation message if there's an actual conversation
+          return [
+            ...prev,
+            {
+              id: Date.now().toString(),
+              role: 'assistant' as const,
+              content: `📍 *You navigated to ${pageContext?.page_name || 'a new page'}.*\n\n${getInitialGreeting()}`,
+              timestamp: new Date().toISOString(),
+              suggested_actions: pageContext?.actions?.slice(0, 3) || [],
+              related_help_topics: helpTopics?.slice(0, 5) || []
+            }
+          ];
+        } else {
+          // No actual conversation - just replace greeting with fresh page context
+          return [{
+            id: '1',
+            role: 'assistant' as const,
+            content: getInitialGreeting(),
+            timestamp: new Date().toISOString(),
+            suggested_actions: pageContext?.actions?.slice(0, 3) || [],
+            related_help_topics: helpTopics?.slice(0, 5) || []
+          }];
+        }
+      });
+    }
+
+    previousRouteRef.current = currentRoute;
+  }, [pageContext, helpTopics, getInitialGreeting, historyLoaded, initialContextSet]);
 
   // Restrictive system prompt for Gemma chatbot
   const getRestrictiveSystemPrompt = (): unknown => {
@@ -102,6 +258,26 @@ SECURITY:
 If a question is outside these bounds, respond: "I'm specialized in IT migration and infrastructure topics. How can I help you with your cloud migration, asset inventory, or infrastructure modernization instead?"`;
   };
 
+  // Clear conversation history and start fresh
+  const clearHistory = (): void => {
+    const newId = `chat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    sessionStorage.setItem(CONVERSATION_ID_KEY, newId);
+    setConversationId(newId);
+    setMessages([{
+      id: Date.now().toString(),
+      role: 'assistant',
+      content: getInitialGreeting(),
+      timestamp: new Date().toISOString(),
+      suggested_actions: pageContext?.actions?.slice(0, 3) || [],
+      related_help_topics: helpTopics?.slice(0, 5) || []
+    }]);
+
+    // Clear on backend too (fire-and-forget)
+    apiCall(`/chat/conversation/${conversationId}`, {
+      method: 'DELETE',
+    }).catch(() => {/* ignore cleanup errors */});
+  };
+
   const sendMessage = async (): Promise<void> => {
     if (!inputMessage.trim() || isLoading) return;
 
@@ -117,26 +293,42 @@ If a question is outside these bounds, respond: "I'm specialized in IT migration
     setIsLoading(true);
 
     try {
-      const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.CHAT, {
+      // Use conversation endpoint for persistent storage
+      const response = await apiCall(`/chat/conversation/${conversationId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           message: inputMessage,
-          context: `User is currently on: ${currentPage}. Focus responses on migration and infrastructure topics only.`,
           conversation_history: messages.map(msg => ({
             role: msg.role,
             content: msg.content
-          }))
+          })),
+          context: pageContext ? JSON.stringify({
+            page_context: {
+              page_name: pageContext.page_name,
+              route: pageContext.route,
+              flow_type: pageContext.flow_type,
+              description: pageContext.description,
+            },
+            flow_context: flowState ? {
+              flow_id: flowState.flow_id,
+              current_phase: flowState.current_phase,
+              status: flowState.status,
+            } : null,
+            breadcrumb: breadcrumb || breadcrumbPath
+          }) : null
         })
-      });
+      }) as ContextualChatResponse;
 
       const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         content: response.response || 'I apologize, but I couldn\'t generate a response. Please try again with a migration or infrastructure-related question.',
-        timestamp: response.timestamp || new Date().toISOString()
+        timestamp: response.timestamp || new Date().toISOString(),
+        suggested_actions: response.suggested_actions || [],
+        related_help_topics: response.related_help_topics || []
       };
 
       setMessages(prev => [...prev, assistantMessage]);
@@ -216,16 +408,30 @@ If a question is outside these bounds, respond: "I'm specialized in IT migration
                   {activeTab === 'chat' ? 'AI Migration Assistant' : 'Submit Feedback'}
                 </h3>
                 <p className="text-sm text-gray-500">
-                  {activeTab === 'chat' ? 'Specialized in IT migration & infrastructure' : `For ${currentPage} page`}
+                  {activeTab === 'chat'
+                    ? (pageContext ? `Context: ${pageContext.page_name}` : 'Specialized in IT migration & infrastructure')
+                    : `For ${pageContext?.page_name || currentPage} page`
+                  }
                 </p>
               </div>
             </div>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <X className="h-6 w-6" />
-            </button>
+            <div className="flex items-center space-x-2">
+              {activeTab === 'chat' && messages.length > 1 && (
+                <button
+                  onClick={clearHistory}
+                  className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded hover:bg-gray-100"
+                  title="Clear conversation history"
+                >
+                  <History className="h-5 w-5" />
+                </button>
+              )}
+              <button
+                onClick={onClose}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
           </div>
 
           {/* Tab Navigation */}
@@ -289,6 +495,49 @@ If a question is outside these bounds, respond: "I'm specialized in IT migration
                           }`}>
                             {new Date(message.timestamp).toLocaleTimeString()}
                           </p>
+
+                          {/* Suggested Actions */}
+                          {message.role === 'assistant' && message.suggested_actions && message.suggested_actions.length > 0 && (
+                            <div className="mt-3 pt-2 border-t border-gray-200">
+                              <div className="flex items-center gap-1 text-xs text-gray-500 mb-1">
+                                <Lightbulb className="h-3 w-3" />
+                                <span>Suggested Actions:</span>
+                              </div>
+                              <div className="flex flex-wrap gap-1">
+                                {message.suggested_actions.slice(0, 3).map((action, idx) => (
+                                  <button
+                                    key={idx}
+                                    onClick={() => setInputMessage(`How do I ${action.toLowerCase()}?`)}
+                                    className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-blue-50 text-blue-700 rounded-full hover:bg-blue-100 transition-colors"
+                                  >
+                                    <ChevronRight className="h-3 w-3" />
+                                    {action}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Related Help Topics */}
+                          {message.role === 'assistant' && message.related_help_topics && message.related_help_topics.length > 0 && (
+                            <div className="mt-2">
+                              <div className="flex items-center gap-1 text-xs text-gray-500 mb-1">
+                                <HelpCircle className="h-3 w-3" />
+                                <span>Related Help:</span>
+                              </div>
+                              <div className="flex flex-wrap gap-1">
+                                {message.related_help_topics.slice(0, 3).map((topic, idx) => (
+                                  <button
+                                    key={idx}
+                                    onClick={() => setInputMessage(topic)}
+                                    className="inline-flex items-center px-2 py-1 text-xs bg-gray-50 text-gray-600 rounded-full hover:bg-gray-100 transition-colors"
+                                  >
+                                    {topic}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -318,7 +567,7 @@ If a question is outside these bounds, respond: "I'm specialized in IT migration
                     value={inputMessage}
                     onChange={(e) => setInputMessage(e.target.value)}
                     onKeyPress={handleKeyPress}
-                    placeholder="Ask about migration planning, asset analysis, or infrastructure..."
+                    placeholder={pageContext ? `Ask about ${pageContext.page_name.toLowerCase()}...` : "Ask about migration planning, asset analysis, or infrastructure..."}
                     className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                     rows={2}
                     disabled={isLoading}
@@ -352,7 +601,7 @@ If a question is outside these bounds, respond: "I'm specialized in IT migration
                   <div>
                     <h3 className="text-lg font-medium text-gray-900 mb-2">How was your experience?</h3>
                     <p className="text-sm text-gray-600 mb-4">
-                      Page: {currentPage} • Breadcrumb: {breadcrumbPath || window.location.pathname}
+                      Page: {pageContext?.page_name || currentPage} • {breadcrumb || breadcrumbPath || window.location.pathname}
                     </p>
 
                     {/* Rating */}
