@@ -19,13 +19,14 @@ depends_on = None
 
 def upgrade() -> None:
     """Create help_documents table for RAG-based contextual chat."""
+    # Ensure pgvector extension is available (idempotent)
+    op.execute("CREATE EXTENSION IF NOT EXISTS vector")
+
+    # Create help_documents table if not exists (idempotent)
     op.execute(
         """
         DO $$
         BEGIN
-            -- Ensure pgvector extension is available in public schema
-            CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA public;
-
             -- Create help_documents table if not exists
             IF NOT EXISTS (
                 SELECT 1 FROM information_schema.tables
@@ -37,7 +38,7 @@ def upgrade() -> None:
 
                     -- Document identification
                     title VARCHAR(255) NOT NULL,
-                    slug VARCHAR(255) UNIQUE NOT NULL,
+                    slug VARCHAR(255) NOT NULL,
 
                     -- Content
                     content TEXT NOT NULL,
@@ -54,8 +55,7 @@ def upgrade() -> None:
                     faq_questions JSONB DEFAULT '[]'::jsonb,
 
                     -- Vector embedding for semantic search (1024 dimensions for thenlper/gte-large)
-                    -- Use public.vector since pgvector extension is in public schema
-                    embedding public.vector(1024),
+                    embedding vector(1024),
 
                     -- Source and versioning
                     source VARCHAR(100) DEFAULT 'manual',
@@ -64,29 +64,52 @@ def upgrade() -> None:
 
                     -- Timestamps
                     created_at TIMESTAMPTZ DEFAULT NOW(),
-                    updated_at TIMESTAMPTZ
+                    updated_at TIMESTAMPTZ,
+
+                    -- Unique constraint on slug within schema
+                    CONSTRAINT uq_help_documents_slug UNIQUE (slug)
                 );
 
                 RAISE NOTICE 'Created help_documents table';
+            ELSE
+                RAISE NOTICE 'help_documents table already exists - skipping';
+            END IF;
+        END $$;
+        """
+    )
 
-                -- Create indexes
-                CREATE INDEX IF NOT EXISTS ix_help_documents_slug
-                    ON migration.help_documents(slug);
-                CREATE INDEX IF NOT EXISTS ix_help_documents_category
-                    ON migration.help_documents(category);
-                CREATE INDEX IF NOT EXISTS ix_help_documents_flow_type
-                    ON migration.help_documents(flow_type);
-                CREATE INDEX IF NOT EXISTS ix_help_documents_route
-                    ON migration.help_documents(route);
+    # Create indexes idempotently (IF NOT EXISTS)
+    op.execute(
+        """
+        CREATE INDEX IF NOT EXISTS ix_help_documents_slug
+            ON migration.help_documents(slug);
+        CREATE INDEX IF NOT EXISTS ix_help_documents_category
+            ON migration.help_documents(category);
+        CREATE INDEX IF NOT EXISTS ix_help_documents_flow_type
+            ON migration.help_documents(flow_type);
+        CREATE INDEX IF NOT EXISTS ix_help_documents_route
+            ON migration.help_documents(route);
+        """
+    )
 
-                -- Create vector similarity index for efficient semantic search
-                -- Use public schema qualified operator class
-                CREATE INDEX IF NOT EXISTS ix_help_documents_embedding
+    # Create vector similarity index for efficient semantic search (idempotent)
+    # Only create if table has rows (ivfflat requires data to build index)
+    op.execute(
+        """
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM pg_indexes
+                WHERE schemaname = 'migration'
+                AND indexname = 'ix_help_documents_embedding'
+            ) THEN
+                -- Use HNSW index which doesn't require pre-populated data
+                CREATE INDEX ix_help_documents_embedding
                     ON migration.help_documents
-                    USING ivfflat (embedding public.vector_cosine_ops)
-                    WITH (lists = 100);
-
-                RAISE NOTICE 'Created indexes for help_documents table';
+                    USING hnsw (embedding vector_cosine_ops);
+                RAISE NOTICE 'Created vector embedding index';
+            ELSE
+                RAISE NOTICE 'Vector embedding index already exists - skipping';
             END IF;
         END $$;
         """
@@ -94,9 +117,17 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    """Drop help_documents table."""
+    """Drop help_documents table (idempotent)."""
+    # Drop indexes first (IF EXISTS for idempotency)
     op.execute(
         """
-        DROP TABLE IF EXISTS migration.help_documents CASCADE;
+        DROP INDEX IF EXISTS migration.ix_help_documents_embedding;
+        DROP INDEX IF EXISTS migration.ix_help_documents_slug;
+        DROP INDEX IF EXISTS migration.ix_help_documents_category;
+        DROP INDEX IF EXISTS migration.ix_help_documents_flow_type;
+        DROP INDEX IF EXISTS migration.ix_help_documents_route;
         """
     )
+
+    # Drop table (IF EXISTS for idempotency)
+    op.execute("DROP TABLE IF EXISTS migration.help_documents CASCADE;")
