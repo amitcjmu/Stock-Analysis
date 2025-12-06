@@ -196,13 +196,21 @@ async def refresh_compliance_validation(  # noqa: C901
         )
         non_compliant_count = total_apps - compliant_count
 
-        # Convert engagement_standards list to dict format for response
-        # Each standard has requirement_type as key
-        standards_dict = {
-            std.get("requirement_type", f"standard_{i}"): std
-            for i, std in enumerate(engagement_standards)
-            if isinstance(std, dict)
-        }
+        # Normalize engagement_standards to dict format for response
+        # Input can be either a list (from TECH_VERSION_STANDARDS) or dict (from DB)
+        if isinstance(engagement_standards, dict):
+            # Already a dict - use as-is
+            standards_dict = engagement_standards
+        elif isinstance(engagement_standards, list):
+            # Convert list to dict - each standard has requirement_type as key
+            standards_dict = {
+                std.get("requirement_type", f"standard_{i}"): std
+                for i, std in enumerate(engagement_standards)
+                if isinstance(std, dict)
+            }
+        else:
+            # Fallback for unexpected types
+            standards_dict = {}
 
         compliance_validation = {
             "overall_compliant": overall_compliant,

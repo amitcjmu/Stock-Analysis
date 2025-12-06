@@ -197,10 +197,16 @@ class ArchitectureMinimumsExecutorMixin:
             # Use safe_parse_llm_json per ADR-029
             parsed_result = safe_parse_llm_json(result_text)
 
-            if parsed_result:
+            # Validate result is a dict with expected structure
+            if isinstance(parsed_result, dict) and (
+                "checked_items" in parsed_result or "summary" in parsed_result
+            ):
                 return parsed_result
             else:
-                logger.warning("Failed to parse agent result, using fallback")
+                logger.warning(
+                    f"Agent result has unexpected type or structure: "
+                    f"{type(parsed_result).__name__}, using fallback"
+                )
                 return fallback_deterministic_validation(
                     assets_data, engagement_standards
                 )

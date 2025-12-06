@@ -293,35 +293,25 @@ class RAGEOLEnrichmentToolImpl:
         version: str,
         cache_result: bool = True,
     ) -> str:
-        """Synchronous wrapper for execute_async"""
-        import asyncio
-        import nest_asyncio
+        """Synchronous wrapper for execute_async.
 
-        nest_asyncio.apply()
+        Uses a robust pattern for running async code from sync context.
+        """
+        import asyncio
+
+        # OBSERVABILITY: tracking not needed - Agent tool internal execution
+        coro = self.execute_async(normalized_key, technology, version, cache_result)
 
         try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                import concurrent.futures
-
-                with concurrent.futures.ThreadPoolExecutor() as executor:
-                    future = executor.submit(
-                        asyncio.run,
-                        # OBSERVABILITY: tracking not needed - Agent tool internal
-                        self.execute_async(
-                            normalized_key, technology, version, cache_result
-                        ),
-                    )
-                    return future.result()
-            else:
-                # OBSERVABILITY: tracking not needed - Agent tool internal execution
-                return asyncio.run(
-                    self.execute_async(
-                        normalized_key, technology, version, cache_result
-                    )
-                )
+            # Check if we're already in an event loop
+            asyncio.get_running_loop()
         except RuntimeError:
-            # OBSERVABILITY: tracking not needed - Agent tool internal execution
-            return asyncio.run(
-                self.execute_async(normalized_key, technology, version, cache_result)
-            )
+            # No running loop - safe to use asyncio.run()
+            return asyncio.run(coro)
+
+        # We're inside a running loop - need to run in a new thread
+        import concurrent.futures
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(asyncio.run, coro)
+            return future.result(timeout=60)  # 60 second timeout for safety

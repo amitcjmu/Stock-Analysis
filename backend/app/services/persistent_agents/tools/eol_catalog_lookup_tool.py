@@ -337,29 +337,28 @@ class EOLCatalogLookupToolImpl:
             )
 
     def execute_sync(self, technology: str, version: str) -> str:
-        """Synchronous wrapper for execute_async"""
-        import asyncio
-        import nest_asyncio
+        """Synchronous wrapper for execute_async.
 
-        nest_asyncio.apply()
+        Uses a robust pattern for running async code from sync context.
+        """
+        import asyncio
+
+        # OBSERVABILITY: tracking not needed - Agent tool internal execution
+        coro = self.execute_async(technology, version)
 
         try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                import concurrent.futures
-
-                with concurrent.futures.ThreadPoolExecutor() as executor:
-                    # OBSERVABILITY: tracking not needed - Agent tool internal execution
-                    future = executor.submit(
-                        asyncio.run, self.execute_async(technology, version)
-                    )
-                    return future.result()
-            else:
-                # OBSERVABILITY: tracking not needed - Agent tool internal execution
-                return asyncio.run(self.execute_async(technology, version))
+            # Check if we're already in an event loop
+            asyncio.get_running_loop()
         except RuntimeError:
-            # OBSERVABILITY: tracking not needed - Agent tool internal execution
-            return asyncio.run(self.execute_async(technology, version))
+            # No running loop - safe to use asyncio.run()
+            return asyncio.run(coro)
+
+        # We're inside a running loop - need to run in a new thread
+        import concurrent.futures
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(asyncio.run, coro)
+            return future.result(timeout=60)  # 60 second timeout for safety
 
 
 def create_eol_catalog_lookup_tools(

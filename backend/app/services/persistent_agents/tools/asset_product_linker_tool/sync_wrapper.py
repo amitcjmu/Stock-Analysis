@@ -8,27 +8,24 @@ import asyncio
 import concurrent.futures
 from typing import Optional
 
-import nest_asyncio
-
 
 def run_async_in_sync_context(coroutine):
     """
     Run an async coroutine in a sync context.
 
-    Handles running event loops and uses ThreadPoolExecutor when necessary.
+    Uses a robust pattern for running async code from sync context.
     """
-    nest_asyncio.apply()
-
     try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                future = executor.submit(asyncio.run, coroutine)
-                return future.result()
-        else:
-            return asyncio.run(coroutine)
+        # Check if we're already in an event loop
+        asyncio.get_running_loop()
     except RuntimeError:
+        # No running loop - safe to use asyncio.run()
         return asyncio.run(coroutine)
+
+    # We're inside a running loop - need to run in a new thread
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+        future = executor.submit(asyncio.run, coroutine)
+        return future.result(timeout=60)  # 60 second timeout for safety
 
 
 class SyncWrapperMixin:
