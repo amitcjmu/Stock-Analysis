@@ -79,6 +79,7 @@ class CollectionFlow(Base, TimestampMixin):
         UUID(as_uuid=True),
         ForeignKey("migration.discovery_flows.id", ondelete="SET NULL"),
         nullable=True,
+        index=True,
     )
 
     # Flow configuration

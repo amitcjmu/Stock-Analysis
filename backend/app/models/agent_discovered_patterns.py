@@ -24,7 +24,6 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
     literal,
-    literal_column,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.sql import text
@@ -388,11 +387,10 @@ class AgentDiscoveredPatterns(Base):
                 "Query embedding must be exactly 1024 dimensions for thenlper/gte-large model"
             )
 
-        # Convert embedding to PostgreSQL vector format
-        # pgvector's <=> operator returns cosine distance (0 = identical, 2 = opposite)
+        # Use pgvector's native cosine_distance method (secure, no SQL injection risk)
+        # Cosine distance: 0 = identical, 2 = opposite
         # Cosine similarity = 1 - cosine_distance (for unit vectors)
-        embedding_str = f"ARRAY{query_embedding}::vector"
-        distance_expr = literal_column(f"(embedding <=> {embedding_str})")
+        distance_expr = cls.embedding.cosine_distance(query_embedding)
         similarity_expr = literal(1.0) - distance_expr
 
         # Convert similarity threshold to distance threshold

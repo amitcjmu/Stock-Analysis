@@ -99,15 +99,11 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    """Remove all GIN indexes."""
-    op.execute(
-        """
-        DROP INDEX IF EXISTS migration.ix_gap_analysis_critical_gaps_gin;
-        DROP INDEX IF EXISTS migration.ix_assessment_flows_metadata_gin;
-        DROP INDEX IF EXISTS migration.ix_collection_flows_config_gin;
-        DROP INDEX IF EXISTS migration.ix_assets_technical_details_gin;
-        DROP INDEX IF EXISTS migration.ix_assets_custom_attributes_gin;
-        DROP INDEX IF EXISTS migration.ix_discovery_flows_phase_state_gin;
-        DROP INDEX IF EXISTS migration.ix_agent_patterns_pattern_data_gin;
-        """
-    )
+    """Remove all GIN indexes (separate statements for reliability)."""
+    op.execute("DROP INDEX IF EXISTS migration.ix_gap_analysis_critical_gaps_gin;")
+    op.execute("DROP INDEX IF EXISTS migration.ix_assessment_flows_metadata_gin;")
+    op.execute("DROP INDEX IF EXISTS migration.ix_collection_flows_config_gin;")
+    op.execute("DROP INDEX IF EXISTS migration.ix_assets_technical_details_gin;")
+    op.execute("DROP INDEX IF EXISTS migration.ix_assets_custom_attributes_gin;")
+    op.execute("DROP INDEX IF EXISTS migration.ix_discovery_flows_phase_state_gin;")
+    op.execute("DROP INDEX IF EXISTS migration.ix_agent_patterns_pattern_data_gin;")
