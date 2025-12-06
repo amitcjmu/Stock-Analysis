@@ -10,7 +10,7 @@
  * - Expandable detailed view per application
  *
  * Backend Integration:
- * - Fetches from: GET /api/v1/master-flows/{flow_id}/assessment/compliance
+ * - Fetches from: GET /api/v1/master-flows/{flow_id}/compliance
  * - Uses snake_case for ALL field names (ADR compliance)
  * - Follows TanStack Query patterns with 30s refetch interval
  */
@@ -180,7 +180,7 @@ export const ComplianceReport: React.FC<ComplianceReportProps> = ({
     queryKey: ['compliance-validation', flow_id],
     queryFn: async () => {
       return await apiClient.get<ComplianceValidationResponse>(
-        `/master-flows/${flow_id}/assessment/compliance`
+        `/master-flows/${flow_id}/compliance`
       );
     },
     enabled: !!flow_id,
