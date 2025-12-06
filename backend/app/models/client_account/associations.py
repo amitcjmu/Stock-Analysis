@@ -32,14 +32,14 @@ class UserAccountAssociation(Base):
     )
     user_id = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("users.id", ondelete="CASCADE"),
+        ForeignKey("migration.users.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="Foreign key to the users table.",
     )
     client_account_id = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("client_accounts.id", ondelete="CASCADE"),
+        ForeignKey("migration.client_accounts.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="Foreign key to the client_accounts table.",
@@ -61,7 +61,7 @@ class UserAccountAssociation(Base):
     )
     created_by = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("users.id"),
+        ForeignKey("migration.users.id"),
         nullable=True,
         comment="The user ID of the user who created this association (typically an admin).",
     )

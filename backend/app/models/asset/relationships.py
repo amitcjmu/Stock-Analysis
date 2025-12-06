@@ -43,14 +43,14 @@ class AssetDependency(Base):
     # Multi-tenant isolation (added in migration 110)
     client_account_id = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("client_accounts.id", ondelete="CASCADE"),
+        ForeignKey("migration.client_accounts.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="FK to client account for multi-tenant isolation.",
     )
     engagement_id = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("engagements.id", ondelete="CASCADE"),
+        ForeignKey("migration.engagements.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="FK to engagement for multi-tenant isolation.",
@@ -58,13 +58,13 @@ class AssetDependency(Base):
 
     asset_id = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("assets.id", ondelete="CASCADE"),
+        ForeignKey("migration.assets.id", ondelete="CASCADE"),
         nullable=False,
         comment="The asset that has the dependency.",
     )
     depends_on_asset_id = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("assets.id", ondelete="CASCADE"),
+        ForeignKey("migration.assets.id", ondelete="CASCADE"),
         nullable=False,
         comment="The asset that is being depended upon.",
     )
@@ -137,7 +137,7 @@ class WorkflowProgress(Base):
     )
     asset_id = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("assets.id", ondelete="CASCADE"),
+        ForeignKey("migration.assets.id", ondelete="CASCADE"),
         nullable=False,
         comment="Foreign key to the asset this progress record belongs to.",
     )
@@ -184,14 +184,14 @@ class CMDBSixRAnalysis(Base):
     # Multi-tenant isolation
     client_account_id = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("client_accounts.id", ondelete="CASCADE"),
+        ForeignKey("migration.client_accounts.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="The client account this analysis belongs to.",
     )
     engagement_id = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("engagements.id", ondelete="CASCADE"),
+        ForeignKey("migration.engagements.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="The engagement this analysis is for.",
@@ -278,7 +278,7 @@ class CMDBSixRAnalysis(Base):
     )
     created_by = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("users.id"),
+        ForeignKey("migration.users.id"),
         nullable=True,
         comment="The user who initiated the analysis.",
     )
@@ -309,14 +309,14 @@ class MigrationWave(Base):
     # Multi-tenant isolation
     client_account_id = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("client_accounts.id", ondelete="CASCADE"),
+        ForeignKey("migration.client_accounts.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="The client account this wave belongs to.",
     )
     engagement_id = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("engagements.id", ondelete="CASCADE"),
+        ForeignKey("migration.engagements.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="The engagement this wave is part of.",
@@ -403,7 +403,7 @@ class MigrationWave(Base):
     )
     created_by = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("users.id"),
+        ForeignKey("migration.users.id"),
         nullable=True,
         comment="The user who planned or created this wave.",
     )

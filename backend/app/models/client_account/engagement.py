@@ -35,7 +35,7 @@ class Engagement(Base):
     )
     client_account_id = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("client_accounts.id", ondelete="CASCADE"),
+        ForeignKey("migration.client_accounts.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="Foreign key linking this engagement to its parent client account.",
@@ -86,7 +86,7 @@ class Engagement(Base):
     # Team & Contacts
     engagement_lead_id = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("users.id"),
+        ForeignKey("migration.users.id"),
         nullable=True,
         comment="The user ID of the person leading the engagement.",
     )
@@ -149,7 +149,7 @@ class Engagement(Base):
     )
     created_by = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("users.id"),
+        ForeignKey("migration.users.id"),
         nullable=True,
         comment="The user ID of the person who created the engagement.",
     )

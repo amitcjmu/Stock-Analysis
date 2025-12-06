@@ -32,7 +32,7 @@ class UserProfile(Base):
     # Primary Key (references users.id)
     user_id = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("users.id", ondelete="CASCADE"),
+        ForeignKey("migration.users.id", ondelete="CASCADE"),
         primary_key=True,
         comment="Foreign key to the users table, serving as the primary key for this profile.",
     )
@@ -56,7 +56,7 @@ class UserProfile(Base):
     )
     approved_by = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("users.id"),
+        ForeignKey("migration.users.id"),
         nullable=True,
         comment="The user ID of the admin who approved the access request.",
     )
@@ -222,7 +222,7 @@ class UserRole(Base):
     )
     user_id = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("users.id", ondelete="CASCADE"),
+        ForeignKey("migration.users.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="Foreign key linking to the user who is assigned this role.",
@@ -268,13 +268,13 @@ class UserRole(Base):
     )
     scope_client_id = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("client_accounts.id"),
+        ForeignKey("migration.client_accounts.id"),
         nullable=True,
         comment="If scope is 'client', this links to the relevant client account.",
     )
     scope_engagement_id = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("engagements.id"),
+        ForeignKey("migration.engagements.id"),
         nullable=True,
         comment="If scope is 'engagement', this links to the relevant engagement.",
     )
@@ -293,7 +293,7 @@ class UserRole(Base):
     )
     assigned_by = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("users.id"),
+        ForeignKey("migration.users.id"),
         nullable=True,
         comment="The user ID of the admin who assigned this role.",
     )

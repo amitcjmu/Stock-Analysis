@@ -37,7 +37,7 @@ class UserActiveFlow(Base):
     # Foreign keys
     user_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("users.id", ondelete="CASCADE"),
+        ForeignKey("migration.users.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
@@ -46,7 +46,7 @@ class UserActiveFlow(Base):
     )  # References any flow table
     engagement_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("engagements.id", ondelete="CASCADE"),
+        ForeignKey("migration.engagements.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )

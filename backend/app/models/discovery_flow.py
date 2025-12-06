@@ -31,7 +31,9 @@ class DiscoveryFlow(Base):
     # Master Flow Coordination (Phase 2)
     master_flow_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("crewai_flow_state_extensions.flow_id", ondelete="CASCADE"),
+        ForeignKey(
+            "migration.crewai_flow_state_extensions.flow_id", ondelete="CASCADE"
+        ),
         nullable=True,
         index=True,
     )
@@ -43,7 +45,10 @@ class DiscoveryFlow(Base):
 
     # Data import integration
     data_import_id = Column(
-        UUID(as_uuid=True), ForeignKey("data_imports.id"), nullable=True, index=True
+        UUID(as_uuid=True),
+        ForeignKey("migration.data_imports.id"),
+        nullable=True,
+        index=True,
     )
 
     # Flow metadata

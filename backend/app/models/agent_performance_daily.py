@@ -94,14 +94,14 @@ class AgentPerformanceDaily(Base):
     # Multi-tenant fields
     client_account_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("client_accounts.id"),
+        ForeignKey("migration.client_accounts.id"),
         nullable=False,
         index=True,
         comment="Client account these metrics belong to",
     )
     engagement_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("engagements.id"),
+        ForeignKey("migration.engagements.id"),
         nullable=False,
         index=True,
         comment="Engagement these metrics are part of",

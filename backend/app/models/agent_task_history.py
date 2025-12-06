@@ -48,7 +48,7 @@ class AgentTaskHistory(Base):
     # (child flow ID vs master flow ID per MFO two-table pattern)
     flow_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("crewai_flow_state_extensions.flow_id"),
+        ForeignKey("migration.crewai_flow_state_extensions.flow_id"),
         nullable=True,  # Changed from False to True - Bug #1168
         index=True,
         comment="Reference to the CrewAI flow this task belongs to (nullable for ambiguous flow contexts)",
@@ -141,14 +141,14 @@ class AgentTaskHistory(Base):
     # Multi-tenant fields
     client_account_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("client_accounts.id"),
+        ForeignKey("migration.client_accounts.id"),
         nullable=False,
         index=True,
         comment="Client account this task belongs to",
     )
     engagement_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("engagements.id"),
+        ForeignKey("migration.engagements.id"),
         nullable=False,
         index=True,
         comment="Engagement this task is part of",

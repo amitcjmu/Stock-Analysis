@@ -183,7 +183,9 @@ class CrewAIFlowStateExtensions(
     )
     parent_flow_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("crewai_flow_state_extensions.flow_id", ondelete="SET NULL"),
+        ForeignKey(
+            "migration.crewai_flow_state_extensions.flow_id", ondelete="SET NULL"
+        ),
         nullable=True,
         comment="If this is a sub-flow, this links to the parent flow's ID.",
     )
@@ -203,7 +205,7 @@ class CrewAIFlowStateExtensions(
     # Collection flow integration fields
     collection_flow_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("collection_flows.id", ondelete="SET NULL"),
+        ForeignKey("migration.collection_flows.id", ondelete="SET NULL"),
         nullable=True,
         comment="Reference to associated collection flow if this is a collection-enabled flow.",
     )

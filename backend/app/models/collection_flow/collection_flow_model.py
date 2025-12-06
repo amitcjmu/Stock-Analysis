@@ -50,25 +50,36 @@ class CollectionFlow(Base, TimestampMixin):
 
     # Multi-tenant fields
     client_account_id = Column(
-        UUID(as_uuid=True), ForeignKey("client_accounts.id"), nullable=False, index=True
+        UUID(as_uuid=True),
+        ForeignKey("migration.client_accounts.id"),
+        nullable=False,
+        index=True,
     )
     engagement_id = Column(
-        UUID(as_uuid=True), ForeignKey("engagements.id"), nullable=False, index=True
+        UUID(as_uuid=True),
+        ForeignKey("migration.engagements.id"),
+        nullable=False,
+        index=True,
     )
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    user_id = Column(
+        UUID(as_uuid=True), ForeignKey("migration.users.id"), nullable=False
+    )
     created_by = Column(UUID(as_uuid=True), nullable=True)  # User who created the flow
 
     # Flow relationships
     master_flow_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("crewai_flow_state_extensions.flow_id", ondelete="CASCADE"),
+        ForeignKey(
+            "migration.crewai_flow_state_extensions.flow_id", ondelete="CASCADE"
+        ),
         nullable=True,
         index=True,
     )
     discovery_flow_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("discovery_flows.id", ondelete="SET NULL"),
+        ForeignKey("migration.discovery_flows.id", ondelete="SET NULL"),
         nullable=True,
+        index=True,
     )
 
     # Flow configuration

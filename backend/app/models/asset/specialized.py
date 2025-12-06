@@ -31,13 +31,13 @@ class AssetEOLAssessment(Base, TimestampMixin):
     # Multi-tenant isolation
     client_account_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("client_accounts.id", ondelete="CASCADE"),
+        ForeignKey("migration.client_accounts.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
     engagement_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("engagements.id", ondelete="CASCADE"),
+        ForeignKey("migration.engagements.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
@@ -102,13 +102,13 @@ class AssetContact(Base, TimestampMixin):
     # Multi-tenant isolation
     client_account_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("client_accounts.id", ondelete="CASCADE"),
+        ForeignKey("migration.client_accounts.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
     engagement_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("engagements.id", ondelete="CASCADE"),
+        ForeignKey("migration.engagements.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
@@ -130,7 +130,7 @@ class AssetContact(Base, TimestampMixin):
     )
     user_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("users.id"),
+        ForeignKey("migration.users.id"),
         nullable=True,
         comment="If contact is platform user",
     )

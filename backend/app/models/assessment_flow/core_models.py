@@ -40,16 +40,16 @@ class AssessmentFlow(Base):
     # Primary identifiers
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     engagement_id = Column(
-        UUID(as_uuid=True), ForeignKey("engagements.id"), nullable=False
+        UUID(as_uuid=True), ForeignKey("migration.engagements.id"), nullable=False
     )
     client_account_id = Column(
-        UUID(as_uuid=True), ForeignKey("client_accounts.id"), nullable=False
+        UUID(as_uuid=True), ForeignKey("migration.client_accounts.id"), nullable=False
     )
 
     # MFO Integration - Links to master flow orchestrator
     master_flow_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("crewai_flow_state_extensions.flow_id"),
+        ForeignKey("migration.crewai_flow_state_extensions.flow_id"),
         nullable=True,
         comment="Reference to master flow orchestrator for cross-phase coordination",
     )
@@ -249,10 +249,10 @@ class EngagementArchitectureStandard(Base):
     # Primary identifiers
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     engagement_id = Column(
-        UUID(as_uuid=True), ForeignKey("engagements.id"), nullable=False
+        UUID(as_uuid=True), ForeignKey("migration.engagements.id"), nullable=False
     )
     client_account_id = Column(
-        UUID(as_uuid=True), ForeignKey("client_accounts.id"), nullable=False
+        UUID(as_uuid=True), ForeignKey("migration.client_accounts.id"), nullable=False
     )
 
     # Standard definition

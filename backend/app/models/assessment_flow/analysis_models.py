@@ -35,7 +35,7 @@ class TechDebtAnalysis(Base):
     # Primary identifiers
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     assessment_flow_id = Column(
-        UUID(as_uuid=True), ForeignKey("assessment_flows.id"), nullable=False
+        UUID(as_uuid=True), ForeignKey("migration.assessment_flows.id"), nullable=False
     )
     application_id = Column(
         UUID(as_uuid=True), nullable=False
@@ -123,7 +123,7 @@ class SixRDecision(Base):
     # Primary identifiers
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     assessment_flow_id = Column(
-        UUID(as_uuid=True), ForeignKey("assessment_flows.id"), nullable=False
+        UUID(as_uuid=True), ForeignKey("migration.assessment_flows.id"), nullable=False
     )
     application_id = Column(
         UUID(as_uuid=True), nullable=False
@@ -214,7 +214,7 @@ class AssessmentLearningFeedback(Base):
     # Primary identifiers
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     assessment_flow_id = Column(
-        UUID(as_uuid=True), ForeignKey("assessment_flows.id"), nullable=False
+        UUID(as_uuid=True), ForeignKey("migration.assessment_flows.id"), nullable=False
     )
 
     # Feedback classification

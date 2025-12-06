@@ -36,14 +36,14 @@ class ClientAccess(Base):
     )
     user_profile_id = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("user_profiles.user_id", ondelete="CASCADE"),
+        ForeignKey("migration.user_profiles.user_id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="Foreign key to the user's profile.",
     )
     client_account_id = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("client_accounts.id", ondelete="CASCADE"),
+        ForeignKey("migration.client_accounts.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="Foreign key to the client account being accessed.",
@@ -90,7 +90,7 @@ class ClientAccess(Base):
     )
     granted_by = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("users.id"),
+        ForeignKey("migration.users.id"),
         nullable=False,
         comment="The user ID of the admin who granted this access.",
     )
@@ -170,14 +170,14 @@ class EngagementAccess(Base):
     )
     user_profile_id = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("user_profiles.user_id", ondelete="CASCADE"),
+        ForeignKey("migration.user_profiles.user_id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="Foreign key to the user's profile.",
     )
     engagement_id = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("engagements.id", ondelete="CASCADE"),
+        ForeignKey("migration.engagements.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="Foreign key to the engagement being accessed.",
@@ -231,7 +231,7 @@ class EngagementAccess(Base):
     )
     granted_by = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("users.id"),
+        ForeignKey("migration.users.id"),
         nullable=False,
         comment="The user ID of the admin who granted this access.",
     )

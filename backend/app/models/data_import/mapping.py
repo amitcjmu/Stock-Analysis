@@ -51,7 +51,7 @@ class ImportFieldMapping(Base):
     )
     master_flow_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("crewai_flow_state_extensions.id"),
+        ForeignKey("migration.crewai_flow_state_extensions.id"),
         nullable=True,
         comment="The master flow ID this mapping is associated with.",
     )

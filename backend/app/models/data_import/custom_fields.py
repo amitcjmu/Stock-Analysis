@@ -13,7 +13,7 @@ class CustomTargetField(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     client_account_id = Column(
-        UUID(as_uuid=True), ForeignKey("client_accounts.id"), nullable=False
+        UUID(as_uuid=True), ForeignKey("migration.client_accounts.id"), nullable=False
     )
     field_name = Column(String, nullable=False)
     field_type = Column(String, nullable=False)
@@ -22,7 +22,7 @@ class CustomTargetField(Base):
     is_critical = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    created_by = Column(UUID(as_uuid=True), ForeignKey("migration.users.id"))
     validation_schema = Column(JSON)
     default_value = Column(String)
     allowed_values = Column(JSON)

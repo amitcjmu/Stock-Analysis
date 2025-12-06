@@ -74,13 +74,13 @@ class User(Base):
     # Default Context (for faster context establishment)
     default_client_id = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("client_accounts.id"),
+        ForeignKey("migration.client_accounts.id"),
         nullable=True,
         comment="The default client account to use for the user upon login.",
     )
     default_engagement_id = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("engagements.id"),
+        ForeignKey("migration.engagements.id"),
         nullable=True,
         comment="The default engagement to use for the user upon login.",
     )

@@ -42,7 +42,7 @@ class RefreshToken(Base):
     )
     user_id = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("users.id", ondelete="CASCADE"),
+        ForeignKey("migration.users.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="The user this refresh token belongs to.",

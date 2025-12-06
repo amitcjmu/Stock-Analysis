@@ -36,13 +36,13 @@ class CollectionGapAnalysis(Base):
     # Multi-tenant isolation
     client_account_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("client_accounts.id", ondelete="CASCADE"),
+        ForeignKey("migration.client_accounts.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
     engagement_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("engagements.id", ondelete="CASCADE"),
+        ForeignKey("migration.engagements.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
@@ -50,7 +50,7 @@ class CollectionGapAnalysis(Base):
     # Flow relationship
     collection_flow_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("collection_flows.id", ondelete="CASCADE"),
+        ForeignKey("migration.collection_flows.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )

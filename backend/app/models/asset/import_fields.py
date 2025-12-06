@@ -21,7 +21,7 @@ class ImportFieldsMixin:
     # Import and processing metadata
     imported_by = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("users.id"),
+        ForeignKey("migration.users.id"),
         nullable=True,
         comment="The user who imported the data that created this asset.",
     )
@@ -47,7 +47,7 @@ class ImportFieldsMixin:
 
     raw_import_records_id = Column(
         PostgresUUID(as_uuid=True),
-        ForeignKey("raw_import_records.id"),
+        ForeignKey("migration.raw_import_records.id"),
         nullable=True,
         comment="The raw import record this asset was created from.",
     )
