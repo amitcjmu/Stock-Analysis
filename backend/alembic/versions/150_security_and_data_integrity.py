@@ -371,6 +371,7 @@ def upgrade() -> None:
     # =========================================================================
     # PART 2: Convert PostgreSQL ENUMs to CHECK Constraints (#990)
     # =========================================================================
+    # Uses atomic ALTER COLUMN TYPE conversion (simpler than add/migrate/drop/rename)
 
     # Convert assessments.assessment_type (ENUM -> VARCHAR + CHECK)
     op.execute(
@@ -385,21 +386,10 @@ def upgrade() -> None:
                 AND column_name = 'assessment_type'
                 AND udt_name = 'assessmenttype'
             ) THEN
-                -- Add new VARCHAR column
+                -- Atomically convert ENUM to VARCHAR
                 ALTER TABLE migration.assessments
-                ADD COLUMN assessment_type_new VARCHAR(50);
-
-                -- Migrate data
-                UPDATE migration.assessments
-                SET assessment_type_new = assessment_type::text;
-
-                -- Drop old column
-                ALTER TABLE migration.assessments
-                DROP COLUMN assessment_type;
-
-                -- Rename new column
-                ALTER TABLE migration.assessments
-                RENAME COLUMN assessment_type_new TO assessment_type;
+                ALTER COLUMN assessment_type TYPE VARCHAR(50)
+                USING assessment_type::text;
 
                 -- Add CHECK constraint
                 ALTER TABLE migration.assessments
@@ -424,18 +414,12 @@ def upgrade() -> None:
                 AND column_name = 'status'
                 AND udt_name = 'assessmentstatus'
             ) THEN
+                -- Atomically convert ENUM to VARCHAR
                 ALTER TABLE migration.assessments
-                ADD COLUMN status_new VARCHAR(50);
+                ALTER COLUMN status TYPE VARCHAR(50)
+                USING status::text;
 
-                UPDATE migration.assessments
-                SET status_new = status::text;
-
-                ALTER TABLE migration.assessments
-                DROP COLUMN status;
-
-                ALTER TABLE migration.assessments
-                RENAME COLUMN status_new TO status;
-
+                -- Add CHECK constraint
                 ALTER TABLE migration.assessments
                 ADD CONSTRAINT chk_assessments_status
                 CHECK (status IN (
@@ -459,18 +443,12 @@ def upgrade() -> None:
                 AND column_name = 'risk_level'
                 AND udt_name = 'risklevel'
             ) THEN
+                -- Atomically convert ENUM to VARCHAR
                 ALTER TABLE migration.assessments
-                ADD COLUMN risk_level_new VARCHAR(20);
+                ALTER COLUMN risk_level TYPE VARCHAR(20)
+                USING risk_level::text;
 
-                UPDATE migration.assessments
-                SET risk_level_new = risk_level::text;
-
-                ALTER TABLE migration.assessments
-                DROP COLUMN risk_level;
-
-                ALTER TABLE migration.assessments
-                RENAME COLUMN risk_level_new TO risk_level;
-
+                -- Add CHECK constraint
                 ALTER TABLE migration.assessments
                 ADD CONSTRAINT chk_assessments_risk_level
                 CHECK (risk_level IN ('LOW', 'MEDIUM', 'HIGH', 'CRITICAL')
