@@ -500,6 +500,19 @@ git diff HEAD~1 backend/app/services/asset_service/deduplication/ | grep "^+.*="
 
 **Reference:** PR #884 → Commit d327e56ae refactoring bug (Nov 2025)
 
+### ❌ Adding Imports Before New Files Exist in Container
+**Issue:** Modifying imports to reference new modules before ensuring those files exist in the running container  
+**Why:** Causes `ImportError` at startup - backend fails to start, breaks login and all API endpoints  
+**Example:** Splitting `pagination.py` and adding `from .pagination_queries import ...` before rebuilding container  
+**Check:**
+- Create new files FIRST
+- Rebuild container to include new files: `docker-compose build backend`
+- THEN modify imports in existing files
+- Verify imports work: `docker-compose exec backend python -c "from app.module import ..."`
+- Restart backend after rebuild
+
+**Reference:** Issue #1257 - pagination.py split (Dec 2025)
+
 ---
 
 ## Cursor AI Assistant Best Practices

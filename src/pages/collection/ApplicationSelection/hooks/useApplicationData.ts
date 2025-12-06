@@ -27,6 +27,17 @@ interface UseApplicationDataReturn {
   allAssets: Asset[];
   assetsByType: AssetsByType;
   filterOptions: FilterOptions;
+  summary: {
+    applications: number;
+    servers: number;
+    databases: number;
+    components: number;
+    network: number;
+    storage: number;
+    security: number;
+    virtualization: number;
+    unknown: number;
+  } | null;
 
   // Loading states
   applicationsLoading: boolean;
@@ -131,6 +142,7 @@ export const useApplicationData = ({
           assets: response.assets,
           pagination: response.pagination,
           currentPage: pageParam,
+          summary: response.summary,
         } as AssetPageData;
       } catch (error) {
         console.error("❌ Failed to fetch applications:", error);
@@ -199,6 +211,23 @@ export const useApplicationData = ({
     };
   }, [allAssets]);
 
+  // Extract summary from first page (contains counts for ALL assets)
+  const summary = useMemo(() => {
+    const firstPageSummary = applicationsData?.pages?.[0]?.summary;
+    if (!firstPageSummary) return null;
+    return {
+      applications: firstPageSummary.applications || 0,
+      servers: firstPageSummary.servers || 0,
+      databases: firstPageSummary.databases || 0,
+      components: firstPageSummary.components || 0,
+      network: firstPageSummary.network || 0,
+      storage: firstPageSummary.storage || 0,
+      security: firstPageSummary.security || 0,
+      virtualization: firstPageSummary.virtualization || 0,
+      unknown: firstPageSummary.unknown || 0,
+    };
+  }, [applicationsData]);
+
   // Fetch current collection flow details to check existing selections
   const { data: collectionFlow, isLoading: flowLoading } = useQuery({
     queryKey: ["collection-flow", flowId],
@@ -214,11 +243,12 @@ export const useApplicationData = ({
     enabled: !!flowId,
   });
 
-  return {
-    allAssets,
-    assetsByType,
-    filterOptions,
-    applicationsLoading,
+    return {
+      allAssets,
+      assetsByType,
+      filterOptions,
+      summary,
+      applicationsLoading,
     flowLoading,
     isFetchingNextPage,
     hasNextPage: hasNextPage || false,

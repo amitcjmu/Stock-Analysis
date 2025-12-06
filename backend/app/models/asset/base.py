@@ -82,11 +82,12 @@ ASSET_TYPE_PRIORITIES = {
     "database": 1,  # Highest priority
     "application": 2,
     "server": 3,
-    "network": 4,
-    "storage": 5,
-    "security_group": 6,
-    "load_balancer": 7,
-    "virtual_machine": 8,
-    "container": 9,
-    "other": 10,  # Lowest priority
+    "component": 4,
+    "network": 5,
+    "storage": 6,
+    "security_group": 7,
+    "load_balancer": 8,
+    "virtual_machine": 9,
+    "container": 10,
+    "other": 11,  # Lowest priority
 }

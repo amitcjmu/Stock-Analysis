@@ -24,6 +24,17 @@ interface SelectionControlsProps {
   setSelectedAssetTypes: React.Dispatch<React.SetStateAction<Set<string>>>;
   assetsByType: AssetsByType;
   allAssets: Asset[];
+  summary: {
+    applications: number;
+    servers: number;
+    databases: number;
+    components: number;
+    network: number;
+    storage: number;
+    security: number;
+    virtualization: number;
+    unknown: number;
+  } | null;
   filteredApplications: Asset[];
   selectedApplications: Set<string>;
   onSelectAll: (checked: boolean) => void;
@@ -37,6 +48,7 @@ export const SelectionControls: React.FC<SelectionControlsProps> = ({
   setSelectedAssetTypes,
   assetsByType,
   allAssets,
+  summary,
   filteredApplications,
   selectedApplications,
   onSelectAll,
@@ -69,79 +81,106 @@ export const SelectionControls: React.FC<SelectionControlsProps> = ({
             All Assets ({allAssets.length})
           </Button>
 
-          <Button
-            variant={
-              selectedAssetTypes.has("APPLICATION") ? "default" : "outline"
-            }
-            size="sm"
-            onClick={() => toggleAssetType("APPLICATION")}
-          >
-            <Cpu className="h-3 w-3 mr-1" />
-            Applications ({assetsByType.APPLICATION.length})
-          </Button>
+          {(summary?.applications ?? assetsByType.APPLICATION.length) > 0 && (
+            <Button
+              variant={
+                selectedAssetTypes.has("APPLICATION") ? "default" : "outline"
+              }
+              size="sm"
+              onClick={() => toggleAssetType("APPLICATION")}
+            >
+              <Cpu className="h-3 w-3 mr-1" />
+              Applications ({summary?.applications ?? assetsByType.APPLICATION.length})
+            </Button>
+          )}
 
-          <Button
-            variant={selectedAssetTypes.has("SERVER") ? "default" : "outline"}
-            size="sm"
-            onClick={() => toggleAssetType("SERVER")}
-          >
-            <Server className="h-3 w-3 mr-1" />
-            Servers ({assetsByType.SERVER.length})
-          </Button>
+          {(summary?.servers ?? assetsByType.SERVER.length) > 0 && (
+            <Button
+              variant={selectedAssetTypes.has("SERVER") ? "default" : "outline"}
+              size="sm"
+              onClick={() => toggleAssetType("SERVER")}
+            >
+              <Server className="h-3 w-3 mr-1" />
+              Servers ({summary?.servers ?? assetsByType.SERVER.length})
+            </Button>
+          )}
 
-          <Button
-            variant={selectedAssetTypes.has("DATABASE") ? "default" : "outline"}
-            size="sm"
-            onClick={() => toggleAssetType("DATABASE")}
-          >
-            <Database className="h-3 w-3 mr-1" />
-            Databases ({assetsByType.DATABASE.length})
-          </Button>
+          {(summary?.databases ?? assetsByType.DATABASE.length) > 0 && (
+            <Button
+              variant={selectedAssetTypes.has("DATABASE") ? "default" : "outline"}
+              size="sm"
+              onClick={() => toggleAssetType("DATABASE")}
+            >
+              <Database className="h-3 w-3 mr-1" />
+              Databases ({summary?.databases ?? assetsByType.DATABASE.length})
+            </Button>
+          )}
+
+          {(summary?.components ?? 0) > 0 && (
+            <Button
+              variant={
+                selectedAssetTypes.has("COMPONENT") ? "default" : "outline"
+              }
+              size="sm"
+              onClick={() => toggleAssetType("COMPONENT")}
+            >
+              <Cpu className="h-3 w-3 mr-1" />
+              Components ({summary?.components ?? 0})
+            </Button>
+          )}
 
           {/* Bug #971 Fix: Use NETWORK instead of NETWORK_DEVICE to match normalization */}
-          <Button
-            variant={
-              selectedAssetTypes.has("NETWORK") ? "default" : "outline"
-            }
-            size="sm"
-            onClick={() => toggleAssetType("NETWORK")}
-          >
-            <Network className="h-3 w-3 mr-1" />
-            Network ({assetsByType.NETWORK.length})
-          </Button>
+          {(summary?.network ?? assetsByType.NETWORK.length) > 0 && (
+            <Button
+              variant={
+                selectedAssetTypes.has("NETWORK") ? "default" : "outline"
+              }
+              size="sm"
+              onClick={() => toggleAssetType("NETWORK")}
+            >
+              <Network className="h-3 w-3 mr-1" />
+              Network ({summary?.network ?? assetsByType.NETWORK.length})
+            </Button>
+          )}
 
-          <Button
-            variant={
-              selectedAssetTypes.has("STORAGE_DEVICE") ? "default" : "outline"
-            }
-            size="sm"
-            onClick={() => toggleAssetType("STORAGE_DEVICE")}
-          >
-            <HardDrive className="h-3 w-3 mr-1" />
-            Storage ({assetsByType.STORAGE_DEVICE.length})
-          </Button>
+          {(summary?.storage ?? assetsByType.STORAGE_DEVICE.length) > 0 && (
+            <Button
+              variant={
+                selectedAssetTypes.has("STORAGE_DEVICE") ? "default" : "outline"
+              }
+              size="sm"
+              onClick={() => toggleAssetType("STORAGE_DEVICE")}
+            >
+              <HardDrive className="h-3 w-3 mr-1" />
+              Storage ({summary?.storage ?? assetsByType.STORAGE_DEVICE.length})
+            </Button>
+          )}
 
-          <Button
-            variant={
-              selectedAssetTypes.has("SECURITY_DEVICE") ? "default" : "outline"
-            }
-            size="sm"
-            onClick={() => toggleAssetType("SECURITY_DEVICE")}
-          >
-            <Shield className="h-3 w-3 mr-1" />
-            Security ({assetsByType.SECURITY_DEVICE.length})
-          </Button>
+          {(summary?.security ?? assetsByType.SECURITY_DEVICE.length) > 0 && (
+            <Button
+              variant={
+                selectedAssetTypes.has("SECURITY_DEVICE") ? "default" : "outline"
+              }
+              size="sm"
+              onClick={() => toggleAssetType("SECURITY_DEVICE")}
+            >
+              <Shield className="h-3 w-3 mr-1" />
+              Security ({summary?.security ?? assetsByType.SECURITY_DEVICE.length})
+            </Button>
+          )}
 
-          <Button
-            variant={
-              selectedAssetTypes.has("VIRTUALIZATION") ? "default" : "outline"
-            }
-            size="sm"
-            onClick={() => toggleAssetType("VIRTUALIZATION")}
-          >
-            <Cloud className="h-3 w-3 mr-1" />
-            Virtualization ({assetsByType.VIRTUALIZATION.length})
-          </Button>
+          {(summary?.virtualization ?? assetsByType.VIRTUALIZATION.length) > 0 && (
+            <Button
+              variant={
+                selectedAssetTypes.has("VIRTUALIZATION") ? "default" : "outline"
+              }
+              size="sm"
+              onClick={() => toggleAssetType("VIRTUALIZATION")}
+            >
+              <Cloud className="h-3 w-3 mr-1" />
+              Virtualization ({summary?.virtualization ?? assetsByType.VIRTUALIZATION.length})
+            </Button>
+          )}
         </div>
       </div>
 
