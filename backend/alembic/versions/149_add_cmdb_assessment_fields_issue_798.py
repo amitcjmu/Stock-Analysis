@@ -5,16 +5,16 @@ Adds 8 new columns to assets table for enhanced CMDB assessment capabilities:
 - user_load_patterns, business_logic_complexity, configuration_complexity,
 - change_tolerance, eol_technology_assessment
 
-Revision ID: 147_add_cmdb_assessment_fields_issue_798
-Revises: 146_add_additional_cmdb_fields_to_assets
+Revision ID: 149_add_cmdb_assessment_fields_issue_798
+Revises: 148_add_custom_attribute_schemas
 Create Date: 2025-12-05
 """
 
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision = "147_add_cmdb_assessment_fields_issue_798"
-down_revision = "146_add_additional_cmdb_fields_to_assets"
+revision = "149_add_cmdb_assessment_fields_issue_798"
+down_revision = "148_add_custom_attribute_schemas"
 branch_labels = None
 depends_on = None
 
