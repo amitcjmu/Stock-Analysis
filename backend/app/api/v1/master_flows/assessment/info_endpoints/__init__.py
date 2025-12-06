@@ -24,6 +24,7 @@ router = APIRouter()
 # Import and include all endpoint modules to register routes
 from . import queries  # noqa: F401, E402
 from . import analysis_queries  # noqa: F401, E402
+from . import compliance_queries  # noqa: F401, E402 - ADR-039 compliance validation
 from . import commands  # noqa: F401, E402
 
 __all__ = ["router"]

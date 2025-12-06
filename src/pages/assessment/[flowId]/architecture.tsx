@@ -6,6 +6,7 @@ import { ArchitectureStandardsForm } from '@/components/assessment/ArchitectureS
 import { TemplateSelector } from '@/components/assessment/TemplateSelector';
 import { ApplicationOverrides } from '@/components/assessment/ApplicationOverrides';
 import { BulkAssetMappingDialog } from '@/components/assessment/BulkAssetMappingDialog';
+import { ComplianceReport } from '@/components/assessment/ComplianceReport';
 import { useAssessmentFlow } from '@/hooks/useAssessmentFlow';
 import { assessmentFlowAPI } from '@/hooks/useAssessmentFlow/api';
 import { useAuth } from '@/contexts/AuthContext';
@@ -530,6 +531,9 @@ const ArchitecturePage: React.FC = () => {
             />
           </CardContent>
         </Card>
+
+        {/* ADR-039: Technology Compliance & EOL Lifecycle Report */}
+        <ComplianceReport flow_id={flowId} />
 
         {/* Action Buttons */}
         <div className="flex justify-between items-center pt-6 border-t border-gray-200">

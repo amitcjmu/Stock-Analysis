@@ -88,98 +88,122 @@ class StrategyAnalysisHelper:
     def _determine_strategy(
         self, component: Dict[str, Any], application_context: Dict[str, Any]
     ) -> tuple[str, float, str]:
-        """Determine the best 6R strategy for a component."""
+        """
+        Determine the best 6R strategy for a component.
+
+        ADR-039 Enhancement:
+        - Considers compliance issues from architecture_minimums phase
+        - Non-compliant apps have higher likelihood of refactor/replatform
+        - Compliance factors are included in reasoning
+        """
         try:
-            component_type = component.get("type", "").lower()
-            technology = component.get("technology", "").lower()
-            complexity_score = component.get("complexity_score", 5.0)
-            business_criticality = application_context.get(
-                "business_criticality", "medium"
-            ).lower()
+            # ADR-039: Check for compliance override first
+            compliance_result = self._check_compliance_override(application_context)
+            if compliance_result:
+                return compliance_result
 
-            # Simple decision tree logic (replace with ML model in production)
-            if "database" in component_type:
-                if "legacy" in technology or complexity_score > 8.0:
-                    return (
-                        "refactor",
-                        0.8,
-                        "Legacy database requires refactoring for cloud compatibility",
-                    )
-                elif business_criticality == "high":
-                    return (
-                        "rehost",
-                        0.7,
-                        "High criticality database should be rehosted first",
-                    )
-                else:
-                    return (
-                        "rearchitect",
-                        0.6,
-                        "Database can benefit from cloud-native rearchitecting",
-                    )
-
-            elif "web_server" in component_type or "app_server" in component_type:
-                if complexity_score < 4.0:
-                    return (
-                        "rehost",
-                        0.9,
-                        "Simple server component suitable for direct rehosting",
-                    )
-                elif complexity_score < 7.0:
-                    return (
-                        "refactor",
-                        0.8,
-                        "Moderate complexity server requires refactoring",
-                    )
-                else:
-                    return (
-                        "rebuild",
-                        0.7,
-                        "Complex server component benefits from rebuilding",
-                    )
-
-            elif "cache" in component_type:
-                return (
-                    "replace",
-                    0.9,
-                    "Cache systems can typically be replaced with cloud services",
-                )
-
-            elif "monitoring" in component_type or "logging" in component_type:
-                return (
-                    "replace",
-                    0.85,
-                    "Observability tools should be replaced with cloud-native solutions",
-                )
-
-            else:
-                # Default strategy based on complexity
-                if complexity_score < 3.0:
-                    return (
-                        "rehost",
-                        0.6,
-                        "Low complexity component suitable for rehosting",
-                    )
-                elif complexity_score < 6.0:
-                    return (
-                        "refactor",
-                        0.5,
-                        "Medium complexity component may need refactoring",
-                    )
-                else:
-                    return (
-                        "rehost",  # Map retain → rehost per 6R standardization
-                        0.4,
-                        "High complexity component will be rehosted with minimal changes",
-                    )
+            # Dispatch to component-type specific handlers
+            return self._determine_strategy_by_type(component, application_context)
 
         except Exception as e:
             logger.warning(f"Error in strategy determination: {str(e)}")
+            return ("rehost", 0.1, f"Strategy analysis failed: {str(e)}")
+
+    def _check_compliance_override(
+        self, application_context: Dict[str, Any]
+    ) -> tuple[str, float, str] | None:
+        """ADR-039: Check if critical compliance issues override normal strategy."""
+        compliance_issues = application_context.get("compliance_issues", [])
+        compliance_factors = application_context.get("compliance_factors", [])
+        tech_debt_score = application_context.get("tech_debt_score", 5.0)
+
+        has_critical = any(
+            issue.get("severity") == "critical" for issue in compliance_issues
+        )
+        if not has_critical:
+            return None
+
+        # Build compliance reasoning
+        reasoning = ""
+        if compliance_factors:
+            reasoning = f" Compliance factors: {'; '.join(compliance_factors[:3])}."
+            if len(compliance_factors) > 3:
+                reasoning += f" (+{len(compliance_factors) - 3} more)"
+
+        if tech_debt_score < 4.0:
+            return (
+                "replatform",
+                0.85,
+                f"Replatform recommended due to critical compliance issues.{reasoning}",
+            )
+        return (
+            "refactor",
+            0.80,
+            f"Refactor required to address critical compliance issues.{reasoning}",
+        )
+
+    def _determine_strategy_by_type(
+        self, component: Dict[str, Any], application_context: Dict[str, Any]
+    ) -> tuple[str, float, str]:
+        """Determine strategy based on component type."""
+        component_type = component.get("type", "").lower()
+        complexity_score = component.get("complexity_score", 5.0)
+
+        if "database" in component_type:
+            return self._database_strategy(component, application_context)
+        if "web_server" in component_type or "app_server" in component_type:
+            return self._server_strategy(complexity_score)
+        if "cache" in component_type:
+            return ("replace", 0.9, "Cache systems can be replaced with cloud services")
+        if "monitoring" in component_type or "logging" in component_type:
+            return (
+                "replace",
+                0.85,
+                "Observability tools should use cloud-native solutions",
+            )
+        return self._default_strategy(complexity_score)
+
+    def _database_strategy(
+        self, component: Dict[str, Any], application_context: Dict[str, Any]
+    ) -> tuple[str, float, str]:
+        """Determine strategy for database components."""
+        technology = component.get("technology", "").lower()
+        complexity_score = component.get("complexity_score", 5.0)
+        criticality = application_context.get("business_criticality", "medium").lower()
+
+        if "legacy" in technology or complexity_score > 8.0:
+            return ("refactor", 0.8, "Legacy database requires refactoring for cloud")
+        if criticality == "high":
+            return ("rehost", 0.7, "High criticality database should be rehosted first")
+        return (
+            "rearchitect",
+            0.6,
+            "Database can benefit from cloud-native rearchitecting",
+        )
+
+    def _server_strategy(self, complexity_score: float) -> tuple[str, float, str]:
+        """Determine strategy for server components."""
+        if complexity_score < 4.0:
             return (
                 "rehost",
-                0.1,
-                f"Strategy analysis failed: {str(e)}",
-            )  # Map retain → rehost
+                0.9,
+                "Simple server component suitable for direct rehosting",
+            )
+        if complexity_score < 7.0:
+            return ("refactor", 0.8, "Moderate complexity server requires refactoring")
+        return ("rebuild", 0.7, "Complex server component benefits from rebuilding")
+
+    def _default_strategy(self, complexity_score: float) -> tuple[str, float, str]:
+        """Default strategy based on complexity score."""
+        if complexity_score < 3.0:
+            return ("rehost", 0.6, "Low complexity component suitable for rehosting")
+        if complexity_score < 6.0:
+            return ("refactor", 0.5, "Medium complexity component may need refactoring")
+        return (
+            "rehost",
+            0.4,
+            "High complexity component will be rehosted with minimal changes",
+        )
 
     def _estimate_effort(self, component: Dict[str, Any], strategy: str) -> str:
         """Estimate the effort required for the chosen strategy."""
