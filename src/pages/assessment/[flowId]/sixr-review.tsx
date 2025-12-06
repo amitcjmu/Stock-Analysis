@@ -60,13 +60,15 @@ const SixRStrategyReview: React.FC = () => {
   const { flowId } = useParams<{ flowId: string }>() as { flowId: string };
   const navigate = useNavigate();
   const { client, engagement } = useAuth();
+  // UX fix: Disable auto-polling by default - users can click "Refresh Data" or toggle auto-refresh ON manually
+  // This prevents the "always waiting for something to finish processing" experience
   const {
     state,
     updateSixRDecision,
     resumeFlow,
     refreshApplicationData,
     toggleAutoPolling
-  } = useAssessmentFlow(flowId);
+  } = useAssessmentFlow(flowId, { disableAutoPolling: true });
 
   const [selectedApp, setSelectedApp] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);

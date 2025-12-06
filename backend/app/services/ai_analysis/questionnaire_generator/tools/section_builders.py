@@ -89,7 +89,10 @@ def determine_field_type_and_options(
     ✅ NOTE: This function is ONLY used for MAPPED critical attributes (the good path).
     For unmapped gaps, Issue #980 intelligent builders are now used instead.
 
-    Uses FIELD_OPTIONS from config.py as single source of truth.
+    Issue #1261: Now checks FIELD_TYPE_METADATA FIRST to prevent LLM hallucination.
+    Fields like ip_address, hostname, fqdn should be text inputs, not dropdowns.
+
+    Uses FIELD_OPTIONS from config.py as single source of truth for select fields.
     Falls back to heuristics only for unmapped fields.
 
     Args:
@@ -99,16 +102,34 @@ def determine_field_type_and_options(
     Returns:
         Tuple of (field_type: str, options: list)
     """
-    # Import FIELD_OPTIONS and CRITICAL_ATTRIBUTES_CONFIG
+    # Import configurations
     try:
         from app.services.manual_collection.adaptive_form_service.config import (
             FIELD_OPTIONS,
             CRITICAL_ATTRIBUTES_CONFIG,
         )
+        from app.services.manual_collection.adaptive_form_service.config.field_type_metadata import (
+            FIELD_TYPE_METADATA,
+        )
     except ImportError:
-        logger.warning("Could not import FIELD_OPTIONS, using fallback heuristics")
+        logger.warning("Could not import field configs, using fallback heuristics")
         FIELD_OPTIONS = {}
         CRITICAL_ATTRIBUTES_CONFIG = {}
+        FIELD_TYPE_METADATA = {}
+
+    # Issue #1261: Check FIELD_TYPE_METADATA FIRST to prevent LLM hallucination
+    # Text fields like ip_address, hostname should NOT have dropdown options
+    if attr_name in FIELD_TYPE_METADATA:
+        metadata = FIELD_TYPE_METADATA[attr_name]
+        field_type = metadata.get("field_type", "text")
+
+        # For select fields that reference FIELD_OPTIONS
+        if metadata.get("use_field_options") and attr_name in FIELD_OPTIONS:
+            return field_type, FIELD_OPTIONS[attr_name]
+
+        # For text/textarea fields - return empty options list
+        # The metadata (max_length, validation_pattern, etc.) can be used by caller
+        return field_type, []
 
     # CRITICAL: Check for context-aware fields BEFORE FIELD_OPTIONS
     # This enables intelligent option ordering based on asset characteristics

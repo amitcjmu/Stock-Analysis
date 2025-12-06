@@ -11,6 +11,7 @@ from app.services.flow_type_registry import FlowCapabilities, FlowTypeConfig
 
 # Import all phase configurations from assessment_phases
 from .assessment_phases import (
+    get_architecture_minimums_phase,  # ADR-039: Compliance validation
     get_complexity_analysis_phase,
     get_dependency_analysis_phase,
     get_readiness_assessment_phase,
@@ -25,14 +26,16 @@ def get_assessment_flow_config() -> FlowTypeConfig:
     Get the Assessment flow configuration
 
     Per ADR-027: Assessment includes analysis requiring completed Discovery data.
+    Per ADR-039: Architecture Minimums phase added for compliance validation.
 
     Phases:
     1. Readiness Assessment - Assess migration readiness of assets
-    2. Complexity Analysis - Analyze migration complexity
-    3. Dependency Analysis - Analyze asset dependencies (migrated from Discovery)
-    4. Technical Debt Assessment - Assess technical debt (migrated from Discovery)
-    5. Risk Assessment - Assess migration risks
-    6. Recommendation Generation - Generate migration recommendations
+    2. Architecture Minimums - Validate technology compliance (ADR-039)
+    3. Complexity Analysis - Analyze migration complexity
+    4. Dependency Analysis - Analyze asset dependencies (migrated from Discovery)
+    5. Technical Debt Assessment - Assess technical debt (migrated from Discovery)
+    6. Risk Assessment - Assess migration risks
+    7. Recommendation Generation - Generate migration recommendations
     """
 
     # Define flow capabilities
@@ -60,6 +63,7 @@ def get_assessment_flow_config() -> FlowTypeConfig:
         version="3.0.0",  # Major version for phase scope change
         phases=[
             get_readiness_assessment_phase(),
+            get_architecture_minimums_phase(),  # ADR-039: Compliance validation
             get_complexity_analysis_phase(),
             get_dependency_analysis_phase(),  # Migrated from Discovery
             get_tech_debt_assessment_phase(),  # Migrated from Discovery
@@ -83,12 +87,13 @@ def get_assessment_flow_config() -> FlowTypeConfig:
         metadata={
             "category": "analysis",
             "complexity": "high",
-            "estimated_duration_minutes": 170,  # Increased for 2 additional phases
+            "estimated_duration_minutes": 172,  # +2 min for ADR-039 compliance phase
             "required_agents": [
                 "readiness_agent",
+                "compliance_validator",  # ADR-039: Deterministic (no LLM)
                 "complexity_agent",
-                "dependency_agent",  # New
-                "tech_debt_agent",  # New
+                "dependency_agent",
+                "tech_debt_agent",
                 "risk_agent",
                 "recommendation_agent",
             ],

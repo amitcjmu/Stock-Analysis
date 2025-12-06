@@ -17,6 +17,7 @@ from .tech_debt_executor import TechDebtExecutorMixin
 from .risk_executor import RiskExecutorMixin
 from .recommendation_executor import RecommendationExecutorMixin
 from .recommendation_executor_asset_update import AssetUpdateMixin  # ISSUE-999
+from .architecture_minimums_executor import ArchitectureMinimumsExecutorMixin  # ADR-039
 from .phase_validation_helpers import (
     get_phase_order,
     check_phase_progression_resumption,
@@ -35,6 +36,7 @@ class ExecutionEngineAssessmentCrews(
     RiskExecutorMixin,
     RecommendationExecutorMixin,
     AssetUpdateMixin,  # ISSUE-999: Asset table updates
+    ArchitectureMinimumsExecutorMixin,  # ADR-039: Compliance validation
 ):
     """
     Assessment flow CrewAI execution handlers using persistent agents.
@@ -393,6 +395,7 @@ class ExecutionEngineAssessmentCrews(
         """
         phase_mapping = {
             "readiness_assessment": "readiness_assessment",
+            "architecture_minimums": "architecture_minimums",  # ADR-039
             "complexity_analysis": "complexity_analysis",
             "dependency_analysis": "dependency_analysis",
             "tech_debt_assessment": "tech_debt_assessment",
@@ -426,6 +429,7 @@ class ExecutionEngineAssessmentCrews(
         """
         phase_methods = {
             "readiness_assessment": self._execute_readiness_assessment,
+            "architecture_minimums": self._execute_architecture_minimums,  # ADR-039
             "complexity_analysis": self._execute_complexity_analysis,
             "dependency_analysis": self._execute_dependency_analysis,
             "tech_debt_assessment": self._execute_tech_debt_assessment,

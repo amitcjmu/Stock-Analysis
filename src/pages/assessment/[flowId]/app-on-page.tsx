@@ -32,6 +32,8 @@ const AppOnPagePage: React.FC = () => {
   // Bug #730 fix - Use React Router's useParams instead of Next.js props
   const { flowId } = useParams<{ flowId: string }>();
 
+  // UX fix: Disable auto-polling by default - users can click "Refresh Data" or toggle auto-refresh ON manually
+  // This prevents the "always waiting for something to finish processing" experience
   const {
     state,
     finalizeAssessment,
@@ -39,7 +41,7 @@ const AppOnPagePage: React.FC = () => {
     toggleAutoPolling,
     resumeFlow,
     updateSixRDecision
-  } = useAssessmentFlow(flowId);
+  } = useAssessmentFlow(flowId, { disableAutoPolling: true });
 
   const navigate = useNavigate();
 

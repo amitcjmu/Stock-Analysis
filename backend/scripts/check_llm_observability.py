@@ -84,9 +84,13 @@ class LLMCallDetector(ast.NodeVisitor):
             "kickoff",
             "kickoff_async",
         ]:
-            # Check if callbacks parameter is provided
+            # Check if callbacks parameter is provided or exemption comment exists
             has_callbacks = any(kw.arg == "callbacks" for kw in node.keywords)
-            if not has_callbacks and not self.has_callback_handler:
+            if (
+                not has_callbacks
+                and not self.has_callback_handler
+                and not self._has_exemption_comment(node.lineno)
+            ):
                 self.violations.append(
                     (
                         node.lineno,
