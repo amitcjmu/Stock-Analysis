@@ -81,6 +81,90 @@ finally:
 
 # Session Learnings - December 2025
 
+## [2025-12-05] Issue #1060: Declarative Agent Tool Configuration (PR #1254)
+
+### Declarative Configuration Pattern for Agent Tools
+### Context: tool_manager.py had scattered if/elif blocks for 6+ agent types, making it hard to add new agents
+### Root Cause: Imperative code pattern - each agent type required new code blocks
+### Solution: Created `agent_tool_config.py` with dataclasses as single source of truth
+### Structure:
+```
+agent_tool_config.py (194 lines) - Declarative config with dataclasses
+  - ToolFactoryConfig: module_path, factory_name, requires_context, requires_registry, is_class
+  - AgentToolConfig: agent_type, specific_tools, common_categories, description
+  - TOOL_FACTORIES: Dict mapping tool names to factory configs
+  - AGENT_TOOL_CONFIGS: Dict mapping agent types to tool configs
+tool_manager.py (refactored) - Uses config lookups instead of if/elif
+```
+### Code:
+```python
+@dataclass
+class ToolFactoryConfig:
+    module_path: str
+    factory_name: str
+    requires_context: bool = True
+    requires_registry: bool = False
+    is_class: bool = False
+
+TOOL_FACTORIES: Dict[str, ToolFactoryConfig] = {
+    "asset_creation": ToolFactoryConfig(
+        module_path="app.services.crewai_flows.tools.asset_creation_tool",
+        factory_name="create_asset_creation_tools",
+    ),
+    # ... more tools
+}
+
+AGENT_TOOL_CONFIGS: Dict[str, AgentToolConfig] = {
+    "discovery": AgentToolConfig(
+        agent_type="discovery",
+        specific_tools=["asset_creation", "data_validation"],
+        common_categories=["data_analysis"],
+    ),
+    # ... more agents
+}
+```
+### Result: Adding new agents = add dictionary entry, no code changes
+
+### Dynamic Import Security Documentation (Qodo Bot Feedback)
+### Context: Qodo Bot raised concern about dynamic imports via importlib.import_module()
+### Root Cause: Dynamic imports can be security risk if paths come from user input
+### Solution: Added security comment documenting that config is static
+### Code:
+```python
+def _load_tool_from_factory(cls, tool_name: str, context_info: Dict, tools: List) -> int:
+    """
+    Security Note: Dynamic imports via importlib are safe here because
+    TOOL_FACTORIES configuration is static and defined in agent_tool_config.py,
+    not from user input. All module paths are hardcoded at development time.
+    """
+```
+### Result: Security concern addressed, reviewers understand config is safe
+
+### Config Flags vs Signature Inspection (Qodo Bot Feedback)
+### Context: Original code used inspect.signature() to determine function parameters
+### Root Cause: Introspection is implicit and harder to understand
+### Solution: Use declarative config flags (requires_context, requires_registry) explicitly
+### Code:
+```python
+# Before (implicit via signature inspection)
+sig = inspect.signature(getter)
+if "context_info" in sig.parameters:
+    new_tools = getter(context_info)
+
+# After (explicit via config flags)
+if factory_config.requires_registry:
+    service_registry = context_info.get("service_registry")
+    if factory_config.requires_context:
+        new_tools = factory(context_info, registry=service_registry)
+    else:
+        new_tools = factory(registry=service_registry)
+elif factory_config.requires_context:
+    new_tools = factory(context_info)
+else:
+    new_tools = factory()
+```
+### Result: Clearer, more explicit code - easier to understand and maintain
+
 ## [2025-12-05] Issue #719: Treatment Recommendations Display Polish (PR #1231)
 
 ### Accept Button HTTP 400 Fix
