@@ -83,6 +83,10 @@ class AgentToolManager:
         """
         Load a tool using its factory configuration.
 
+        Security Note: Dynamic imports via importlib are safe here because
+        TOOL_FACTORIES configuration is static and defined in agent_tool_config.py,
+        not from user input. All module paths are hardcoded at development time.
+
         Args:
             tool_name: Name of the tool to load
             context_info: Context information for tool initialization
@@ -101,14 +105,42 @@ class AgentToolManager:
             factory = getattr(module, factory_config.factory_name)
 
             if factory_config.is_class:
-                # Instantiate class directly
-                tool_instance = factory(context_info=context_info)
+                # Instantiate class - respect requires_context flag
+                if factory_config.requires_context:
+                    tool_instance = factory(context_info=context_info)
+                else:
+                    tool_instance = factory()
                 tools.append(tool_instance)
                 logger.debug(f"Added {tool_name} tool instance")
                 return 1
             else:
-                # Call factory function
-                return cls._safe_extend_tools(tools, factory, tool_name, context_info)
+                # Call factory function using declarative config flags
+                # instead of signature inspection for clarity
+                if factory_config.requires_registry:
+                    service_registry = context_info.get("service_registry")
+                    if service_registry is None:
+                        logger.warning(
+                            f"Skipping {tool_name} - ServiceRegistry not available."
+                        )
+                        return 0
+                    if factory_config.requires_context:
+                        new_tools = factory(context_info, registry=service_registry)
+                    else:
+                        new_tools = factory(registry=service_registry)
+                elif factory_config.requires_context:
+                    new_tools = factory(context_info)
+                else:
+                    new_tools = factory()
+
+                if new_tools:
+                    tools.extend(new_tools)
+                    logger.info(f"Successfully added {len(new_tools)} {tool_name}")
+                    return len(new_tools)
+                else:
+                    logger.warning(
+                        f"Tool {tool_name} factory returned None or empty list"
+                    )
+                    return 0
 
         except ImportError as e:
             logger.error(f"Failed to import module for {tool_name}: {e}")
