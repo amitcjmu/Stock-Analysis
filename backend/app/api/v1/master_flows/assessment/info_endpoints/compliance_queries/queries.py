@@ -1,20 +1,13 @@
 """
-ADR-039: Compliance validation query endpoints.
+Compliance validation GET endpoints
 
-GET endpoints for retrieving technology compliance validation results:
-- Engagement standards compliance check results
-- Version compliance issues per application
-- EOL status for operating systems and runtimes
-
-Data is sourced from phase_results["architecture_minimums"]["compliance_validation"]
-which is populated during the ARCHITECTURE_MINIMUMS phase.
+Query endpoints for retrieving compliance validation results.
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 from fastapi import Depends, HTTPException
-from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -23,94 +16,23 @@ from app.core.database import get_db
 from app.models.assessment_flow import AssessmentFlow
 from app.utils.json_sanitization import sanitize_for_json
 
-from . import router
+from .schemas import (
+    ApplicationComplianceResult,
+    CheckedItem,
+    ComplianceIssue,
+    ComplianceValidationResponse,
+    EOLStatusInfo,
+)
+from .utils import _parse_by_level
+
+
+# Router will be imported from parent __init__.py
+from .. import router as router_local
 
 logger = logging.getLogger(__name__)
 
 
-# =============================================================================
-# Response Schemas
-# =============================================================================
-
-
-class ComplianceIssue(BaseModel):
-    """Single compliance violation."""
-
-    field: str = Field(..., description="Technology field with compliance issue")
-    current: str = Field(..., description="Current version/value")
-    required: str = Field(..., description="Required minimum version/value")
-    severity: str = Field(
-        default="medium", description="Severity: critical, high, medium, low"
-    )
-    recommendation: str = Field(default="", description="Remediation recommendation")
-
-
-class ApplicationComplianceResult(BaseModel):
-    """Compliance validation result for a single application."""
-
-    application_id: str
-    application_name: Optional[str] = None
-    is_compliant: bool = Field(
-        default=True, description="True if all technology versions meet minimums"
-    )
-    issues: List[ComplianceIssue] = Field(
-        default_factory=list, description="List of compliance violations"
-    )
-    checked_fields: int = Field(
-        default=0, description="Number of technology fields validated"
-    )
-    passed_fields: int = Field(
-        default=0, description="Number of fields meeting requirements"
-    )
-
-
-class EOLStatusInfo(BaseModel):
-    """End-of-Life status for a technology."""
-
-    product: str
-    version: str
-    status: str = Field(
-        description="EOL status: active, eol_soon, eol_expired, unknown"
-    )
-    eol_date: Optional[str] = None
-    support_type: str = Field(
-        default="none", description="Support type: mainstream, extended, none"
-    )
-    source: str = Field(
-        default="fallback_heuristics",
-        description="Data source: endoflife.date, vendor_catalog, fallback_heuristics",
-    )
-    confidence: float = Field(
-        default=0.5, ge=0.0, le=1.0, description="Confidence score"
-    )
-
-
-class ComplianceValidationResponse(BaseModel):
-    """Complete compliance validation results for assessment flow."""
-
-    flow_id: str
-    standards_applied: Dict[str, Any] = Field(
-        default_factory=dict, description="Engagement standards used for validation"
-    )
-    summary: Dict[str, Any] = Field(
-        default_factory=dict,
-        description="Summary: total_apps, compliant_count, non_compliant_count",
-    )
-    applications: Dict[str, ApplicationComplianceResult] = Field(
-        default_factory=dict, description="Per-application compliance results"
-    )
-    eol_status: List[EOLStatusInfo] = Field(
-        default_factory=list, description="EOL status for detected technologies"
-    )
-    validated_at: Optional[str] = None
-
-
-# =============================================================================
-# Endpoints
-# =============================================================================
-
-
-@router.get("/{flow_id}/compliance", response_model=ComplianceValidationResponse)
+@router_local.get("/{flow_id}/compliance", response_model=ComplianceValidationResponse)
 async def get_compliance_validation(
     flow_id: str,
     db: AsyncSession = Depends(get_db),
@@ -185,6 +107,12 @@ async def get_compliance_validation(
                 EOLStatusInfo(**eol)
                 for eol in compliance_validation.get("eol_status", [])
             ],
+            # Issue #1243: Three-level compliance validation
+            by_level=_parse_by_level(compliance_validation.get("by_level")),
+            checked_items=[
+                CheckedItem(**item)
+                for item in compliance_validation.get("checked_items", [])
+            ],
             validated_at=compliance_validation.get("validated_at"),
         )
 
@@ -203,7 +131,7 @@ async def get_compliance_validation(
         )
 
 
-@router.get("/{flow_id}/eol-risks")
+@router_local.get("/{flow_id}/eol-risks")
 async def get_eol_risks(
     flow_id: str,
     db: AsyncSession = Depends(get_db),

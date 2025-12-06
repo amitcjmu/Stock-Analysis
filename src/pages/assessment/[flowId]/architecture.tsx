@@ -235,6 +235,7 @@ const ArchitecturePage: React.FC = () => {
             'X-Client-Account-ID': client?.id || '',
             'X-Engagement-ID': engagement?.id || '',
           },
+          body: JSON.stringify({}),  // Empty body to enrich all assets
         }
       );
 

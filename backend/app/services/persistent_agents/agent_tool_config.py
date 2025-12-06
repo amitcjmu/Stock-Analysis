@@ -85,6 +85,22 @@ TOOL_FACTORIES: Dict[str, ToolFactoryConfig] = {
         module_path="app.services.crewai_flows.tools.dependency_analysis_tool",
         factory_name="create_dependency_analysis_tools",
     ),
+    # Issue #1243: Three-level compliance validation tools
+    "eol_catalog_lookup": ToolFactoryConfig(
+        module_path="app.services.persistent_agents.tools.eol_catalog_lookup_tool",
+        factory_name="create_eol_catalog_lookup_tools",
+        requires_registry=True,
+    ),
+    "rag_eol_enrichment": ToolFactoryConfig(
+        module_path="app.services.persistent_agents.tools.rag_eol_enrichment_tool",
+        factory_name="create_rag_eol_enrichment_tools",
+        requires_registry=True,
+    ),
+    "asset_product_linker": ToolFactoryConfig(
+        module_path="app.services.persistent_agents.tools.asset_product_linker_tool",
+        factory_name="create_asset_product_linker_tools",
+        requires_registry=True,
+    ),
 }
 
 
@@ -139,6 +155,17 @@ AGENT_TOOL_CONFIGS: Dict[str, AgentToolConfig] = {
         specific_tools=[],
         common_categories=["data_analysis"],
         description="Data cleansing agent",
+    ),
+    # Issue #1243: Three-level compliance validation agent
+    "compliance_validator": AgentToolConfig(
+        agent_type="compliance_validator",
+        specific_tools=[
+            "eol_catalog_lookup",
+            "rag_eol_enrichment",
+            "asset_product_linker",
+        ],
+        common_categories=[],  # No common categories - dedicated compliance tools only
+        description="Multi-level technology compliance validation agent for EOL and architecture standards",
     ),
 }
 

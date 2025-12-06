@@ -310,8 +310,10 @@ def fallback_eol_check(
         )
 
     # Try partial match (product prefix)
+    # Split key into words to avoid partial version matches (e.g., "3.1" in "3.10")
     for key, pattern in patterns.items():
-        if key.startswith(normalized_product) and version in key:
+        key_parts = key.split()
+        if key.startswith(normalized_product) and version in key_parts:
             return EOLStatus(
                 product=product,
                 version=version,

@@ -28,7 +28,7 @@ USING hnsw (embedding vector_cosine_ops)
 def upgrade() -> None:
     # Ensure pgvector extension (idempotent)
     op.execute("CREATE EXTENSION IF NOT EXISTS vector")
-    
+
     # Create table with vector column
     op.execute("""
         DO $$ BEGIN
@@ -46,7 +46,7 @@ def upgrade() -> None:
             END IF;
         END $$;
     """)
-    
+
     # Create vector index (HNSW doesn't need pre-populated data)
     op.execute("""
         DO $$ BEGIN

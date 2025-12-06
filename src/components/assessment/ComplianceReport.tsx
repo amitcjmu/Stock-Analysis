@@ -379,7 +379,11 @@ export const ComplianceReport: React.FC<ComplianceReportProps> = ({
           value={summary.compliant_count}
           icon={<CheckCircle className="h-5 w-5" />}
           color="text-green-600"
-          description={`${Math.round((summary.compliant_count / summary.total_applications) * 100)}% of total`}
+          description={
+            summary.total_applications > 0
+              ? `${Math.round((summary.compliant_count / summary.total_applications) * 100)}% of total`
+              : '0% of total'
+          }
           onClick={() => toggleTile('compliant')}
           isExpanded={expandedTile === 'compliant'}
           hasItems={compliantApps.length > 0}
@@ -625,9 +629,9 @@ export const ComplianceReport: React.FC<ComplianceReportProps> = ({
                   <CollapsibleContent>
                     <CardContent className="pt-0">
                       <div className="space-y-3 mt-2">
-                        {app.issues.map((issue, idx) => (
+                        {app.issues.map((issue) => (
                           <div
-                            key={idx}
+                            key={`${issue.field}-${issue.current}`}
                             className="p-3 bg-muted/50 rounded-lg border"
                           >
                             <div className="flex items-start justify-between">

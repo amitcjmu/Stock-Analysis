@@ -22,8 +22,10 @@ def get_phase_order() -> list[str]:
     """
     # Phase order must match assessment_flow_config.py phases list
     # (No "initialization" phase - that's a flow-level handler, not a phase)
+    # ADR-039: Added architecture_minimums after readiness_assessment
     return [
         "readiness_assessment",
+        "architecture_minimums",  # ADR-039: Compliance validation
         "complexity_analysis",
         "dependency_analysis",
         "tech_debt_assessment",
