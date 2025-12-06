@@ -259,6 +259,8 @@ class AssetHandlers(CollectionHandlerBase):
             "storage_used_gb": "storage_used_gb",
             "storage_free_gb": "storage_free_gb",
             "database_size_gb": "database_size_gb",
+            "virtualization_platform": "virtualization_platform",
+            "virtualization_type": "virtualization_type",
             # === NETWORK FIELDS ===
             "ip_address": "ip_address",
             "mac_address": "mac_address",
@@ -283,12 +285,18 @@ class AssetHandlers(CollectionHandlerBase):
             "migration_priority": "migration_priority",
             "six_r_strategy": "six_r_strategy",
             "wave_number": "wave_number",
+            "business_logic_complexity": "business_logic_complexity",
+            "configuration_complexity": "configuration_complexity",
+            "change_tolerance": "change_tolerance",
+            "data_volume_characteristics": "data_volume_characteristics",
+            "user_load_patterns": "user_load_patterns",
             # === DATA CLASSIFICATION & COMPLIANCE ===
             "application_data_classification": "application_data_classification",
             "pii_flag": "pii_flag",
             # === LIFECYCLE & EOL FIELDS ===
             "eol_date": "eol_date",
             "eol_risk_level": "eol_risk_level",
+            "eol_technology_assessment": "eol_technology_assessment",
             "lifecycle": "lifecycle",
             # === BACKUP & RESILIENCE ===
             "backup_policy": "backup_policy",

@@ -9,6 +9,7 @@ try:
     from sqlalchemy import (
         JSON,
         Boolean,
+        CheckConstraint,
         Column,
         DateTime,
         Enum,
@@ -27,7 +28,7 @@ except ImportError:
     SQLALCHEMY_AVAILABLE = False
     Column = Integer = String = DateTime = Text = JSON = Enum = Boolean = ForeignKey = (
         Float
-    ) = PostgresUUID = object
+    ) = PostgresUUID = CheckConstraint = object
 
     def relationship(*args, **kwargs):
         return None

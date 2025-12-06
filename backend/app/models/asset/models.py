@@ -6,6 +6,7 @@ This module contains the primary Asset model and its core properties and methods
 
 from .base import (
     Base,
+    CheckConstraint,
     Column,
     PostgresUUID,
     String,
@@ -57,6 +58,25 @@ class Asset(
     """
 
     __tablename__ = "assets"
+    __table_args__ = (
+        CheckConstraint(
+            "virtualization_type IN ('virtual', 'physical', 'container', 'other') OR virtualization_type IS NULL",
+            name="chk_assets_virtualization_type",
+        ),
+        CheckConstraint(
+            "business_logic_complexity IN ('low', 'medium', 'high', 'critical') OR business_logic_complexity IS NULL",
+            name="chk_assets_business_logic_complexity",
+        ),
+        CheckConstraint(
+            "configuration_complexity IN ('low', 'medium', 'high', 'critical') OR configuration_complexity IS NULL",
+            name="chk_assets_configuration_complexity",
+        ),
+        CheckConstraint(
+            "change_tolerance IN ('low', 'medium', 'high') OR change_tolerance IS NULL",
+            name="chk_assets_change_tolerance",
+        ),
+        {"schema": "migration"},
+    )
 
     # Primary Key
     id = Column(

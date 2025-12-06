@@ -387,6 +387,18 @@ test('should complete app-discovery import workflow', async ({ page }) => {
 
 **Reference:** Migration 146 naming correction (Dec 2025)
 
+### ❌ Using PostgreSQL ENUMs Instead of CHECK Constraints
+**Issue:** Creating PostgreSQL ENUM types for categorical fields instead of VARCHAR + CHECK constraints  
+**Why:** Per project guidelines (`CLAUDE.md`): ENUMs require `ALTER TYPE` migrations to add values (less flexible), less portable across databases, inconsistent with project standards  
+**Example:** Creating `CREATE TYPE migration.virtualizationtype AS ENUM (...)` instead of VARCHAR with CHECK constraint  
+**Check:**
+- Use `VARCHAR` columns with `CHECK` constraints: `CHECK (column_name IN ('value1', 'value2', ...))`
+- Keep Python enums in `enums.py` for application-level validation and type hints
+- Add CheckConstraints to model via `__table_args__`
+- Migration: `ALTER TABLE ... ADD CONSTRAINT chk_table_column CHECK (column IN (...))`
+
+**Reference:** PR #1241 - CMDB Enhancement (Dec 2025)
+
 ## Git & Version Control
 
 ### ❌ Not Pulling Latest Before Push
@@ -606,7 +618,7 @@ Use this before submitting PRs:
 
 **Last Updated:** December 5, 2025  
 **Initial Contributors:** Ram, CryptoYogiLLC  
-**Source PRs:** #581 - Discovery Flow Status Fixes, #1046 - Qodo Review Compliance, #1091 - Data Cleansing Feature, #1107 - Data Cleansing Bug Fixes, #1046 - Multi-Type Data Import Feature, Migration 146 - Alembic Migration Issues (Dec 2025)
+**Source PRs:** #581 - Discovery Flow Status Fixes, #1046 - Qodo Review Compliance, #1091 - Data Cleansing Feature, #1107 - Data Cleansing Bug Fixes, #1046 - Multi-Type Data Import Feature, Migration 146 - Alembic Migration Issues (Dec 2025), PR #1241 - CMDB Enhancement (Dec 2025)
 
 ---
 
