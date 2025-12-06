@@ -62,18 +62,25 @@ def upgrade() -> None:
                 ALTER TABLE migration.assets
                 ADD COLUMN virtualization_type VARCHAR(20);
 
-                CREATE INDEX IF NOT EXISTS ix_assets_virtualization_type
-                ON migration.assets(virtualization_type);
+                COMMENT ON COLUMN migration.assets.virtualization_type IS
+                    'Virtualization type: virtual, physical, container, other';
+            END IF;
 
+            -- Ensure index exists (idempotent)
+            CREATE INDEX IF NOT EXISTS ix_assets_virtualization_type
+            ON migration.assets(virtualization_type);
+
+            -- Ensure constraint exists (idempotent)
+            IF NOT EXISTS (
+                SELECT 1 FROM pg_constraint
+                WHERE conname = 'chk_assets_virtualization_type'
+            ) THEN
                 ALTER TABLE migration.assets
                 ADD CONSTRAINT chk_assets_virtualization_type
                 CHECK (
                     virtualization_type IN ('virtual', 'physical', 'container', 'other')
                     OR virtualization_type IS NULL
                 );
-
-                COMMENT ON COLUMN migration.assets.virtualization_type IS
-                    'Virtualization type: virtual, physical, container, other';
             END IF;
         END $$;
         """
@@ -138,18 +145,25 @@ def upgrade() -> None:
                 ALTER TABLE migration.assets
                 ADD COLUMN business_logic_complexity VARCHAR(50);
 
-                CREATE INDEX IF NOT EXISTS ix_assets_business_logic_complexity
-                ON migration.assets(business_logic_complexity);
+                COMMENT ON COLUMN migration.assets.business_logic_complexity IS
+                    'Business logic complexity: low, medium, high, critical';
+            END IF;
 
+            -- Ensure index exists (idempotent)
+            CREATE INDEX IF NOT EXISTS ix_assets_business_logic_complexity
+            ON migration.assets(business_logic_complexity);
+
+            -- Ensure constraint exists (idempotent)
+            IF NOT EXISTS (
+                SELECT 1 FROM pg_constraint
+                WHERE conname = 'chk_assets_business_logic_complexity'
+            ) THEN
                 ALTER TABLE migration.assets
                 ADD CONSTRAINT chk_assets_business_logic_complexity
                 CHECK (
                     business_logic_complexity IN ('low', 'medium', 'high', 'critical')
                     OR business_logic_complexity IS NULL
                 );
-
-                COMMENT ON COLUMN migration.assets.business_logic_complexity IS
-                    'Business logic complexity: low, medium, high, critical';
             END IF;
         END $$;
         """
@@ -170,18 +184,25 @@ def upgrade() -> None:
                 ALTER TABLE migration.assets
                 ADD COLUMN configuration_complexity VARCHAR(50);
 
-                CREATE INDEX IF NOT EXISTS ix_assets_configuration_complexity
-                ON migration.assets(configuration_complexity);
+                COMMENT ON COLUMN migration.assets.configuration_complexity IS
+                    'Configuration complexity: low, medium, high, critical';
+            END IF;
 
+            -- Ensure index exists (idempotent)
+            CREATE INDEX IF NOT EXISTS ix_assets_configuration_complexity
+            ON migration.assets(configuration_complexity);
+
+            -- Ensure constraint exists (idempotent)
+            IF NOT EXISTS (
+                SELECT 1 FROM pg_constraint
+                WHERE conname = 'chk_assets_configuration_complexity'
+            ) THEN
                 ALTER TABLE migration.assets
                 ADD CONSTRAINT chk_assets_configuration_complexity
                 CHECK (
                     configuration_complexity IN ('low', 'medium', 'high', 'critical')
                     OR configuration_complexity IS NULL
                 );
-
-                COMMENT ON COLUMN migration.assets.configuration_complexity IS
-                    'Configuration complexity: low, medium, high, critical';
             END IF;
         END $$;
         """
@@ -202,15 +223,22 @@ def upgrade() -> None:
                 ALTER TABLE migration.assets
                 ADD COLUMN change_tolerance VARCHAR(50);
 
-                CREATE INDEX IF NOT EXISTS ix_assets_change_tolerance
-                ON migration.assets(change_tolerance);
+                COMMENT ON COLUMN migration.assets.change_tolerance IS
+                    'Change tolerance level: low, medium, high';
+            END IF;
 
+            -- Ensure index exists (idempotent)
+            CREATE INDEX IF NOT EXISTS ix_assets_change_tolerance
+            ON migration.assets(change_tolerance);
+
+            -- Ensure constraint exists (idempotent)
+            IF NOT EXISTS (
+                SELECT 1 FROM pg_constraint
+                WHERE conname = 'chk_assets_change_tolerance'
+            ) THEN
                 ALTER TABLE migration.assets
                 ADD CONSTRAINT chk_assets_change_tolerance
                 CHECK (change_tolerance IN ('low', 'medium', 'high') OR change_tolerance IS NULL);
-
-                COMMENT ON COLUMN migration.assets.change_tolerance IS
-                    'Change tolerance level: low, medium, high';
             END IF;
         END $$;
         """
