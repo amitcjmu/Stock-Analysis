@@ -5,6 +5,11 @@ Addresses three issues:
 - #990: Replace PostgreSQL ENUMs with CHECK constraints (3 types)
 - #1251: Add CHECK constraints for categorical fields in assets (16 fields)
 
+Also fixes migration 114 bug:
+- resource_pools, resource_allocations, resource_skills had INTEGER tenant columns
+- SQLAlchemy models expect UUID (code references "per migration 115")
+- This migration converts INTEGER→UUID and maps existing data to test UUIDs
+
 Revision ID: 150_security_and_data_integrity
 Revises: 149_add_cmdb_assessment_fields_issue_798
 Create Date: 2025-12-05
@@ -18,8 +23,6 @@ branch_labels = None
 depends_on = None
 
 # Tables requiring composite FK (client_account_id, engagement_id) -> engagements
-# NOTE: resource_allocations, resource_pools, resource_skills excluded due to
-# type mismatch (INTEGER vs UUID for client_account_id) - needs separate fix
 TENANT_SCOPED_TABLES = [
     "access_audit_log",
     "adaptive_questionnaires",
@@ -74,13 +77,21 @@ TENANT_SCOPED_TABLES = [
     "planning_flows",
     "project_timelines",
     "raw_import_records",
-    # "resource_allocations",  # INTEGER client_account_id - needs type fix
-    # "resource_pools",        # INTEGER client_account_id - needs type fix
-    # "resource_skills",       # INTEGER client_account_id - needs type fix
+    "resource_allocations",  # INTEGER→UUID fixed in this migration
+    "resource_pools",  # INTEGER→UUID fixed in this migration
+    "resource_skills",  # INTEGER→UUID fixed in this migration
     "sixr_analyses_archive",
     "tenant_vendor_products",
     "timeline_milestones",
     "timeline_phases",
+]
+
+# Tables that need INTEGER→UUID conversion for tenant columns (migration 114 bug)
+# Test UUIDs: client=11111111-1111-1111-1111-111111111111, engagement=22222222-2222-2222-2222-222222222222
+INTEGER_TO_UUID_TABLES = [
+    "resource_allocations",
+    "resource_pools",
+    "resource_skills",
 ]
 
 # Categorical fields in assets table requiring CHECK constraints (#1251)
@@ -229,6 +240,81 @@ ASSET_CATEGORICAL_FIELDS = {
 
 def upgrade() -> None:
     """Add composite FKs, convert ENUMs to CHECK, add categorical constraints."""
+
+    # =========================================================================
+    # PART 0: Fix INTEGER→UUID for resource tables (migration 114 bug fix)
+    # =========================================================================
+    # Migration 114 created these tables with INTEGER tenant columns, but the
+    # SQLAlchemy models expect UUID. This fixes the type mismatch.
+    # Test data maps: INTEGER 1 → UUID 11111111.../22222222...
+
+    for table in INTEGER_TO_UUID_TABLES:
+        op.execute(
+            f"""
+            DO $$
+            BEGIN
+                -- Only convert if columns are still INTEGER
+                IF EXISTS (
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_schema = 'migration'
+                    AND table_name = '{table}'
+                    AND column_name = 'client_account_id'
+                    AND data_type = 'integer'
+                ) THEN
+                    -- Drop existing indexes that use these columns
+                    DROP INDEX IF EXISTS migration.idx_pools_client_engagement;
+                    DROP INDEX IF EXISTS migration.idx_allocations_client_engagement;
+                    DROP INDEX IF EXISTS migration.idx_skills_client_engagement;
+
+                    -- Add new UUID columns
+                    ALTER TABLE migration.{table}
+                    ADD COLUMN client_account_id_new UUID,
+                    ADD COLUMN engagement_id_new UUID;
+
+                    -- Map existing INTEGER values to test UUIDs
+                    -- INTEGER 1 maps to test tenant UUIDs
+                    UPDATE migration.{table}
+                    SET client_account_id_new = '11111111-1111-1111-1111-111111111111'::uuid,
+                        engagement_id_new = '22222222-2222-2222-2222-222222222222'::uuid
+                    WHERE client_account_id = 1 AND engagement_id = 1;
+
+                    -- For any other values, generate deterministic UUIDs
+                    UPDATE migration.{table}
+                    SET client_account_id_new = COALESCE(
+                            client_account_id_new,
+                            ('00000000-0000-0000-0000-' || LPAD(client_account_id::text, 12, '0'))::uuid
+                        ),
+                        engagement_id_new = COALESCE(
+                            engagement_id_new,
+                            ('00000000-0000-0000-0001-' || LPAD(engagement_id::text, 12, '0'))::uuid
+                        )
+                    WHERE client_account_id_new IS NULL;
+
+                    -- Drop old columns
+                    ALTER TABLE migration.{table}
+                    DROP COLUMN client_account_id,
+                    DROP COLUMN engagement_id;
+
+                    -- Rename new columns
+                    ALTER TABLE migration.{table}
+                    RENAME COLUMN client_account_id_new TO client_account_id;
+                    ALTER TABLE migration.{table}
+                    RENAME COLUMN engagement_id_new TO engagement_id;
+
+                    -- Set NOT NULL constraints
+                    ALTER TABLE migration.{table}
+                    ALTER COLUMN client_account_id SET NOT NULL,
+                    ALTER COLUMN engagement_id SET NOT NULL;
+
+                    -- Add indexes back
+                    CREATE INDEX IF NOT EXISTS idx_{table}_client_engagement
+                    ON migration.{table}(client_account_id, engagement_id);
+
+                    RAISE NOTICE 'Converted {table} tenant columns from INTEGER to UUID';
+                END IF;
+            END $$;
+            """
+        )
 
     # =========================================================================
     # PART 1: Composite Foreign Keys for Multi-Tenant Hierarchy (#983)
@@ -483,3 +569,78 @@ def downgrade() -> None:
         DROP CONSTRAINT IF EXISTS uq_engagements_client_account_id;
         """
     )
+
+    # =========================================================================
+    # PART 0 ROLLBACK: Revert UUID→INTEGER for resource tables
+    # =========================================================================
+    # Note: This restores the original INTEGER type but loses UUID precision.
+    # Only use if you need to fully roll back to pre-migration state.
+
+    for table in INTEGER_TO_UUID_TABLES:
+        op.execute(
+            f"""
+            DO $$
+            BEGIN
+                -- Only revert if columns are UUID (meaning upgrade ran)
+                IF EXISTS (
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_schema = 'migration'
+                    AND table_name = '{table}'
+                    AND column_name = 'client_account_id'
+                    AND data_type = 'uuid'
+                ) THEN
+                    -- Drop the composite FK and index first
+                    ALTER TABLE migration.{table}
+                    DROP CONSTRAINT IF EXISTS fk_{table}_engagement_hierarchy;
+                    DROP INDEX IF EXISTS migration.idx_{table}_client_engagement;
+                    DROP INDEX IF EXISTS migration.ix_{table}_tenant_composite;
+
+                    -- Add new INTEGER columns
+                    ALTER TABLE migration.{table}
+                    ADD COLUMN client_account_id_old INTEGER,
+                    ADD COLUMN engagement_id_old INTEGER;
+
+                    -- Map test UUIDs back to INTEGER 1
+                    UPDATE migration.{table}
+                    SET client_account_id_old = 1,
+                        engagement_id_old = 1
+                    WHERE client_account_id = '11111111-1111-1111-1111-111111111111'::uuid
+                      AND engagement_id = '22222222-2222-2222-2222-222222222222'::uuid;
+
+                    -- For other UUIDs, try to extract from deterministic pattern
+                    UPDATE migration.{table}
+                    SET client_account_id_old = COALESCE(
+                            client_account_id_old,
+                            CAST(RIGHT(client_account_id::text, 12) AS INTEGER)
+                        ),
+                        engagement_id_old = COALESCE(
+                            engagement_id_old,
+                            CAST(RIGHT(engagement_id::text, 12) AS INTEGER)
+                        )
+                    WHERE client_account_id_old IS NULL;
+
+                    -- Drop UUID columns
+                    ALTER TABLE migration.{table}
+                    DROP COLUMN client_account_id,
+                    DROP COLUMN engagement_id;
+
+                    -- Rename columns back
+                    ALTER TABLE migration.{table}
+                    RENAME COLUMN client_account_id_old TO client_account_id;
+                    ALTER TABLE migration.{table}
+                    RENAME COLUMN engagement_id_old TO engagement_id;
+
+                    -- Set NOT NULL
+                    ALTER TABLE migration.{table}
+                    ALTER COLUMN client_account_id SET NOT NULL,
+                    ALTER COLUMN engagement_id SET NOT NULL;
+
+                    -- Recreate original indexes
+                    CREATE INDEX IF NOT EXISTS idx_{table}_client_engagement
+                    ON migration.{table}(client_account_id, engagement_id);
+
+                    RAISE NOTICE 'Reverted {table} tenant columns from UUID to INTEGER';
+                END IF;
+            END $$;
+            """
+        )
