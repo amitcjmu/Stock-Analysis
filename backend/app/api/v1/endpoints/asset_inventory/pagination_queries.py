@@ -92,41 +92,58 @@ async def _get_assets_from_db(
 async def _get_summary_stats_from_db(
     db: AsyncSession,
     filter_conditions: List,
+    total_items: int,
 ) -> Dict[str, Any]:
-    """Get summary statistics from database query (all assets, not just current page)."""
+    """Get summary statistics from database query (all assets, not just current page).
+
+    Args:
+        db: Database session
+        filter_conditions: List of filter conditions to apply
+        total_items: Total count of assets (already calculated, to avoid redundant query)
+    """
     from sqlalchemy import case
     from sqlalchemy.sql.functions import coalesce
 
     summary_query = select(
         coalesce(
-            func.sum(case((Asset.asset_type == "application", 1), else_=0)), 0
+            func.sum(case((func.lower(Asset.asset_type) == "application", 1), else_=0)),
+            0,
         ).label("applications"),
-        coalesce(func.sum(case((Asset.asset_type == "server", 1), else_=0)), 0).label(
-            "servers"
-        ),
-        coalesce(func.sum(case((Asset.asset_type == "database", 1), else_=0)), 0).label(
-            "databases"
-        ),
         coalesce(
-            func.sum(case((Asset.asset_type == "component", 1), else_=0)), 0
+            func.sum(case((func.lower(Asset.asset_type) == "server", 1), else_=0)), 0
+        ).label("servers"),
+        coalesce(
+            func.sum(case((func.lower(Asset.asset_type) == "database", 1), else_=0)), 0
+        ).label("databases"),
+        coalesce(
+            func.sum(case((func.lower(Asset.asset_type) == "component", 1), else_=0)), 0
         ).label("components"),
-        coalesce(func.sum(case((Asset.asset_type == "network", 1), else_=0)), 0).label(
-            "network"
-        ),
-        coalesce(func.sum(case((Asset.asset_type == "storage", 1), else_=0)), 0).label(
-            "storage"
-        ),
         coalesce(
-            func.sum(case((Asset.asset_type == "security_group", 1), else_=0)), 0
+            func.sum(case((func.lower(Asset.asset_type) == "network", 1), else_=0)), 0
+        ).label("network"),
+        coalesce(
+            func.sum(case((func.lower(Asset.asset_type) == "storage", 1), else_=0)), 0
+        ).label("storage"),
+        coalesce(
+            func.sum(
+                case((func.lower(Asset.asset_type) == "security_group", 1), else_=0)
+            ),
+            0,
         ).label("security"),
         coalesce(
-            func.sum(case((Asset.asset_type == "virtual_machine", 1), else_=0)), 0
+            func.sum(
+                case((func.lower(Asset.asset_type) == "virtual_machine", 1), else_=0)
+            ),
+            0,
         ).label("virtualization"),
         coalesce(
-            func.sum(case((Asset.asset_type == "container", 1), else_=0)), 0
+            func.sum(case((func.lower(Asset.asset_type) == "container", 1), else_=0)), 0
         ).label("containers"),
         coalesce(
-            func.sum(case((Asset.asset_type == "load_balancer", 1), else_=0)), 0
+            func.sum(
+                case((func.lower(Asset.asset_type) == "load_balancer", 1), else_=0)
+            ),
+            0,
         ).label("load_balancers"),
         coalesce(
             func.sum(
@@ -151,10 +168,6 @@ async def _get_summary_stats_from_db(
 
     result = await db.execute(summary_query)
     row = result.first()
-    count_result = await db.execute(
-        select(func.count()).select_from(Asset).where(*filter_conditions)
-    )
-    total_items = count_result.scalar() or 0
 
     if row is None:
         return {

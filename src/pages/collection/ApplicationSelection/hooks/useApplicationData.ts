@@ -28,6 +28,7 @@ interface UseApplicationDataReturn {
   assetsByType: AssetsByType;
   filterOptions: FilterOptions;
   summary: {
+    total: number;
     applications: number;
     servers: number;
     databases: number;
@@ -216,6 +217,7 @@ export const useApplicationData = ({
     const firstPageSummary = applicationsData?.pages?.[0]?.summary;
     if (!firstPageSummary) return null;
     return {
+      total: firstPageSummary.total || 0,
       applications: firstPageSummary.applications || 0,
       servers: firstPageSummary.servers || 0,
       databases: firstPageSummary.databases || 0,

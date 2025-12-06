@@ -25,6 +25,7 @@ interface SelectionControlsProps {
   assetsByType: AssetsByType;
   allAssets: Asset[];
   summary: {
+    total: number;
     applications: number;
     servers: number;
     databases: number;
@@ -78,7 +79,7 @@ export const SelectionControls: React.FC<SelectionControlsProps> = ({
             size="sm"
             onClick={() => setSelectedAssetTypes(new Set(["ALL"]))}
           >
-            All Assets ({allAssets.length})
+            All Assets ({summary?.total ?? allAssets.length})
           </Button>
 
           {(summary?.applications ?? assetsByType.APPLICATION.length) > 0 && (

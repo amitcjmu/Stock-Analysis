@@ -106,7 +106,9 @@ async def list_assets_paginated(
         )
 
         # Calculate summary statistics from ALL assets (not just current page)
-        summary_stats = await _get_summary_stats_from_db(db, filter_conditions)
+        summary_stats = await _get_summary_stats_from_db(
+            db, filter_conditions, total_items
+        )
 
         # Find last updated timestamp
         last_updated = _find_last_updated(asset_dicts)

@@ -60,6 +60,18 @@
 
 **Reference:** PR #581 - operations.py lines 245-298
 
+### ❌ Redundant Database Queries
+**Issue:** Recalculating values that were already computed in the same request flow  
+**Why:** Unnecessary database load, slower response times, wasted resources - fundamental to minimize database round trips  
+**Example:** Function A calculates `total_items` with COUNT query, then Function B recalculates same `total_items` with another COUNT query using same filters  
+**Check:**
+- Pass already-computed values as parameters instead of recalculating
+- Reuse query results from earlier in the call chain
+- If a value is needed in multiple places, calculate once and pass it down
+- Review function signatures - if caller already has the value, accept it as parameter
+
+**Reference:** PR #1262 - pagination_queries.py redundant total_items calculation (Dec 2025)
+
 ---
 
 ## Error Handling
