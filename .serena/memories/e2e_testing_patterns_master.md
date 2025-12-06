@@ -293,6 +293,71 @@ async function uploadFile(page: Page, filePath: string): Promise<void> {
 
 ---
 
+## Pytest-Asyncio Event Loop Patterns
+
+### Pattern 7: Event Loop Scope Configuration
+
+**Problem**: "RuntimeError: Event loop is closed" when using `httpx.AsyncClient` or async fixtures.
+
+**Root Cause**: pytest-asyncio defaults to `asyncio_default_test_loop_scope=function`. Session-scoped async fixtures try to use a closed loop on subsequent tests.
+
+**Solution**: Add to `pytest.ini`:
+```ini
+[tool:pytest]
+asyncio_mode = auto
+asyncio_default_fixture_loop_scope = function
+```
+
+### Pattern 8: Match Fixture Scope to Event Loop Scope
+
+```python
+# WRONG - Session scope conflicts with function-scoped event loops
+@pytest_asyncio.fixture(scope="session")
+async def api_client():
+    client = httpx.AsyncClient(base_url="http://localhost:8000")
+    yield client
+    await client.aclose()  # Fails - event loop closed!
+
+# CORRECT - Function scope matches event loop lifecycle
+@pytest_asyncio.fixture(scope="function")
+async def api_client():
+    """Create HTTP client for API testing.
+    Note: Using function scope to avoid event loop lifecycle issues.
+    """
+    client = httpx.AsyncClient(base_url="http://localhost:8000", timeout=30.0)
+    try:
+        yield client
+    finally:
+        await client.aclose()
+```
+
+### Pattern 9: Deprecated asyncio.get_event_loop()
+
+```python
+# DEPRECATED in Python 3.10+
+timestamp = asyncio.get_event_loop().time()
+
+# CORRECT - Use get_running_loop() inside async context
+timestamp = asyncio.get_running_loop().time()
+```
+
+### Pattern 10: Patch Path for Late Imports
+
+```python
+# If module uses: from app.core.database import AsyncSessionLocal
+# Inside a function (late import)
+
+# WRONG - Module doesn't have this attribute at module level
+with patch("app.services.flow_tracker.AsyncSessionLocal"):
+    ...
+
+# CORRECT - Patch where it's actually imported from
+with patch("app.core.database.AsyncSessionLocal"):
+    ...
+```
+
+---
+
 ## Troubleshooting
 
 ### Issue: Flaky tests (inconsistent pass/fail)
@@ -330,6 +395,7 @@ async function uploadFile(page: Page, filePath: string): Promise<void> {
 | `playwright_testing_patterns_2025_01` | General patterns |
 | `playwright_e2e_validation_workflow` | Validation |
 | `e2e_user_journey_validation` | User journeys |
+| `pytest_asyncio_event_loop_scope_patterns` | Event loop scope, fixture scope |
 
 **Archive Location**: `.serena/archive/e2e_testing/`
 
@@ -337,4 +403,4 @@ async function uploadFile(page: Page, filePath: string): Promise<void> {
 
 ## Search Keywords
 
-playwright, e2e, testing, flaky, isolation, explicit_wait, serial, cookies, qa_agent
+playwright, e2e, testing, flaky, isolation, explicit_wait, serial, cookies, qa_agent, pytest_asyncio, event_loop, fixture_scope, httpx

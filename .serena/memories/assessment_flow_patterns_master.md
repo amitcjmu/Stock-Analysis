@@ -1,8 +1,8 @@
 # Assessment Flow Patterns Master
 
-**Last Updated**: 2025-11-30
-**Version**: 1.0
-**Consolidates**: 10 memories
+**Last Updated**: 2025-12-05
+**Version**: 1.1
+**Consolidates**: 10 memories + 4 patterns (PR #1231)
 **Status**: Active
 
 ---
@@ -15,6 +15,12 @@
 > 3. **MFO Two-Table Pattern**: master_flow_id (lifecycle) + child flow (operational)
 > 4. **Readiness Transition**: Collection completion → Asset readiness → Assessment eligibility
 > 5. **Direct Flow Pattern**: Assessment uses Direct Flow (not Child Service) per ADR-025
+>
+> **New patterns (December 2025):**
+> - **Pattern 8**: Phase-Data Endpoint Extension - adding new phase handlers
+> - **Pattern 9**: Schema-Resilient JSONB Field Detection - backward compatible field checks
+> - **Pattern 10**: Custom ApiError - preserve HTTP response body for frontend error handling
+> - **Pattern 11**: Pre-Commit Modularization Workflow - via linting agent delegation
 
 ---
 
@@ -258,6 +264,226 @@ docker exec -it migration_backend python -m app.main
 
 ---
 
+### Pattern 8: Phase-Data Endpoint Extension (December 2025)
+
+**Context**: Adding new phase handlers to `update_assessment_phase_data` endpoint.
+
+**File**: `backend/app/api/v1/master_flows/assessment/lifecycle_endpoints/data_updates.py`
+
+**Template for adding a new phase handler**:
+```python
+# Handle new_phase_name phase
+elif phase == "new_phase_name":
+    from app.models.assessment_flow import AssessmentFlow
+    from uuid import UUID
+
+    app_id = data.get("app_id")
+    if not app_id:
+        raise HTTPException(status_code=400, detail="app_id is required")
+
+    # Validate UUID format
+    try:
+        flow_uuid = UUID(flow_id)
+        app_uuid_str = str(UUID(app_id))
+    except ValueError as uuid_err:
+        raise HTTPException(status_code=400, detail=f"Invalid UUID format: {str(uuid_err)}")
+
+    # Get flow and update phase_results JSONB
+    stmt = select(AssessmentFlow).where(
+        AssessmentFlow.id == flow_uuid,
+        AssessmentFlow.client_account_id == UUID(client_account_id),
+        AssessmentFlow.engagement_id == UUID(engagement_id),
+    )
+    result = await db.execute(stmt)
+    flow = result.scalar_one_or_none()
+
+    if not flow:
+        raise HTTPException(status_code=404, detail="Assessment flow not found")
+
+    # Update phase_results with new data
+    phase_results = flow.phase_results or {}
+    # ... modify phase_results structure ...
+    flow.phase_results = phase_results
+    await db.commit()
+
+    return sanitize_for_json({
+        "flow_id": flow_id,
+        "phase": phase,
+        "status": "updated",
+        "message": f"Phase {phase} updated successfully",
+    })
+```
+
+**Key Points**:
+- Update `supported` string in error message when adding new phase
+- Always validate UUID format before database operations
+- Use `sanitize_for_json()` for response serialization
+
+**Source**: Issue #719 - six_r_decision phase handler
+
+---
+
+### Pattern 9: Schema-Resilient JSONB Field Detection (December 2025)
+
+**Problem**: JSONB data may have different field names across versions (e.g., `six_r_strategy` vs `overall_strategy`).
+
+**Solution**: Check multiple field names using helper function:
+
+```python
+# File: backend/app/repositories/assessment_data_repository/recommendation_queries.py
+
+def has_strategy(app: Dict[str, Any]) -> bool:
+    """Accept either 'six_r_strategy' or 'overall_strategy' to detect completed apps."""
+    strat = app.get("six_r_strategy") or app.get("overall_strategy")
+    return isinstance(strat, str) and len(strat.strip()) > 0
+
+existing_app_ids = {
+    str(app.get("application_id"))
+    for app in applications
+    if app.get("application_id") and has_strategy(app)
+}
+```
+
+**When to Apply**:
+- Reading phase_results JSONB from database
+- Checking for completed/processed items
+- Backward compatibility with older data formats
+
+**Source**: Qodo Bot suggestion #4, PR #1231
+
+---
+
+### Pattern 10: Custom ApiError for HTTP Response Preservation (December 2025)
+
+**Problem**: Frontend needs access to HTTP response body for detailed error handling (e.g., `apps_not_found` list in 409 responses).
+
+**Solution**: Custom ApiError class in `src/services/ApiClient.ts`:
+
+```typescript
+export class ApiError extends Error {
+  status: number;
+  statusText: string;
+  response: {
+    data: Record<string, unknown>;
+    status: number;
+    statusText: string;
+  };
+
+  constructor(status: number, statusText: string, data: Record<string, unknown>) {
+    super(`HTTP ${status}: ${statusText}`);
+    this.name = 'ApiError';
+    this.status = status;
+    this.statusText = statusText;
+    this.response = { data, status, statusText };
+  }
+}
+```
+
+**Frontend error handling**:
+```typescript
+catch (error: unknown) {
+  const resp = (error as any)?.response || {};
+  const status = resp?.status ?? (error as any)?.status;
+  const payload = resp?.data ?? resp?.detail ?? (error as any)?.data ?? resp ?? error;
+
+  if (status === 409 && payload?.apps_not_found?.length > 0) {
+    // Handle data integrity error with missing apps
+    setDataIntegrityError({
+      hasError: true,
+      missingApps: payload.apps_not_found,
+      errorMessage: payload.message,
+    });
+  }
+}
+```
+
+**Source**: Issue #719, Qodo Bot suggestion #3
+
+---
+
+### Pattern 11: Pre-Commit Modularization Workflow (December 2025)
+
+**Problem**: Pre-commit hook fails with "file too long" (>400 lines).
+
+**Solution**: Extract logical units into separate files via linting agent.
+
+**Workflow**:
+1. Implement feature in main file
+2. Pre-commit fails with line count check
+3. Delegate to `devsecops-linting-engineer` subagent:
+   ```
+   The file exceeds 400 lines. Please extract [logical_unit] into a separate file.
+   ```
+4. Agent creates new file with extracted logic + mixin pattern
+5. Main file imports from extracted module
+6. Pre-commit passes
+
+**Example extraction**:
+```python
+# Before: recommendation_executor.py (408 lines)
+# After:
+#   recommendation_executor.py (380 lines)
+#   recommendation_validator.py (50 lines) - contains ValidationMixin
+```
+
+**Source**: PR #1231 modularization of recommendation_executor.py
+
+---
+
+### Pattern 12: Stale Readiness Data Refresh (December 2025)
+
+**Problem**: Pre-computed `application_asset_groups` in AssessmentFlow table contains stale `readiness_summary` cached at flow creation. UI shows "0 ready / 0 blocked" despite correct database values.
+
+**Solution**: Refresh helper function:
+
+```python
+# backend/app/api/v1/master_flows/assessment/info_endpoints/readiness_utils.py
+async def refresh_readiness_for_groups(
+    db: AsyncSession,
+    application_groups: list,
+    client_account_id: Any,
+    engagement_id: Any,
+) -> list:
+    """Refresh readiness_summary from current asset state."""
+    all_asset_ids = set()
+    for group in application_groups:
+        all_asset_ids.update(group.get("asset_ids", []))
+
+    # Query current state (CRITICAL: multi-tenant scoping)
+    stmt = select(Asset).where(
+        Asset.id.in_([UUID(aid) for aid in all_asset_ids]),
+        Asset.client_account_id == UUID(client_account_id),
+        Asset.engagement_id == UUID(engagement_id),
+    )
+    result = await db.execute(stmt)
+    assets = {str(a.id): a for a in result.scalars().all()}
+
+    for group in application_groups:
+        ready = not_ready = 0
+        for aid in group.get("asset_ids", []):
+            asset = assets.get(str(aid))
+            if asset and asset.assessment_readiness == "ready":
+                ready += 1
+            else:
+                not_ready += 1
+        group["readiness_summary"] = {"ready": ready, "not_ready": not_ready}
+    return application_groups
+```
+
+**Related Fix - Explicit None Check for Zero Score**:
+```python
+# WRONG - 0.0 is falsy
+overall_completeness = float(getattr(asset, "score", 0.85) or 0.85)
+
+# CORRECT
+score = getattr(asset, "assessment_readiness_score", None)
+overall_completeness = float(score if score is not None else 0.85)
+```
+
+**Source**: PR #1215
+
+---
+
 ## Anti-Patterns
 
 ### Don't: Auto-Complete on Agent Finish
@@ -427,6 +653,7 @@ AND a.assessment_readiness = 'not_ready';
 | `assessment-collection-flow-linking` | 2025-11 | Flow linking |
 | `issue_661_vs_659_clarification_assessment_vs_collection` | 2025-11 | Issue clarification |
 | `session-continuation-assessment-readiness-bugs-2025-11-25` | 2025-11 | Bug fixes |
+| `assessment-readiness-stale-data-refresh-pattern-dec-2025` | 2025-12 | Stale readiness refresh |
 
 **Archive Location**: `.serena/archive/assessment/`
 
@@ -444,4 +671,4 @@ AND a.assessment_readiness = 'not_ready';
 
 ## Search Keywords
 
-assessment, 6r, readiness, dual_state, pydantic, in_memory, mfo, two_phase, collection_integration
+assessment, 6r, readiness, dual_state, pydantic, in_memory, mfo, two_phase, collection_integration, stale_data, refresh_readiness
