@@ -18,6 +18,7 @@ Features:
 - Backward compatible: no schema = no validation
 """
 
+import asyncio
 import logging
 from typing import Any, Dict, List, Optional, Tuple
 from uuid import UUID
@@ -32,10 +33,13 @@ logger = logging.getLogger(__name__)
 # Try to import jsonschema, provide graceful fallback
 try:
     from jsonschema import Draft7Validator
+    from jsonschema.exceptions import SchemaError
 
     JSONSCHEMA_AVAILABLE = True
 except ImportError:
     JSONSCHEMA_AVAILABLE = False
+    Draft7Validator = None  # type: ignore
+    SchemaError = Exception  # type: ignore
     logger.warning(
         "jsonschema package not installed. "
         "CustomAttributeValidator will skip validation. "
@@ -58,7 +62,11 @@ class CustomAttributeValidator:
             db: Async SQLAlchemy session for schema lookups
         """
         self.db = db
-        self._schema_cache: Dict[UUID, Optional[Dict[str, Any]]] = {}
+        # Cache maps (client_id, schema_name) -> Optional[CustomAttributeSchema]
+        # Fixed typing per Qodo review
+        self._schema_cache: Dict[Tuple[UUID, str], Optional[CustomAttributeSchema]] = {}
+        # Locks prevent race conditions during concurrent schema fetches (Qodo review)
+        self._locks: Dict[Tuple[UUID, str], asyncio.Lock] = {}
 
     async def validate(
         self,
@@ -126,6 +134,7 @@ class CustomAttributeValidator:
         Get the active schema for a client.
 
         Caches results to avoid repeated database queries.
+        Uses asyncio.Lock to prevent race conditions (Qodo review).
 
         Args:
             client_account_id: Client to get schema for
@@ -137,29 +146,56 @@ class CustomAttributeValidator:
         cache_key = (client_account_id, schema_name)
 
         # Check cache first (simple in-memory cache)
-        # In production, consider Redis or TTL-based caching
         if cache_key in self._schema_cache:
             return self._schema_cache[cache_key]
 
-        # Query database for active schema (latest version)
-        stmt = (
-            select(CustomAttributeSchema)
-            .where(
-                CustomAttributeSchema.client_account_id == client_account_id,
-                CustomAttributeSchema.schema_name == schema_name,
-                CustomAttributeSchema.is_active == True,  # noqa: E712
+        # Ensure only one fetch per key at a time (Qodo review - race condition fix)
+        lock = self._locks.setdefault(cache_key, asyncio.Lock())
+        async with lock:
+            # Double-check after acquiring lock (another coroutine may have populated)
+            if cache_key in self._schema_cache:
+                return self._schema_cache[cache_key]
+
+            # Query database for active schema (latest version)
+            # Deterministic ordering with secondary criteria (Qodo review)
+            stmt = (
+                select(CustomAttributeSchema)
+                .where(
+                    CustomAttributeSchema.client_account_id == client_account_id,
+                    CustomAttributeSchema.schema_name == schema_name,
+                    CustomAttributeSchema.is_active == True,  # noqa: E712
+                )
+                .order_by(
+                    CustomAttributeSchema.schema_version.desc(),
+                    CustomAttributeSchema.created_at.desc(),
+                    CustomAttributeSchema.id.desc(),
+                )
+                .limit(1)
             )
-            .order_by(CustomAttributeSchema.schema_version.desc())
-            .limit(1)
-        )
 
-        result = await self.db.execute(stmt)
-        schema_record = result.scalar_one_or_none()
+            result = await self.db.execute(stmt)
+            schema_record = result.scalar_one_or_none()
 
-        # Cache the result (including None for "no schema")
-        self._schema_cache[cache_key] = schema_record
+            # Validate that stored schema is valid Draft-07 (Qodo review)
+            if schema_record and JSONSCHEMA_AVAILABLE:
+                try:
+                    Draft7Validator.check_schema(schema_record.json_schema)
+                except SchemaError as e:
+                    logger.error(
+                        "Invalid JSON Schema stored for client %s, name '%s', "
+                        "version %s: %s",
+                        client_account_id,
+                        schema_name,
+                        schema_record.schema_version,
+                        e,
+                    )
+                    # Return None to skip validation with malformed schema
+                    schema_record = None
 
-        return schema_record
+            # Cache the result (including None for "no schema")
+            self._schema_cache[cache_key] = schema_record
+
+            return schema_record
 
     def _validate_against_schema(
         self,

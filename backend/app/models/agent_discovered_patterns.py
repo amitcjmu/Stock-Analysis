@@ -4,6 +4,7 @@ Patterns discovered by agents during task execution for learning and optimizatio
 Part of the Agent Observability Enhancement
 """
 
+import math
 import uuid
 from datetime import datetime
 from enum import Enum
@@ -387,10 +388,24 @@ class AgentDiscoveredPatterns(Base):
                 "Query embedding must be exactly 1024 dimensions for thenlper/gte-large model"
             )
 
+        # Validate similarity threshold range (Qodo review)
+        if not (0.0 <= similarity_threshold < 1.0):
+            raise ValueError(
+                "similarity_threshold must be in [0.0, 1.0) - "
+                "1.0 would require exact match which is impractical"
+            )
+
+        # Normalize query embedding to unit length for correct cosine semantics (Qodo review)
+        # Cosine distance assumes unit vectors; normalization ensures valid thresholds
+        norm = math.sqrt(sum(x * x for x in query_embedding))
+        if norm == 0:
+            raise ValueError("Query embedding norm is zero; cannot normalize")
+        normalized_embedding = [x / norm for x in query_embedding]
+
         # Use pgvector's native cosine_distance method (secure, no SQL injection risk)
         # Cosine distance: 0 = identical, 2 = opposite
         # Cosine similarity = 1 - cosine_distance (for unit vectors)
-        distance_expr = cls.embedding.cosine_distance(query_embedding)
+        distance_expr = cls.embedding.cosine_distance(normalized_embedding)
         similarity_expr = literal(1.0) - distance_expr
 
         # Convert similarity threshold to distance threshold
