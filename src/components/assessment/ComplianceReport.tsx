@@ -103,6 +103,9 @@ interface SummaryCardProps {
   icon: React.ReactNode;
   color: string;
   description?: string;
+  onClick?: () => void;
+  isExpanded?: boolean;
+  hasItems?: boolean;
 }
 
 const SummaryCard: React.FC<SummaryCardProps> = ({
@@ -111,18 +114,32 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
   icon,
   color,
   description,
+  onClick,
+  isExpanded,
+  hasItems,
 }) => (
-  <Card>
+  <Card
+    className={cn(
+      hasItems && 'cursor-pointer hover:shadow-md transition-shadow',
+      isExpanded && 'ring-2 ring-primary'
+    )}
+    onClick={hasItems ? onClick : undefined}
+  >
     <CardContent className="pt-6">
       <div className="flex items-center gap-4">
         <div className={cn('p-3 rounded-full bg-opacity-10', color.replace('text-', 'bg-'))}>
           <div className={color}>{icon}</div>
         </div>
-        <div>
+        <div className="flex-1">
           <p className="text-sm text-muted-foreground">{title}</p>
           <p className="text-2xl font-bold">{value}</p>
           {description && <p className="text-xs text-muted-foreground mt-1">{description}</p>}
         </div>
+        {hasItems && (
+          <div className="text-muted-foreground">
+            {isExpanded ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+          </div>
+        )}
       </div>
     </CardContent>
   </Card>
@@ -166,6 +183,7 @@ export const ComplianceReport: React.FC<ComplianceReportProps> = ({
 }) => {
   const [expandedApps, setExpandedApps] = useState<Set<string>>(new Set());
   const [showEOLDetails, setShowEOLDetails] = useState(false);
+  const [expandedTile, setExpandedTile] = useState<string | null>(null);
 
   // ============================================================================
   // Data Fetching
@@ -213,6 +231,27 @@ export const ComplianceReport: React.FC<ComplianceReportProps> = ({
       .filter(([_, app]) => !app.is_compliant)
       .map(([id, app]) => ({ id, ...app }));
   }, [complianceData]);
+
+  const compliantApps = useMemo(() => {
+    if (!complianceData?.applications) return [];
+    return Object.entries(complianceData.applications)
+      .filter(([_, app]) => app.is_compliant)
+      .map(([id, app]) => ({ id, ...app }));
+  }, [complianceData]);
+
+  const eolExpiredItems = useMemo(() => {
+    if (!complianceData?.eol_status) return [];
+    return complianceData.eol_status.filter(eol => eol.status === 'eol_expired');
+  }, [complianceData]);
+
+  const eolSoonItems = useMemo(() => {
+    if (!complianceData?.eol_status) return [];
+    return complianceData.eol_status.filter(eol => eol.status === 'eol_soon');
+  }, [complianceData]);
+
+  const toggleTile = (tileId: string) => {
+    setExpandedTile(prev => prev === tileId ? null : tileId);
+  };
 
   const toggleApp = (appId: string) => {
     setExpandedApps((prev) => {
@@ -333,7 +372,7 @@ export const ComplianceReport: React.FC<ComplianceReportProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Summary Cards */}
+      {/* Summary Cards - Clickable tiles with expand functionality */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <SummaryCard
           title="Compliant Apps"
@@ -341,6 +380,9 @@ export const ComplianceReport: React.FC<ComplianceReportProps> = ({
           icon={<CheckCircle className="h-5 w-5" />}
           color="text-green-600"
           description={`${Math.round((summary.compliant_count / summary.total_applications) * 100)}% of total`}
+          onClick={() => toggleTile('compliant')}
+          isExpanded={expandedTile === 'compliant'}
+          hasItems={compliantApps.length > 0}
         />
         <SummaryCard
           title="Non-Compliant"
@@ -348,6 +390,9 @@ export const ComplianceReport: React.FC<ComplianceReportProps> = ({
           icon={<AlertTriangle className="h-5 w-5" />}
           color="text-orange-500"
           description={summary.non_compliant_count > 0 ? 'Requires attention' : 'All clear'}
+          onClick={() => toggleTile('non-compliant')}
+          isExpanded={expandedTile === 'non-compliant'}
+          hasItems={nonCompliantApps.length > 0}
         />
         <SummaryCard
           title="EOL Expired"
@@ -355,6 +400,9 @@ export const ComplianceReport: React.FC<ComplianceReportProps> = ({
           icon={<AlertOctagon className="h-5 w-5" />}
           color="text-red-600"
           description={eolCounts.expired > 0 ? 'High risk' : 'No expired technologies'}
+          onClick={() => toggleTile('eol-expired')}
+          isExpanded={expandedTile === 'eol-expired'}
+          hasItems={eolExpiredItems.length > 0}
         />
         <SummaryCard
           title="EOL Soon"
@@ -362,8 +410,153 @@ export const ComplianceReport: React.FC<ComplianceReportProps> = ({
           icon={<Clock className="h-5 w-5" />}
           color="text-yellow-600"
           description={eolCounts.soon > 0 ? 'Plan upgrades' : 'No upcoming EOL'}
+          onClick={() => toggleTile('eol-soon')}
+          isExpanded={expandedTile === 'eol-soon'}
+          hasItems={eolSoonItems.length > 0}
         />
       </div>
+
+      {/* Expanded Tile Content - Shows artifact list when tile is clicked */}
+      {expandedTile === 'compliant' && compliantApps.length > 0 && (
+        <Card className="border-green-200 bg-green-50/50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              Compliant Applications ({compliantApps.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {compliantApps.map((app) => (
+                <div
+                  key={app.id}
+                  className="p-3 bg-white rounded-lg border border-green-200 flex items-center gap-3"
+                >
+                  <Server className="h-4 w-4 text-green-600" />
+                  <div>
+                    <p className="font-medium text-sm">{app.application_name || app.application_id}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {app.passed_fields}/{app.checked_fields} checks passed
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {expandedTile === 'non-compliant' && nonCompliantApps.length > 0 && (
+        <Card className="border-orange-200 bg-orange-50/50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-orange-500" />
+              Non-Compliant Applications ({nonCompliantApps.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {nonCompliantApps.map((app) => (
+                <div
+                  key={app.id}
+                  className="p-3 bg-white rounded-lg border border-orange-200"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <Server className="h-4 w-4 text-orange-500" />
+                      <span className="font-medium">{app.application_name || app.application_id}</span>
+                    </div>
+                    <Badge variant="outline" className="text-xs">
+                      {app.issues.length} issue{app.issues.length !== 1 ? 's' : ''}
+                    </Badge>
+                  </div>
+                  <div className="space-y-1">
+                    {app.issues.slice(0, 3).map((issue, idx) => (
+                      <div key={idx} className="text-xs text-muted-foreground flex items-center gap-2">
+                        <SeverityBadge severity={issue.severity} />
+                        <span>{issue.field}: {issue.current} → {issue.required}</span>
+                      </div>
+                    ))}
+                    {app.issues.length > 3 && (
+                      <p className="text-xs text-muted-foreground">
+                        +{app.issues.length - 3} more issues
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {expandedTile === 'eol-expired' && eolExpiredItems.length > 0 && (
+        <Card className="border-red-200 bg-red-50/50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <AlertOctagon className="h-5 w-5 text-red-600" />
+              EOL Expired Technologies ({eolExpiredItems.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {eolExpiredItems.map((eol, idx) => (
+                <div
+                  key={idx}
+                  className="p-3 bg-white rounded-lg border border-red-200 flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-3">
+                    <Server className="h-4 w-4 text-red-600" />
+                    <div>
+                      <p className="font-medium text-sm">{eol.product} {eol.version}</p>
+                      {eol.eol_date && (
+                        <p className="text-xs text-muted-foreground">
+                          EOL: {new Date(eol.eol_date).toLocaleDateString()}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <EOLStatusBadge status={eol.status} />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {expandedTile === 'eol-soon' && eolSoonItems.length > 0 && (
+        <Card className="border-yellow-200 bg-yellow-50/50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Clock className="h-5 w-5 text-yellow-600" />
+              EOL Approaching Technologies ({eolSoonItems.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {eolSoonItems.map((eol, idx) => (
+                <div
+                  key={idx}
+                  className="p-3 bg-white rounded-lg border border-yellow-200 flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-3">
+                    <Server className="h-4 w-4 text-yellow-600" />
+                    <div>
+                      <p className="font-medium text-sm">{eol.product} {eol.version}</p>
+                      {eol.eol_date && (
+                        <p className="text-xs text-muted-foreground">
+                          EOL: {new Date(eol.eol_date).toLocaleDateString()}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <EOLStatusBadge status={eol.status} />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* All Compliant Celebration */}
       {allCompliant && eolCounts.expired === 0 && (

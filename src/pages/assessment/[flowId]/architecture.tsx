@@ -13,6 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertCircle, Save, ArrowRight, Package, Calendar, Star, Zap, RefreshCw, Loader2, Link } from 'lucide-react';
 import type { AssessmentApplication } from '@/hooks/useAssessmentFlow/types';
 import { toast } from '@/hooks/use-toast';
@@ -342,6 +343,16 @@ const ArchitecturePage: React.FC = () => {
           </Button>
         </div>
 
+        {/* Main Content Tabs: Standards / Compliance */}
+        <Tabs defaultValue="standards" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2 max-w-md">
+            <TabsTrigger value="standards">Standards</TabsTrigger>
+            <TabsTrigger value="compliance">Compliance</TabsTrigger>
+          </TabsList>
+
+          {/* Standards Tab Content */}
+          <TabsContent value="standards" className="space-y-6">
+
         {/* Template Selection */}
         <Card>
           <CardHeader>
@@ -532,8 +543,14 @@ const ArchitecturePage: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* ADR-039: Technology Compliance & EOL Lifecycle Report */}
-        <ComplianceReport flow_id={flowId} />
+          </TabsContent>
+
+          {/* Compliance Tab Content */}
+          <TabsContent value="compliance" className="space-y-6">
+            {/* ADR-039: Technology Compliance & EOL Lifecycle Report */}
+            <ComplianceReport flow_id={flowId} />
+          </TabsContent>
+        </Tabs>
 
         {/* Action Buttons */}
         <div className="flex justify-between items-center pt-6 border-t border-gray-200">
