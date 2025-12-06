@@ -17,6 +17,7 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
@@ -98,6 +99,11 @@ class AdaptiveQuestionnaire(Base):
     )  # pending, ready, in_progress, completed, failed
     responses_collected = Column(JSONB, nullable=False, default=dict)
 
+    # Issue #1259: Target gaps this questionnaire addresses
+    # This column stores the list of gap categories the questionnaire was generated for
+    # Exists in DB via migration 009, was missing from model
+    target_gaps = Column(JSONB, nullable=False, server_default=text("'[]'::jsonb"))
+
     # Template metadata
     is_active = Column(Boolean, nullable=False, default=True)
     is_template = Column(Boolean, nullable=False, default=False)
@@ -175,6 +181,7 @@ class AdaptiveQuestionnaire(Base):
             "scoring_rules": self.scoring_rules,
             "completion_status": self.completion_status,
             "responses_collected": self.responses_collected,
+            "target_gaps": self.target_gaps,  # Issue #1259: Added target_gaps
             "is_active": self.is_active,
             "is_template": self.is_template,
             "usage_count": self.usage_count,

@@ -5,6 +5,12 @@ Defines dropdown/select options for all form fields used in adaptive questionnai
 Organized by field type for maintainability.
 """
 
+# Issue #1261: FIELD_TYPE_METADATA moved to field_type_metadata.py to keep under 400 lines
+# Import from there for backward compatibility
+from app.services.manual_collection.adaptive_form_service.config.field_type_metadata import (  # noqa: F401
+    FIELD_TYPE_METADATA,
+)
+
 # Field options for common select/radio fields
 FIELD_OPTIONS = {
     # Infrastructure Options

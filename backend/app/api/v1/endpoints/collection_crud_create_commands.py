@@ -9,7 +9,6 @@ import uuid
 from typing import Any, Dict, List, Optional
 
 from fastapi import HTTPException
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 # Import modular functions
@@ -19,7 +18,6 @@ from app.api.v1.endpoints import (
     collection_validators,
 )
 from app.api.v1.endpoints.collection_crud_create_helpers import (
-    build_existing_flow_error_detail,
     create_data_gaps_for_missing_attributes,
     handle_transaction_rollback,
     initialize_background_execution_if_needed,
@@ -238,44 +236,9 @@ async def create_collection_flow(
     require_role(current_user, COLLECTION_CREATE_ROLES, "create collection flows")
 
     try:
-        # Import lifecycle manager locally to avoid circular imports
-        from app.api.v1.endpoints.collection_flow_lifecycle import (
-            CollectionFlowLifecycleManager,
-        )
-
-        lifecycle_manager = CollectionFlowLifecycleManager(db, context)
-
-        # Check for existing active flows (no automatic mutations)
-        # Per ADR-012: Use lifecycle states instead of phase values
-        existing_result = await db.execute(
-            select(CollectionFlow)
-            .where(
-                CollectionFlow.client_account_id == context.client_account_id,
-                CollectionFlow.engagement_id == context.engagement_id,
-                CollectionFlow.status.in_(
-                    [
-                        CollectionFlowStatus.INITIALIZED.value,
-                        CollectionFlowStatus.RUNNING.value,
-                        CollectionFlowStatus.PAUSED.value,
-                    ]
-                ),
-            )
-            .order_by(CollectionFlow.updated_at.desc().nulls_last())
-            .limit(1)
-        )
-        existing_flow = existing_result.scalar_one_or_none()
-
-        if existing_flow and not getattr(flow_data, "allow_multiple", False):
-            # Analyze the existing flow to provide better error information
-            flow_analysis = await lifecycle_manager.analyze_existing_flows(
-                str(current_user.id)
-            )
-
-            error_detail = build_existing_flow_error_detail(
-                existing_flow, flow_analysis
-            )
-
-            raise HTTPException(status_code=409, detail=error_detail)
+        # Issue #1258: Multiple collection flows allowed per engagement
+        # Questionnaires/gaps are asset-centric, not flow-centric
+        # Each assessment flow can have its own collection flow
 
         # Create collection flow (session handles transaction automatically)
         # Per ADR-028: phase_state eliminated - phase tracking will be added to master flow
