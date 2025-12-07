@@ -104,7 +104,7 @@ function AssetComparisonRow({
     return String(val);
   };
 
-  const differs = existingValue !== newValue && !(existingValue == null && newValue == null);
+  const differs = existingValue !== newValue && (existingValue != null || newValue != null);
 
   // Matching field gets special highlighting (blue background)
   // Differing non-matching fields get yellow background
@@ -505,12 +505,14 @@ export const AssetConflictModal: React.FC<AssetConflictModalProps> = ({
                           {label}
                         </Badge>
                         <p className="font-medium text-lg">
-                          {conflict.existing_asset.name || conflict.conflict_key}
-                          {conflict.existing_asset.name !== conflict.new_asset.name && (
-                            <span className="text-gray-500 font-normal"> vs </span>
-                          )}
-                          {conflict.existing_asset.name !== conflict.new_asset.name && (
-                            <span>{conflict.new_asset.name}</span>
+                          {conflict.existing_asset.name && conflict.new_asset.name && conflict.existing_asset.name !== conflict.new_asset.name ? (
+                            <>
+                              {conflict.existing_asset.name}
+                              <span className="text-gray-500 font-normal"> vs </span>
+                              {conflict.new_asset.name}
+                            </>
+                          ) : (
+                            conflict.existing_asset.name || conflict.new_asset.name || conflict.conflict_key
                           )}
                         </p>
                       </div>
