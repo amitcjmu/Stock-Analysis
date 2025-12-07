@@ -63,6 +63,15 @@ class Feedback(Base):
     # User tracking (display name only for privacy)
     user_name = Column(String(255), nullable=True)  # User display name
 
+    # Bug report specific fields (Issue #739)
+    severity = Column(String(20), default="medium")  # low, medium, high, critical
+    steps_to_reproduce = Column(Text)  # Steps to reproduce the bug
+    expected_behavior = Column(Text)  # What user expected
+    actual_behavior = Column(Text)  # What actually happened
+    screenshot_data = Column(Text)  # Base64 encoded screenshot
+    browser_info = Column(JSON)  # Browser name, version, OS
+    flow_context = Column(JSON)  # Current flow_id, phase, status
+
     # Metadata
     user_agent = Column(String(500))  # Browser user agent
     user_timestamp = Column(String(50))  # Timestamp from client side

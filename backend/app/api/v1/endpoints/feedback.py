@@ -30,6 +30,9 @@ MAX_COMMENT_LENGTH = 2000
 MAX_PAGE_LENGTH = 255
 MAX_BREADCRUMB_LENGTH = 500
 MAX_USER_NAME_LENGTH = 100
+MAX_STEPS_LENGTH = 5000
+MAX_BEHAVIOR_LENGTH = 2000
+MAX_SCREENSHOT_SIZE = 5 * 1024 * 1024  # 5MB base64
 
 
 def sanitize_input(value: str, max_length: int) -> str:
@@ -50,10 +53,18 @@ class FeedbackRequest(BaseModel):
     page: str
     rating: int
     comment: str
-    category: str = "ui"
+    category: str = "ui"  # ui, performance, feature, bug, general
     breadcrumb: Optional[str] = None
     timestamp: str
     user_name: Optional[str] = None  # Display name (validated server-side)
+    # Bug report specific fields (Issue #739)
+    severity: Optional[str] = None  # low, medium, high, critical
+    steps_to_reproduce: Optional[str] = None
+    expected_behavior: Optional[str] = None
+    actual_behavior: Optional[str] = None
+    screenshot_data: Optional[str] = None  # Base64 encoded
+    browser_info: Optional[dict] = None  # {name, version, os, platform}
+    flow_context: Optional[dict] = None  # {flow_id, phase, status}
 
     @field_validator("rating")
     @classmethod
@@ -76,6 +87,27 @@ class FeedbackRequest(BaseModel):
     def validate_page(cls, v: str) -> str:
         if len(v) > MAX_PAGE_LENGTH:
             raise ValueError(f"Page must be less than {MAX_PAGE_LENGTH} characters")
+        return v
+
+    @field_validator("severity")
+    @classmethod
+    def validate_severity(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v not in ("low", "medium", "high", "critical"):
+            raise ValueError("Severity must be one of: low, medium, high, critical")
+        return v
+
+    @field_validator("steps_to_reproduce")
+    @classmethod
+    def validate_steps(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and len(v) > MAX_STEPS_LENGTH:
+            raise ValueError(f"Steps must be less than {MAX_STEPS_LENGTH} characters")
+        return v
+
+    @field_validator("screenshot_data")
+    @classmethod
+    def validate_screenshot(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and len(v) > MAX_SCREENSHOT_SIZE:
+            raise ValueError("Screenshot exceeds maximum size of 5MB")
         return v
 
 
@@ -107,8 +139,28 @@ async def submit_feedback(
             else None
         )
 
+        # Sanitize bug report fields
+        sanitized_steps = (
+            sanitize_input(request.steps_to_reproduce, MAX_STEPS_LENGTH)
+            if request.steps_to_reproduce
+            else None
+        )
+        sanitized_expected = (
+            sanitize_input(request.expected_behavior, MAX_BEHAVIOR_LENGTH)
+            if request.expected_behavior
+            else None
+        )
+        sanitized_actual = (
+            sanitize_input(request.actual_behavior, MAX_BEHAVIOR_LENGTH)
+            if request.actual_behavior
+            else None
+        )
+
+        # Determine feedback type based on category
+        feedback_type = "bug_report" if request.category == "bug" else "ui_feedback"
+
         logger.info(
-            f"Feedback submission for page: {sanitized_page} "
+            f"Feedback submission ({feedback_type}) for page: {sanitized_page} "
             f"by user: {context.user_id or 'anonymous'}"
         )
 
@@ -116,7 +168,7 @@ async def submit_feedback(
 
         # Create feedback record in database with sanitized inputs
         feedback = Feedback(
-            feedback_type="ui_feedback",
+            feedback_type=feedback_type,
             page=sanitized_page,
             rating=request.rating,
             comment=sanitized_comment,
@@ -125,6 +177,14 @@ async def submit_feedback(
             user_timestamp=request.timestamp,
             user_name=sanitized_user_name or "Anonymous",
             status="new",
+            # Bug report specific fields (Issue #739)
+            severity=request.severity,
+            steps_to_reproduce=sanitized_steps,
+            expected_behavior=sanitized_expected,
+            actual_behavior=sanitized_actual,
+            screenshot_data=request.screenshot_data,  # Already validated for size
+            browser_info=request.browser_info,
+            flow_context=request.flow_context,
         )
 
         db.add(feedback)
@@ -172,20 +232,28 @@ async def get_all_feedback(
         # Transform to response format (output is already sanitized on input)
         feedback_list = []
         for record in feedback_records:
-            feedback_list.append(
-                {
-                    "id": str(record.id),
-                    "feedback_type": record.feedback_type,
-                    "page": record.page or "Unknown",
-                    "rating": record.rating or 0,
-                    "comment": record.comment or "",
-                    "category": record.category or "general",
-                    "status": record.status or "new",
-                    "timestamp": record.user_timestamp
-                    or (record.created_at.isoformat() if record.created_at else None),
-                    "user_name": getattr(record, "user_name", None) or "Anonymous",
-                }
-            )
+            feedback_item = {
+                "id": str(record.id),
+                "feedback_type": record.feedback_type,
+                "page": record.page or "Unknown",
+                "rating": record.rating or 0,
+                "comment": record.comment or "",
+                "category": record.category or "general",
+                "status": record.status or "new",
+                "timestamp": record.user_timestamp
+                or (record.created_at.isoformat() if record.created_at else None),
+                "user_name": getattr(record, "user_name", None) or "Anonymous",
+                # Bug report fields (Issue #739)
+                "severity": getattr(record, "severity", None),
+                "steps_to_reproduce": getattr(record, "steps_to_reproduce", None),
+                "expected_behavior": getattr(record, "expected_behavior", None),
+                "actual_behavior": getattr(record, "actual_behavior", None),
+                "browser_info": getattr(record, "browser_info", None),
+                "flow_context": getattr(record, "flow_context", None),
+                # Exclude screenshot_data from list view (too large)
+                "has_screenshot": bool(getattr(record, "screenshot_data", None)),
+            }
+            feedback_list.append(feedback_item)
 
         return {
             "success": True,
