@@ -16,7 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle, Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { AlertTriangle, Loader2, CheckCircle, XCircle, Info } from 'lucide-react';
 import { FieldMergeSelector } from './FieldMergeSelector';
 import { DependencySelector } from './DependencySelector';
 import { assetConflictService } from '@/services/api/assetConflictService';
@@ -46,33 +46,90 @@ interface AssetConflictModalProps {
 function getConflictTypeBadge(type: string): { variant: 'default' | 'secondary' | 'destructive'; label: string } {
   switch (type) {
     case 'hostname':
-      return { variant: 'destructive', label: 'Hostname Conflict' };
+      return { variant: 'destructive', label: 'Hostname Match' };
     case 'ip_address':
-      return { variant: 'destructive', label: 'IP Address Conflict' };
+      return { variant: 'destructive', label: 'IP Address Match' };
     case 'name':
-      return { variant: 'secondary', label: 'Name Conflict' };
+      return { variant: 'secondary', label: 'Name Match' };
     default:
-      return { variant: 'default', label: 'Conflict' };
+      return { variant: 'default', label: 'Match' };
+  }
+}
+
+/**
+ * Get user-friendly explanation of why assets are considered duplicates
+ */
+function getConflictExplanation(type: string, conflictKey: string): { title: string; description: string } {
+  switch (type) {
+    case 'hostname':
+      return {
+        title: 'Matched by Hostname',
+        description: `These assets share the same hostname "${conflictKey}". Even though the asset names may differ, they appear to reference the same physical or virtual machine.`,
+      };
+    case 'ip_address':
+      return {
+        title: 'Matched by IP Address',
+        description: `These assets share the same IP address "${conflictKey}". Even though the asset names may differ, they appear to reference the same network endpoint.`,
+      };
+    case 'name':
+      return {
+        title: 'Matched by Asset Name',
+        description: `These assets have the same name "${conflictKey}". This is a direct name match indicating a potential duplicate.`,
+      };
+    default:
+      return {
+        title: 'Potential Duplicate',
+        description: `These assets were identified as potential duplicates based on matching identifier "${conflictKey}".`,
+      };
   }
 }
 
 /**
  * Asset comparison row
  */
-function AssetComparisonRow({ label, existingValue, newValue }: { label: string; existingValue: unknown; newValue: unknown }) {
+function AssetComparisonRow({
+  label,
+  existingValue,
+  newValue,
+  isMatchingField = false,
+}: {
+  label: string;
+  existingValue: unknown;
+  newValue: unknown;
+  isMatchingField?: boolean;
+}) {
   const displayValue = (val: unknown) => {
     if (val === null || val === undefined) return <span className="text-gray-400">(empty)</span>;
     if (typeof val === 'object') return <span className="text-xs">{JSON.stringify(val)}</span>;
     return String(val);
   };
 
-  const differs = existingValue !== newValue && !(existingValue == null && newValue == null);
+  const differs = existingValue !== newValue && (existingValue != null || newValue != null);
+
+  // Matching field gets special highlighting (blue background)
+  // Differing non-matching fields get yellow background
+  const bgClass = isMatchingField
+    ? 'bg-blue-50 border-l-4 border-l-blue-500'
+    : differs
+      ? 'bg-yellow-50'
+      : '';
 
   return (
-    <div className={`grid grid-cols-3 gap-4 py-2 border-b last:border-0 ${differs ? 'bg-yellow-50' : ''}`}>
-      <div className="font-medium text-sm text-gray-700">{label}</div>
-      <div className="text-sm">{displayValue(existingValue)}</div>
-      <div className="text-sm">{displayValue(newValue)}</div>
+    <div className={`grid grid-cols-3 gap-4 py-2 border-b last:border-0 ${bgClass}`}>
+      <div className="font-medium text-sm text-gray-700 flex items-center gap-2">
+        {label}
+        {isMatchingField && (
+          <Badge variant="outline" className="text-xs bg-blue-100 text-blue-700 border-blue-300">
+            Match Key
+          </Badge>
+        )}
+      </div>
+      <div className={`text-sm ${isMatchingField ? 'font-semibold text-blue-700' : ''}`}>
+        {displayValue(existingValue)}
+      </div>
+      <div className={`text-sm ${isMatchingField ? 'font-semibold text-blue-700' : ''}`}>
+        {displayValue(newValue)}
+      </div>
     </div>
   );
 }
@@ -436,6 +493,7 @@ export const AssetConflictModal: React.FC<AssetConflictModalProps> = ({
             {displayedConflicts.map((conflict) => {
               const currentAction = resolutions[conflict.conflict_id];
               const { variant, label } = getConflictTypeBadge(conflict.conflict_type);
+              const explanation = getConflictExplanation(conflict.conflict_type, conflict.conflict_key);
 
               return (
                 <Card key={conflict.conflict_id} className="border-2">
@@ -446,9 +504,16 @@ export const AssetConflictModal: React.FC<AssetConflictModalProps> = ({
                         <Badge variant={variant} className="mb-2">
                           {label}
                         </Badge>
-                        <p className="font-medium text-lg">{conflict.conflict_key}</p>
-                        <p className="text-sm text-gray-500">
-                          Conflict Type: {conflict.conflict_type}
+                        <p className="font-medium text-lg">
+                          {conflict.existing_asset.name && conflict.new_asset.name && conflict.existing_asset.name !== conflict.new_asset.name ? (
+                            <>
+                              {conflict.existing_asset.name}
+                              <span className="text-gray-500 font-normal"> vs </span>
+                              {conflict.new_asset.name}
+                            </>
+                          ) : (
+                            conflict.existing_asset.name || conflict.new_asset.name || conflict.conflict_key
+                          )}
                         </p>
                       </div>
                       {currentAction && (
@@ -458,6 +523,15 @@ export const AssetConflictModal: React.FC<AssetConflictModalProps> = ({
                         </Badge>
                       )}
                     </div>
+
+                    {/* Explanation of why these assets are being compared */}
+                    <Alert className="bg-blue-50 border-blue-200">
+                      <Info className="h-4 w-4 text-blue-600" />
+                      <AlertDescription className="ml-2">
+                        <span className="font-semibold text-blue-800">{explanation.title}:</span>{' '}
+                        <span className="text-blue-700">{explanation.description}</span>
+                      </AlertDescription>
+                    </Alert>
 
                     {/* Resolution Action Selector */}
                     <div className="space-y-2">
@@ -528,16 +602,19 @@ export const AssetConflictModal: React.FC<AssetConflictModalProps> = ({
                           label="Name"
                           existingValue={conflict.existing_asset.name}
                           newValue={conflict.new_asset.name}
+                          isMatchingField={conflict.conflict_type === 'name'}
                         />
                         <AssetComparisonRow
                           label="Hostname"
                           existingValue={conflict.existing_asset.hostname}
                           newValue={conflict.new_asset.hostname}
+                          isMatchingField={conflict.conflict_type === 'hostname'}
                         />
                         <AssetComparisonRow
                           label="IP Address"
                           existingValue={conflict.existing_asset.ip_address}
                           newValue={conflict.new_asset.ip_address}
+                          isMatchingField={conflict.conflict_type === 'ip_address'}
                         />
                         <AssetComparisonRow
                           label="Asset Type"
