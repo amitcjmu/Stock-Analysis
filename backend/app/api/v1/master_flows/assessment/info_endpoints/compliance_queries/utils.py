@@ -5,6 +5,7 @@ Helper functions for parsing and processing compliance data.
 """
 
 import logging
+import re
 from typing import Any, Dict, List, Optional
 from uuid import UUID
 
@@ -69,13 +70,17 @@ def _normalize_app_data(app_data: Dict[str, Any]) -> Dict[str, Any]:
     raw_issues = app_data.get("issues", [])
     normalized_issues = [_normalize_issue(issue) for issue in raw_issues]
 
+    # Calculate checked_fields with sensible default
+    checked_fields = app_data.get("checked_fields", len(raw_issues))
+
     return {
         "application_name": app_data.get("application_name"),
         "is_compliant": is_compliant,
         "issues": normalized_issues,
-        "checked_fields": app_data.get("checked_fields", len(raw_issues)),
+        "checked_fields": checked_fields,
+        # Calculate passed_fields as checked - failed (issues count)
         "passed_fields": app_data.get(
-            "passed_fields", 0 if raw_issues else app_data.get("checked_fields", 0)
+            "passed_fields", max(0, checked_fields - len(raw_issues))
         ),
     }
 
@@ -160,15 +165,34 @@ async def _get_eol_status_for_tech_stack(
 
             try:
                 # Determine product type based on technology name
+                # Use word boundaries to prevent false matches like "mysql-connector-java" -> "sql"
                 tech_lower = tech.lower()
                 if any(
-                    os in tech_lower
-                    for os in ["windows", "linux", "rhel", "ubuntu", "debian", "centos"]
+                    re.search(rf"\b{os_name}\b", tech_lower)
+                    for os_name in [
+                        "windows",
+                        "linux",
+                        "rhel",
+                        "ubuntu",
+                        "debian",
+                        "centos",
+                    ]
                 ):
                     product_type = "os"
                 elif any(
-                    db in tech_lower
-                    for db in ["sql", "oracle", "postgres", "mysql", "mongo", "redis"]
+                    re.search(rf"\b{db_name}\b", tech_lower)
+                    for db_name in [
+                        "sql server",
+                        "sqlserver",
+                        "oracle",
+                        "postgres",
+                        "postgresql",
+                        "mysql",
+                        "mongodb",
+                        "mongo",
+                        "redis",
+                        "mariadb",
+                    ]
                 ):
                     product_type = "database"
                 else:

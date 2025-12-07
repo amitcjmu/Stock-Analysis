@@ -235,14 +235,19 @@ async def refresh_compliance_validation(  # noqa: C901
             # Fallback for unexpected types
             standards_dict = {}
 
-        # Collect all tech stacks and get EOL status using EOL service
-        all_tech_stacks = {}
+        # Collect all unique tech/version pairs for EOL check
+        # Using set of tuples to preserve all versions (dict.update overwrites)
+        unique_tech_versions: set[tuple[str, str]] = set()
         for app in applications:
             tech_stack = app.get("technology_stack", {})
             if isinstance(tech_stack, dict):
-                all_tech_stacks.update(tech_stack)
+                for tech, version in tech_stack.items():
+                    if tech and version and version != "unknown":
+                        unique_tech_versions.add((tech, version))
 
-        eol_status_list = await _get_eol_status_for_tech_stack(all_tech_stacks)
+        # Convert set of tuples to dict format expected by EOL service
+        tech_stack_to_check = {tech: version for tech, version in unique_tech_versions}
+        eol_status_list = await _get_eol_status_for_tech_stack(tech_stack_to_check)
 
         compliance_validation = {
             "overall_compliant": overall_compliant,
