@@ -16,7 +16,6 @@ Resilience Enrichment Agent - Enriches assets with HA/DR configuration data.
 - rpo: Recovery Point Objective (minutes)
 """
 
-import json
 import logging
 from typing import Any, Dict, List
 from uuid import UUID
@@ -33,6 +32,7 @@ from app.services.multi_model_service import TaskComplexity, multi_model_service
 from app.services.persistent_agents.tenant_scoped_agent_pool import (
     TenantScopedAgentPool,
 )
+from app.utils.json_sanitization import safe_parse_llm_json
 
 logger = logging.getLogger(__name__)
 
@@ -231,10 +231,30 @@ IMPORTANT:
 """
 
     def _parse_resilience_response(self, response: str) -> Dict[str, Any]:
-        """Parse LLM response into resilience data"""
-        try:
-            data = json.loads(response)
+        """Parse LLM response into resilience data.
 
+        Uses safe_parse_llm_json per ADR-029 to handle LLM output quirks:
+        - Markdown code blocks (```json...```)
+        - Trailing commas, single quotes
+        - JSON embedded in text
+        """
+        # ADR-029: Use safe_parse_llm_json instead of json.loads
+        data = safe_parse_llm_json(response)
+
+        if data is None:
+            logger.warning(f"Failed to parse resilience response: {response[:100]}...")
+            return {
+                "resilience_score": 5.0,
+                "ha_configuration": "none",
+                "backup_status": "none",
+                "dr_tier": 4,
+                "rto": None,
+                "rpo": None,
+                "confidence": 0.3,
+                "reasoning": "Failed to parse LLM response",
+            }
+
+        try:
             normalized = {
                 "resilience_score": float(data.get("resilience_score", 5.0)),
                 "ha_configuration": data.get("ha_configuration", "none"),
@@ -258,10 +278,8 @@ IMPORTANT:
 
             return normalized
 
-        except (json.JSONDecodeError, ValueError, TypeError) as e:
-            logger.warning(
-                f"Failed to parse resilience response: {response[:100]}..., error: {e}"
-            )
+        except (ValueError, TypeError) as e:
+            logger.warning(f"Failed to normalize resilience data: {e}")
             return {
                 "resilience_score": 5.0,
                 "ha_configuration": "none",
@@ -270,5 +288,5 @@ IMPORTANT:
                 "rto": None,
                 "rpo": None,
                 "confidence": 0.3,
-                "reasoning": "Failed to parse LLM response",
+                "reasoning": "Failed to normalize LLM response data",
             }

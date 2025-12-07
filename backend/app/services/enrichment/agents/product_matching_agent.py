@@ -31,6 +31,7 @@ from app.services.multi_model_service import TaskComplexity, multi_model_service
 from app.services.persistent_agents.tenant_scoped_agent_pool import (
     TenantScopedAgentPool,
 )
+from app.utils.json_sanitization import safe_parse_llm_json
 
 logger = logging.getLogger(__name__)
 
@@ -263,10 +264,29 @@ IMPORTANT:
 """
 
     def _parse_matching_response(self, response: str) -> Dict[str, Any]:
-        """Parse LLM response into product matching data"""
-        try:
-            data = json.loads(response)
+        """Parse LLM response into product matching data.
 
+        Uses safe_parse_llm_json per ADR-029 to handle LLM output quirks:
+        - Markdown code blocks (```json...```)
+        - Trailing commas, single quotes
+        - JSON embedded in text
+        """
+        # ADR-029: Use safe_parse_llm_json instead of json.loads
+        data = safe_parse_llm_json(response)
+
+        if data is None:
+            logger.warning(
+                f"Failed to parse product matching response: {response[:100]}..."
+            )
+            return {
+                "matched_products": [],
+                "primary_product": "Unknown",
+                "match_count": 0,
+                "confidence": 0.2,
+                "reasoning": "Failed to parse LLM response",
+            }
+
+        try:
             # Validate and normalize matched products
             matched_products = data.get("matched_products", [])
             if not isinstance(matched_products, list):
@@ -298,14 +318,12 @@ IMPORTANT:
 
             return normalized
 
-        except (json.JSONDecodeError, ValueError, TypeError) as e:
-            logger.warning(
-                f"Failed to parse product matching response: {response[:100]}..., error: {e}"
-            )
+        except (ValueError, TypeError) as e:
+            logger.warning(f"Failed to normalize product matching data: {e}")
             return {
                 "matched_products": [],
                 "primary_product": "Unknown",
                 "match_count": 0,
                 "confidence": 0.2,
-                "reasoning": "Failed to parse LLM response",
+                "reasoning": "Failed to normalize LLM response data",
             }

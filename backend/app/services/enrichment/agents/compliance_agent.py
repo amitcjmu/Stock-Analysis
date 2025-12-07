@@ -14,7 +14,6 @@ Compliance Enrichment Agent - Enriches assets with compliance requirements and d
 - evidence_refs: Links to compliance evidence/documentation
 """
 
-import json
 import logging
 from typing import Any, Dict, List
 from uuid import UUID
@@ -31,6 +30,7 @@ from app.services.multi_model_service import TaskComplexity, multi_model_service
 from app.services.persistent_agents.tenant_scoped_agent_pool import (
     TenantScopedAgentPool,
 )
+from app.utils.json_sanitization import safe_parse_llm_json
 
 logger = logging.getLogger(__name__)
 
@@ -227,11 +227,27 @@ IMPORTANT:
 """
 
     def _parse_compliance_response(self, response: str) -> Dict[str, Any]:
-        """Parse LLM response into compliance data"""
-        try:
-            # Try to parse JSON response
-            data = json.loads(response)
+        """Parse LLM response into compliance data.
 
+        Uses safe_parse_llm_json per ADR-029 to handle LLM output quirks:
+        - Markdown code blocks (```json...```)
+        - Trailing commas, single quotes
+        - JSON embedded in text
+        """
+        # ADR-029: Use safe_parse_llm_json instead of json.loads
+        data = safe_parse_llm_json(response)
+
+        if data is None:
+            logger.warning(f"Failed to parse compliance response: {response[:100]}...")
+            return {
+                "compliance_scopes": [],
+                "data_classification": "internal",
+                "residency": None,
+                "confidence": 0.3,
+                "reasoning": "Failed to parse LLM response",
+            }
+
+        try:
             # Validate and normalize data
             normalized = {
                 "compliance_scopes": data.get("compliance_scopes", []),
@@ -247,24 +263,12 @@ IMPORTANT:
 
             return normalized
 
-        except json.JSONDecodeError:
-            # Fallback parsing if JSON is malformed
-            logger.warning(
-                f"Failed to parse JSON compliance response: {response[:100]}..."
-            )
+        except (ValueError, TypeError) as e:
+            logger.warning(f"Failed to normalize compliance data: {e}")
             return {
                 "compliance_scopes": [],
                 "data_classification": "internal",
                 "residency": None,
                 "confidence": 0.3,
-                "reasoning": "Failed to parse LLM response",
-            }
-        except Exception as e:
-            logger.error(f"Error parsing compliance response: {e}", exc_info=True)
-            return {
-                "compliance_scopes": [],
-                "data_classification": "internal",
-                "residency": None,
-                "confidence": 0.0,
-                "reasoning": f"Parsing error: {str(e)}",
+                "reasoning": "Failed to normalize LLM response data",
             }

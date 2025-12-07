@@ -32,6 +32,7 @@ from app.services.multi_model_service import TaskComplexity, multi_model_service
 from app.services.persistent_agents.tenant_scoped_agent_pool import (
     TenantScopedAgentPool,
 )
+from app.utils.json_sanitization import safe_parse_llm_json
 
 logger = logging.getLogger(__name__)
 
@@ -260,10 +261,28 @@ IMPORTANT:
     def _parse_dependency_response(
         self, response: str, all_assets: List[Asset]
     ) -> Dict[str, Any]:
-        """Parse LLM response into dependency data"""
-        try:
-            data = json.loads(response)
+        """Parse LLM response into dependency data.
 
+        Uses safe_parse_llm_json per ADR-029 to handle LLM output quirks:
+        - Markdown code blocks (```json...```)
+        - Trailing commas, single quotes
+        - JSON embedded in text
+        """
+        # ADR-029: Use safe_parse_llm_json instead of json.loads
+        data = safe_parse_llm_json(response)
+
+        if data is None:
+            logger.warning(f"Failed to parse dependency response: {response[:100]}...")
+            return {
+                "dependencies": [],
+                "dependency_count": 0,
+                "critical_dependencies": 0,
+                "recommended_wave": 1,
+                "confidence": 0.2,
+                "reasoning": "Failed to parse LLM response",
+            }
+
+        try:
             # Build asset name to ID mapping
             asset_name_to_id = {
                 asset.asset_name: asset.id for asset in all_assets if asset.asset_name
@@ -310,15 +329,13 @@ IMPORTANT:
 
             return normalized
 
-        except (json.JSONDecodeError, ValueError, TypeError) as e:
-            logger.warning(
-                f"Failed to parse dependency response: {response[:100]}..., error: {e}"
-            )
+        except (ValueError, TypeError) as e:
+            logger.warning(f"Failed to normalize dependency data: {e}")
             return {
                 "dependencies": [],
                 "dependency_count": 0,
                 "critical_dependencies": 0,
                 "recommended_wave": 1,
                 "confidence": 0.2,
-                "reasoning": "Failed to parse LLM response",
+                "reasoning": "Failed to normalize LLM response data",
             }

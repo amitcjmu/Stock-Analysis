@@ -15,7 +15,6 @@ Licensing Enrichment Agent - Enriches assets with software licensing information
 - vendor_name: Software vendor name
 """
 
-import json
 import logging
 from typing import Any, Dict, List
 from uuid import UUID
@@ -32,6 +31,7 @@ from app.services.multi_model_service import TaskComplexity, multi_model_service
 from app.services.persistent_agents.tenant_scoped_agent_pool import (
     TenantScopedAgentPool,
 )
+from app.utils.json_sanitization import safe_parse_llm_json
 
 logger = logging.getLogger(__name__)
 
@@ -214,10 +214,29 @@ IMPORTANT:
 """
 
     def _parse_licensing_response(self, response: str) -> Dict[str, Any]:
-        """Parse LLM response into licensing data"""
-        try:
-            data = json.loads(response)
+        """Parse LLM response into licensing data.
 
+        Uses safe_parse_llm_json per ADR-029 to handle LLM output quirks:
+        - Markdown code blocks (```json...```)
+        - Trailing commas, single quotes
+        - JSON embedded in text
+        """
+        # ADR-029: Use safe_parse_llm_json instead of json.loads
+        data = safe_parse_llm_json(response)
+
+        if data is None:
+            logger.warning(f"Failed to parse licensing response: {response[:100]}...")
+            return {
+                "license_type": "unknown",
+                "vendor_name": "Unknown",
+                "license_count": 1,
+                "annual_cost": None,
+                "expiration_date": None,
+                "confidence": 0.3,
+                "reasoning": "Failed to parse LLM response",
+            }
+
+        try:
             normalized = {
                 "license_type": data.get("license_type", "unknown"),
                 "vendor_name": data.get("vendor_name", "Unknown"),
@@ -234,10 +253,8 @@ IMPORTANT:
 
             return normalized
 
-        except (json.JSONDecodeError, ValueError, TypeError) as e:
-            logger.warning(
-                f"Failed to parse licensing response: {response[:100]}..., error: {e}"
-            )
+        except (ValueError, TypeError) as e:
+            logger.warning(f"Failed to normalize licensing data: {e}")
             return {
                 "license_type": "unknown",
                 "vendor_name": "Unknown",
@@ -245,5 +262,5 @@ IMPORTANT:
                 "annual_cost": None,
                 "expiration_date": None,
                 "confidence": 0.3,
-                "reasoning": "Failed to parse LLM response",
+                "reasoning": "Failed to normalize LLM response data",
             }
