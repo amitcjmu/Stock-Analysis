@@ -55,7 +55,7 @@ watchfiles>=1.1.0
 
 # Remove or update vulnerable packages
 certifi>=2025.6.15  # Latest CA certificates
-urllib3>=2.5.0  # Security patches
+urllib3>=2.6.0  # Security patches
 requests>=2.32.4  # Updated for security
 pillow>=11.3.0  # Multiple CVE fixes
 jinja2>=3.1.6  # Template injection fixes

@@ -242,7 +242,7 @@ typing-inspection==0.4.1
 typing_extensions==4.14.1
 tzdata==2025.2
 upstash-redis==1.4.0
-urllib3==2.5.0
+urllib3>=2.6.0
 uv==0.9.6  # Updated to fix GHSA-mwxc-whgv-xc4w ZIP payload obfuscation vulnerability
 uvicorn==0.35.0
 uvloop==0.21.0
