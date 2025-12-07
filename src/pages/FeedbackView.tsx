@@ -140,16 +140,17 @@ const FeedbackView: React.FC = () => {
       console.log('- PROD:', import.meta.env.PROD);
       console.log('- Window location:', typeof window !== 'undefined' ? window.location.href : 'SSR');
 
-      // CC FIX: Use correct endpoint - chat/feedback instead of deprecated discovery/feedback
-      const response = await apiCall('chat/feedback');
+      // CC FIX: Use correct endpoint - /feedback instead of deprecated /chat/feedback
+      const response = await apiCall('feedback');
       console.log('API Response:', response); // Debug log
 
       const allFeedback = response.feedback || [];
 
-      // Filter for page/UI feedback only (exclude CMDB analysis feedback)
+      // Filter for page/UI/bug feedback (exclude CMDB analysis feedback)
       const pageFeedback = allFeedback.filter((item: unknown) =>
         item.feedback_type === 'page_feedback' ||
         item.feedback_type === 'ui_feedback' ||
+        item.feedback_type === 'bug_report' ||
         (!item.feedback_type && item.page && item.rating && item.comment)
       );
 
@@ -302,7 +303,7 @@ const FeedbackView: React.FC = () => {
       return;
     }
     try {
-      await apiCall(`chat/feedback/${feedbackId}`, {
+      await apiCall(`feedback/${feedbackId}`, {
         method: 'DELETE',
       });
       // Remove from local state and recalculate summary
