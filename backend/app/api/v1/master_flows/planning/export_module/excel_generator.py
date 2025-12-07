@@ -130,6 +130,14 @@ def _create_cost_sheet(wb: Workbook, planning_flow: Any):
     ws = wb.create_sheet("Cost Estimation")
     cost_data = planning_flow.cost_estimation_data or {}
 
+    # Dynamic currency support (Qodo suggestion)
+    currency_map = {"USD": "$", "EUR": "€", "GBP": "£", "JPY": "¥", "INR": "₹"}
+    currency_code = (
+        cost_data.get("currency", "USD") if isinstance(cost_data, dict) else "USD"
+    )
+    currency_symbol = currency_map.get(currency_code, "$")
+    number_format = f'"{currency_symbol}"#,##0.00'
+
     cost_headers = ["Category", "Estimated Cost"]
     for col_idx, header in enumerate(cost_headers, 1):
         cell = ws.cell(row=1, column=col_idx, value=header)
@@ -151,7 +159,7 @@ def _create_cost_sheet(wb: Workbook, planning_flow: Any):
                 )
                 cell.border = thin_border
                 cell.number_format = (
-                    "$#,##0.00" if isinstance(value, (int, float)) else "@"
+                    number_format if isinstance(value, (int, float)) else "@"
                 )
                 row_idx += 1
         if cost_data.get("total"):
@@ -161,7 +169,7 @@ def _create_cost_sheet(wb: Workbook, planning_flow: Any):
             cell_value = ws.cell(row=row_idx, column=2, value=cost_data["total"])
             cell_value.font = Font(bold=True)
             cell_value.border = thin_border
-            cell_value.number_format = "$#,##0.00"
+            cell_value.number_format = number_format
 
     ws.column_dimensions["A"].width = 30
     ws.column_dimensions["B"].width = 20

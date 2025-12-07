@@ -6,12 +6,15 @@ Security:
 - All endpoints require authentication via RequestContext
 - Input validation prevents XSS via length limits and sanitization
 - DELETE requires authenticated user (admin feature)
+- Screenshot validation decodes base64 and verifies image format
+- JSON fields (browser_info, flow_context) are sanitized to prevent stored XSS
 """
 
+import base64
 import html
 import logging
 import re
-from typing import Optional
+from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, field_validator
@@ -32,7 +35,18 @@ MAX_BREADCRUMB_LENGTH = 500
 MAX_USER_NAME_LENGTH = 100
 MAX_STEPS_LENGTH = 5000
 MAX_BEHAVIOR_LENGTH = 2000
-MAX_SCREENSHOT_SIZE = 5 * 1024 * 1024  # 5MB base64
+MAX_SCREENSHOT_DECODED_SIZE = 5 * 1024 * 1024  # 5MB decoded
+MAX_JSON_FIELD_KEYS = 20  # Max keys in browser_info/flow_context
+MAX_JSON_VALUE_LENGTH = 500  # Max length per JSON string value
+
+# Valid image signatures (magic bytes)
+VALID_IMAGE_SIGNATURES = {
+    b"\x89PNG\r\n\x1a\n": "image/png",
+    b"\xff\xd8\xff": "image/jpeg",
+    b"GIF87a": "image/gif",
+    b"GIF89a": "image/gif",
+    b"RIFF": "image/webp",  # WebP starts with RIFF
+}
 
 
 def sanitize_input(value: str, max_length: int) -> str:
@@ -46,6 +60,84 @@ def sanitize_input(value: str, max_length: int) -> str:
     # Remove any potential script injection patterns
     value = re.sub(r"<script[^>]*>.*?</script>", "", value, flags=re.IGNORECASE)
     return value.strip()
+
+
+def sanitize_json_value(value: Any, max_length: int = MAX_JSON_VALUE_LENGTH) -> Any:
+    """Recursively sanitize JSON values to prevent stored XSS (Qodo security fix)."""
+    if value is None:
+        return None
+    if isinstance(value, str):
+        # Truncate and HTML escape string values
+        return html.escape(value[:max_length])
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return value
+    if isinstance(value, list):
+        # Limit list length and sanitize each element
+        return [sanitize_json_value(item) for item in value[:50]]
+    if isinstance(value, dict):
+        # Limit number of keys and sanitize each key/value
+        sanitized = {}
+        for i, (k, v) in enumerate(value.items()):
+            if i >= MAX_JSON_FIELD_KEYS:
+                break
+            # Sanitize key (alphanumeric, underscore, hyphen only)
+            safe_key = re.sub(r"[^a-zA-Z0-9_-]", "", str(k)[:100])
+            if safe_key:
+                sanitized[safe_key] = sanitize_json_value(v)
+        return sanitized
+    # Unknown type - convert to string and sanitize
+    return html.escape(str(value)[:max_length])
+
+
+def validate_image_data(base64_data: str) -> tuple[bool, str]:
+    """
+    Validate base64 screenshot data (Qodo security fix).
+
+    Returns:
+        tuple of (is_valid, error_message)
+    """
+    try:
+        # Handle data URL format: data:image/png;base64,iVBOR...
+        if base64_data.startswith("data:"):
+            # Extract the base64 part after the comma
+            if "," not in base64_data:
+                return False, "Invalid data URL format"
+            header, base64_data = base64_data.split(",", 1)
+            # Validate content type in header
+            if not any(
+                img_type in header
+                for img_type in ["image/png", "image/jpeg", "image/gif", "image/webp"]
+            ):
+                return False, "Invalid image type in data URL"
+
+        # Decode base64
+        try:
+            decoded = base64.b64decode(base64_data)
+        except Exception:
+            return False, "Invalid base64 encoding"
+
+        # Check decoded size
+        if len(decoded) > MAX_SCREENSHOT_DECODED_SIZE:
+            return (
+                False,
+                f"Screenshot exceeds maximum size of {MAX_SCREENSHOT_DECODED_SIZE // (1024*1024)}MB",
+            )
+
+        # Verify image format by checking magic bytes
+        is_valid_image = False
+        for signature in VALID_IMAGE_SIGNATURES:
+            if decoded.startswith(signature):
+                is_valid_image = True
+                break
+
+        if not is_valid_image:
+            return False, "Invalid image format - must be PNG, JPEG, GIF, or WebP"
+
+        return True, ""
+    except Exception as e:
+        return False, f"Screenshot validation failed: {str(e)}"
 
 
 # Feedback endpoint models
@@ -106,8 +198,12 @@ class FeedbackRequest(BaseModel):
     @field_validator("screenshot_data")
     @classmethod
     def validate_screenshot(cls, v: Optional[str]) -> Optional[str]:
-        if v is not None and len(v) > MAX_SCREENSHOT_SIZE:
-            raise ValueError("Screenshot exceeds maximum size of 5MB")
+        """Validate screenshot: decode base64, check size, verify image format (Qodo security fix)."""
+        if v is None:
+            return None
+        is_valid, error_msg = validate_image_data(v)
+        if not is_valid:
+            raise ValueError(error_msg)
         return v
 
 
@@ -156,6 +252,14 @@ async def submit_feedback(
             else None
         )
 
+        # Sanitize JSON fields to prevent stored XSS (Qodo security fix)
+        sanitized_browser_info = (
+            sanitize_json_value(request.browser_info) if request.browser_info else None
+        )
+        sanitized_flow_context = (
+            sanitize_json_value(request.flow_context) if request.flow_context else None
+        )
+
         # Determine feedback type based on category
         feedback_type = "bug_report" if request.category == "bug" else "ui_feedback"
 
@@ -182,9 +286,9 @@ async def submit_feedback(
             steps_to_reproduce=sanitized_steps,
             expected_behavior=sanitized_expected,
             actual_behavior=sanitized_actual,
-            screenshot_data=request.screenshot_data,  # Already validated for size
-            browser_info=request.browser_info,
-            flow_context=request.flow_context,
+            screenshot_data=request.screenshot_data,  # Validated for size and format
+            browser_info=sanitized_browser_info,  # Sanitized to prevent XSS
+            flow_context=sanitized_flow_context,  # Sanitized to prevent XSS
         )
 
         db.add(feedback)

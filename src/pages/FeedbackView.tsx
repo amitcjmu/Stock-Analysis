@@ -1,7 +1,7 @@
 import React from 'react'
 import { useState, useCallback } from 'react'
 import { useEffect } from 'react'
-import { MessageSquare, Clock, User, Search, Star, AlertTriangle, CheckCircle, Trash2 } from 'lucide-react'
+import { MessageSquare, Clock, User, Search, Star, AlertTriangle, CheckCircle, Trash2, Bug, Lightbulb, Zap, FileText, Image } from 'lucide-react'
 import { apiCall, API_CONFIG } from '../config/api';
 
 interface FeedbackItem {
@@ -12,7 +12,16 @@ interface FeedbackItem {
   timestamp: string;
   user_name?: string;
   status: 'new' | 'reviewed' | 'resolved';
-  category: 'ui' | 'performance' | 'feature' | 'bug' | 'general';
+  category: 'ui' | 'performance' | 'feature' | 'bug' | 'general' | 'improvement';
+  feedback_type?: string;
+  // Bug report fields (Issue #739)
+  severity?: 'low' | 'medium' | 'high' | 'critical';
+  steps_to_reproduce?: string;
+  expected_behavior?: string;
+  actual_behavior?: string;
+  has_screenshot?: boolean;
+  browser_info?: Record<string, unknown>;
+  flow_context?: Record<string, unknown>;
 }
 
 const FeedbackView: React.FC = () => {
@@ -21,10 +30,11 @@ const FeedbackView: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Filters - simplified (no category since all feedback is 'ui' type)
+  // Filters
   const [selectedPage, setSelectedPage] = useState('all');
   const [selectedRating, setSelectedRating] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
+  const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
   const [summary, setSummary] = useState({
@@ -163,7 +173,16 @@ const FeedbackView: React.FC = () => {
         timestamp: item.user_timestamp || item.timestamp || new Date().toISOString(),
         user_name: item.user_name || 'Anonymous',
         status: item.status || 'new',
-        category: item.category || 'general'
+        category: item.category || 'general',
+        feedback_type: item.feedback_type,
+        // Bug report fields (Issue #739)
+        severity: item.severity,
+        steps_to_reproduce: item.steps_to_reproduce,
+        expected_behavior: item.expected_behavior,
+        actual_behavior: item.actual_behavior,
+        has_screenshot: item.has_screenshot,
+        browser_info: item.browser_info,
+        flow_context: item.flow_context
       }));
 
       setFeedback(transformedFeedback);
@@ -246,15 +265,21 @@ const FeedbackView: React.FC = () => {
       filtered = filtered.filter(f => f.status === selectedStatus);
     }
 
+    if (selectedCategory !== 'all') {
+      filtered = filtered.filter(f => f.category === selectedCategory);
+    }
+
     if (searchTerm) {
       filtered = filtered.filter(f =>
         f.comment.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        f.page.toLowerCase().includes(searchTerm.toLowerCase())
+        f.page.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (f.expected_behavior?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (f.actual_behavior?.toLowerCase().includes(searchTerm.toLowerCase()))
       );
     }
 
     setFilteredFeedback(filtered);
-  }, [feedback, selectedPage, selectedRating, selectedStatus, searchTerm]);
+  }, [feedback, selectedPage, selectedRating, selectedStatus, selectedCategory, searchTerm]);
 
   // Helper function to calculate summary from feedback array
   const calculateSummary = useCallback((feedbackItems: FeedbackItem[]): void => {
@@ -335,6 +360,71 @@ const FeedbackView: React.FC = () => {
       case 'resolved': return 'bg-green-100 text-green-800';
       default: return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  // Category styling helper (Issue #739)
+  const getCategoryConfig = (category: string): { icon: JSX.Element; label: string; bgColor: string; borderColor: string } => {
+    switch (category) {
+      case 'bug':
+        return {
+          icon: <Bug className="h-4 w-4 text-red-600" />,
+          label: 'Bug Report',
+          bgColor: 'bg-red-50',
+          borderColor: 'border-red-200'
+        };
+      case 'feature':
+        return {
+          icon: <Lightbulb className="h-4 w-4 text-purple-600" />,
+          label: 'Feature Request',
+          bgColor: 'bg-purple-50',
+          borderColor: 'border-purple-200'
+        };
+      case 'improvement':
+        return {
+          icon: <Zap className="h-4 w-4 text-amber-600" />,
+          label: 'Improvement',
+          bgColor: 'bg-amber-50',
+          borderColor: 'border-amber-200'
+        };
+      case 'performance':
+        return {
+          icon: <AlertTriangle className="h-4 w-4 text-orange-600" />,
+          label: 'Performance',
+          bgColor: 'bg-orange-50',
+          borderColor: 'border-orange-200'
+        };
+      case 'ui':
+        return {
+          icon: <FileText className="h-4 w-4 text-blue-600" />,
+          label: 'UI Feedback',
+          bgColor: 'bg-blue-50',
+          borderColor: 'border-blue-200'
+        };
+      default:
+        return {
+          icon: <MessageSquare className="h-4 w-4 text-gray-600" />,
+          label: 'General',
+          bgColor: 'bg-gray-50',
+          borderColor: 'border-gray-200'
+        };
+    }
+  };
+
+  // Severity badge helper (Issue #739)
+  const getSeverityBadge = (severity?: string): JSX.Element | null => {
+    if (!severity) return null;
+    const config = {
+      critical: { bg: 'bg-red-600', text: 'text-white', label: 'Critical' },
+      high: { bg: 'bg-orange-500', text: 'text-white', label: 'High' },
+      medium: { bg: 'bg-yellow-500', text: 'text-gray-900', label: 'Medium' },
+      low: { bg: 'bg-green-500', text: 'text-white', label: 'Low' }
+    };
+    const style = config[severity as keyof typeof config] || config.low;
+    return (
+      <span className={`inline-flex px-2 py-0.5 text-xs font-bold rounded ${style.bg} ${style.text}`}>
+        {style.label}
+      </span>
+    );
   };
 
   const renderStars = (rating: number): JSX.Element[] => {
@@ -433,7 +523,7 @@ const FeedbackView: React.FC = () => {
             <h3 className="text-lg font-medium text-gray-900">Filters</h3>
           </div>
           <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
               {/* Search */}
               <div className="lg:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
@@ -447,6 +537,24 @@ const FeedbackView: React.FC = () => {
                     className="pl-10 w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
+              </div>
+
+              {/* Category Filter (Issue #739) */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="all">All Categories</option>
+                  <option value="bug">Bug Reports</option>
+                  <option value="feature">Feature Requests</option>
+                  <option value="improvement">Improvements</option>
+                  <option value="general">General Feedback</option>
+                  <option value="ui">UI Feedback</option>
+                  <option value="performance">Performance</option>
+                </select>
               </div>
 
               {/* Page Filter */}
@@ -510,57 +618,122 @@ const FeedbackView: React.FC = () => {
               </p>
             </div>
           ) : (
-            filteredFeedback.map((item) => (
-              <div key={item.id} className="bg-white rounded-lg shadow hover:shadow-md transition-shadow">
-                <div className="p-6">
-                  {/* Header */}
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center space-x-3">
-                      <span className="text-sm font-medium text-blue-600">{item.page}</span>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <div className="flex items-center space-x-1">
-                        {renderStars(item.rating)}
-                      </div>
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(item.status)}`}>
-                        {item.status}
-                      </span>
-                    </div>
-                  </div>
+            filteredFeedback.map((item) => {
+              const categoryConfig = getCategoryConfig(item.category);
+              const isBugReport = item.category === 'bug' || item.feedback_type === 'bug_report';
 
-                  {/* Content */}
-                  <div className="mb-4">
-                    <p className="text-gray-800 leading-relaxed">{item.comment}</p>
-                  </div>
-
-                  {/* Footer */}
-                  <div className="flex items-center justify-between text-sm text-gray-500">
-                    <div className="flex items-center space-x-4">
-                      <div className="flex items-center space-x-2">
-                        <User className="h-4 w-4" />
-                        <span className="font-medium">{item.user_name || 'Anonymous'}</span>
+              return (
+                <div
+                  key={item.id}
+                  className={`rounded-lg shadow hover:shadow-md transition-shadow border ${categoryConfig.bgColor} ${categoryConfig.borderColor}`}
+                >
+                  <div className="p-6">
+                    {/* Header with Category */}
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center space-x-3">
+                        {/* Category Badge */}
+                        <div className="flex items-center space-x-1.5 px-2 py-1 rounded-full bg-white border border-gray-200">
+                          {categoryConfig.icon}
+                          <span className="text-xs font-medium text-gray-700">{categoryConfig.label}</span>
+                        </div>
+                        <span className="text-sm font-medium text-blue-600">{item.page}</span>
+                        {/* Severity Badge for Bugs */}
+                        {isBugReport && getSeverityBadge(item.severity)}
+                        {/* Screenshot Indicator */}
+                        {item.has_screenshot && (
+                          <div className="flex items-center space-x-1 text-green-600" title="Has screenshot attached">
+                            <Image className="h-4 w-4" />
+                            <span className="text-xs">Screenshot</span>
+                          </div>
+                        )}
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <Clock className="h-4 w-4" />
-                        <span>{new Date(item.timestamp).toLocaleDateString()} at {new Date(item.timestamp).toLocaleTimeString()}</span>
+                      <div className="flex items-center space-x-3">
+                        <div className="flex items-center space-x-1">
+                          {renderStars(item.rating)}
+                        </div>
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(item.status)}`}>
+                          {item.status}
+                        </span>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-4">
-                      <div className="text-xs">
-                        ID: {item.id}
+
+                    {/* Main Comment */}
+                    <div className="mb-4">
+                      <p className="text-gray-800 leading-relaxed">{item.comment}</p>
+                    </div>
+
+                    {/* Bug Report Details Section (Issue #739) */}
+                    {isBugReport && (item.expected_behavior || item.actual_behavior || item.steps_to_reproduce) && (
+                      <div className="mb-4 p-4 bg-white rounded-lg border border-red-100 space-y-3">
+                        {item.expected_behavior && (
+                          <div>
+                            <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Expected Behavior</label>
+                            <p className="mt-1 text-sm text-gray-800 bg-green-50 p-2 rounded border-l-2 border-green-400">
+                              {item.expected_behavior}
+                            </p>
+                          </div>
+                        )}
+                        {item.actual_behavior && (
+                          <div>
+                            <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Actual Behavior</label>
+                            <p className="mt-1 text-sm text-gray-800 bg-red-50 p-2 rounded border-l-2 border-red-400">
+                              {item.actual_behavior}
+                            </p>
+                          </div>
+                        )}
+                        {item.steps_to_reproduce && (
+                          <div>
+                            <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Steps to Reproduce</label>
+                            <p className="mt-1 text-sm text-gray-800 bg-gray-50 p-2 rounded border-l-2 border-gray-400 whitespace-pre-wrap">
+                              {item.steps_to_reproduce}
+                            </p>
+                          </div>
+                        )}
+                        {/* Browser Info */}
+                        {item.browser_info && Object.keys(item.browser_info).length > 0 && (
+                          <div>
+                            <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Environment</label>
+                            <div className="mt-1 flex flex-wrap gap-2">
+                              {Object.entries(item.browser_info).map(([key, value]) => (
+                                <span key={key} className="text-xs bg-gray-100 px-2 py-1 rounded">
+                                  {key}: {String(value)}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      <button
-                        onClick={() => handleDelete(item.id)}
-                        className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors"
-                        title="Delete feedback"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                    )}
+
+                    {/* Footer */}
+                    <div className="flex items-center justify-between text-sm text-gray-500">
+                      <div className="flex items-center space-x-4">
+                        <div className="flex items-center space-x-2">
+                          <User className="h-4 w-4" />
+                          <span className="font-medium">{item.user_name || 'Anonymous'}</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Clock className="h-4 w-4" />
+                          <span>{new Date(item.timestamp).toLocaleDateString()} at {new Date(item.timestamp).toLocaleTimeString()}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-4">
+                        <div className="text-xs">
+                          ID: {item.id.substring(0, 8)}...
+                        </div>
+                        <button
+                          onClick={() => handleDelete(item.id)}
+                          className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors"
+                          title="Delete feedback"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 
