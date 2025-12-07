@@ -52,6 +52,10 @@ class PromptBuilder:
 **TRUE Gaps for {section_name}** (Data NOT found in ANY source):
 {self._format_section_gaps(gaps)}
 
+**CRITICAL: field_id MUST match gap field_id exactly!**
+The field_id in your output MUST use the EXACT field_id from the gap list above.
+For example, if gap has field_id "code_quality_metrics", use "code_quality_metrics" NOT "code_quality_metric_level".
+
 **Data Awareness Context** (data that EXISTS - for intelligent options):
 {self._format_data_coverage(asset_data)}
 

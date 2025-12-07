@@ -86,6 +86,7 @@ ASSET_FIELD_WHITELIST = {
 }
 
 # Fields that go into technical_details JSONB column
+# These are stored in Asset.technical_details JSONB and used for gap detection
 TECHNICAL_DETAIL_FIELDS = [
     "architecture_pattern",
     "availability_requirements",
@@ -94,6 +95,19 @@ TECHNICAL_DETAIL_FIELDS = [
     "api_endpoints",
     "monitoring_enabled",
     "logging_enabled",
+    # Additional fields from gap detection (Issue #1260)
+    "code_quality_metrics",
+    "code_quality_metric_level",  # Alias from LLM-generated questions
+    "compliance_constraints",
+    "compliance_requirements",  # Alias from LLM-generated questions
+    "documentation_quality",
+    "documentation_completeness",  # Alias from LLM-generated questions
+    "documentation_quality_assessment",  # Alias from LLM-generated questions
+    "performance_baseline",
+    "security_vulnerabilities",
+    "integration_dependencies",
+    "canonical_name",
+    "cpu_memory_storage_specs",  # Composite field - individual specs go to Asset columns
 ]
 
 # Fields that go into custom_attributes JSONB column

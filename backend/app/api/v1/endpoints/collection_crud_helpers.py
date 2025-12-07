@@ -18,6 +18,99 @@ from app.models.collection_questionnaire_response import CollectionQuestionnaire
 
 logger = logging.getLogger(__name__)
 
+# Semantic field mapping: response_field → gap_field
+# Maps questionnaire field names (LLM-generated) to gap field names (from gap detection)
+# This enables gap resolution when LLM generates slightly different field names
+RESPONSE_TO_GAP_FIELD_MAPPING = {
+    # Code quality variations
+    "code_quality_metric_level": "code_quality_metrics",
+    "code_quality": "code_quality_metrics",
+    "code_quality_score": "code_quality_metrics",
+    # Compliance variations
+    "compliance_requirements": "compliance_constraints",
+    "compliance_status": "compliance_constraints",
+    # Resource specs - multiple response fields may map to single composite gap
+    "cpu_cores": "cpu_memory_storage_specs",
+    "memory_gb": "cpu_memory_storage_specs",
+    "storage_gb": "cpu_memory_storage_specs",
+    "ram_gb": "cpu_memory_storage_specs",
+    "disk_space": "cpu_memory_storage_specs",
+    # Documentation variations
+    "documentation_completeness": "documentation_quality",
+    "documentation_quality_assessment": "documentation_quality",
+    "docs_status": "documentation_quality",
+    # EOL variations
+    "eol_assessment_status": "eol_technology_assessment",
+    "eol_status": "eol_technology_assessment",
+    "end_of_life_status": "eol_technology_assessment",
+    # OS variations
+    "operating_system": "operating_system_version",
+    "os_version": "operating_system_version",
+    "os_type": "operating_system_version",
+    # Change tolerance variations
+    "change_frequency": "change_tolerance",
+    "change_window": "change_tolerance",
+    # Business criticality variations
+    "criticality": "business_criticality",
+    "business_impact": "business_criticality",
+    # User load variations
+    "user_count": "user_load_patterns",
+    "concurrent_users": "user_load_patterns",
+    "peak_users": "user_load_patterns",
+    # Data volume variations
+    "data_size": "data_volume_characteristics",
+    "database_size": "data_volume_characteristics",
+}
+
+
+def _find_gap_for_field(
+    field_name: str,
+    gap_index: Dict[str, Any],
+) -> tuple[Any, Optional[str]]:
+    """Find a gap in the index that matches the given field name.
+
+    Tries multiple matching strategies:
+    1. Exact match
+    2. Custom_attributes prefix removal
+    3. Composite ID extraction (asset_id__field_name)
+    4. Semantic mapping (LLM variations → canonical names)
+
+    Args:
+        field_name: The field name from the response
+        gap_index: Dictionary mapping field names to gap objects
+
+    Returns:
+        Tuple of (gap object or None, extracted_field or None)
+    """
+    gap = None
+    extracted_field = None
+
+    # Strategy 1: Exact match
+    gap = gap_index.get(field_name)
+
+    # Strategy 2: Custom_attributes prefix removal
+    if not gap and field_name.startswith("custom_attributes."):
+        normalized_field = field_name.replace("custom_attributes.", "")
+        gap = gap_index.get(normalized_field)
+
+    # Strategy 3: Composite ID extraction (asset_id__field_name)
+    if not gap and "__" in field_name:
+        parts = field_name.split("__", 1)
+        if len(parts) == 2:
+            extracted_field = parts[1]
+            gap = gap_index.get(extracted_field)
+
+    # Strategy 4: Semantic field mapping (LLM variations → canonical names)
+    if not gap:
+        lookup_field = extracted_field or field_name
+        mapped_field = RESPONSE_TO_GAP_FIELD_MAPPING.get(lookup_field)
+        if mapped_field:
+            gap = gap_index.get(mapped_field)
+            if gap:
+                logger.info(f"✅ Semantic mapping: '{lookup_field}' → '{mapped_field}'")
+
+    return gap, extracted_field
+
 
 def validate_uuid(value: Optional[str], field_name: str) -> Optional[uuid.UUID]:
     """Validate and convert string to UUID, return None if invalid."""
@@ -270,42 +363,16 @@ async def resolve_data_gaps(
             )
             continue
 
-        # ENHANCED NORMALIZATION: Try multiple field name formats
-        # Format 1: Exact match (e.g., "technology_stack")
-        # Format 2: Strip custom_attributes prefix
-        # (e.g., "custom_attributes.architecture_pattern" -> "architecture_pattern")
-        # Format 3: Extract from composite ID (e.g., "55f62e1b__data_quality_55f62e1b" -> "data_quality_55f62e1b")
+        # Use multi-strategy gap matching (extracted to reduce complexity)
+        gap, extracted_field = _find_gap_for_field(field_name, gap_index)
 
-        gap = None
-
-        # Strategy 1: Try exact match first
-        gap = gap_index.get(field_name)
-
-        # Strategy 2: Try with custom_attributes prefix removed
-        if not gap and field_name.startswith("custom_attributes."):
-            normalized_field = field_name.replace("custom_attributes.", "")
-            gap = gap_index.get(normalized_field)
-            if gap:
-                logger.debug(
-                    f"Normalized field name: {field_name} -> {normalized_field}"
-                )
-
-        # Strategy 3: Try extracting from composite field ID (asset_id__field_name)
-        if not gap and "__" in field_name:
-            parts = field_name.split("__", 1)
-            if len(parts) == 2:
-                extracted_field = parts[1]
-                gap = gap_index.get(extracted_field)
-                if gap:
-                    logger.debug(
-                        f"Extracted field from composite ID: {field_name} -> {extracted_field}"
-                    )
-
-        # 🔍 DIAGNOSTIC: Log match/mismatch for each field
+        # Log unmatched fields for debugging
         if not gap:
+            lookup_field = extracted_field or field_name
             logger.warning(
-                f"🔍 NO MATCH: Response field '{field_name}' not found in gap_index. "
-                f"Tried: exact match, custom_attributes prefix, composite ID extraction"
+                f"🔍 NO MATCH: Response field '{field_name}' "
+                f"(lookup: '{lookup_field}') not found in gap_index. "
+                f"Available gaps: {list(gap_index.keys())}"
             )
 
         if gap:
