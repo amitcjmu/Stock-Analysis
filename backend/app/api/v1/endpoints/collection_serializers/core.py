@@ -279,10 +279,7 @@ def build_questionnaire_response(
     if hasattr(questionnaire, "target_gaps") and questionnaire.target_gaps is not None:
         target_gaps = questionnaire.target_gaps
     else:
-        # Log that we're using fallback extraction
-        import logging
-
-        logger = logging.getLogger(__name__)
+        # Log that we're using fallback extraction (use module-level logger)
         logger.debug(
             f"Questionnaire {questionnaire.id} missing target_gaps attribute, extracting from questions"
         )

@@ -64,7 +64,9 @@ class CollectionChildFlowService(CollectionChildFlowServiceBase):
             )
 
         elif phase_name == "questionnaire_generation":
-            return await self._execute_questionnaire_generation(child_flow, phase_name)
+            return await self._execute_questionnaire_generation(
+                child_flow, phase_name, phase_input
+            )
 
         elif phase_name == "manual_collection":
             # Bug #1056-A Fix: Check responses before allowing completion
@@ -172,26 +174,75 @@ class CollectionChildFlowService(CollectionChildFlowServiceBase):
         selected_asset_ids = (phase_input or {}).get("selected_asset_ids", [])
         automation_tier = (phase_input or {}).get("automation_tier", "tier_2")
 
+        # CRITICAL: Persist selected_asset_ids to flow_metadata for future phases
+        # This ensures questionnaire_generation can access asset IDs even without phase_input
+        if selected_asset_ids:
+            current_metadata = child_flow.flow_metadata or {}
+            current_metadata["selected_asset_ids"] = selected_asset_ids
+            child_flow.flow_metadata = current_metadata
+            await self.db.commit()
+            await self.db.refresh(child_flow)
+            logger.info(
+                f"Persisted {len(selected_asset_ids)} selected_asset_ids to flow_metadata"
+            )
+
         result = await gap_service.analyze_and_generate_questionnaire(
             selected_asset_ids=selected_asset_ids,
             db=self.db,
             automation_tier=automation_tier,
         )
 
-        # CRITICAL FIX (Issue #1066): Query database as source of truth for pending gaps
+        # CRITICAL FIX (Issue #1066 + Issue #TBD): Query database as source of truth
         # The summary metadata from gap analysis service can be incorrect/stale
         # Database is the authoritative source for gap count and resolution status
+        #
+        # CRITICAL FIX: Query by ASSET IDs, not collection_flow_id
+        # Gaps are per-asset, not per-flow. Multiple collection flows for the same assets
+        # share the same underlying gaps. The unique constraint uq_gaps_dedup includes
+        # collection_flow_id, so new flows create new gap records. We must check for
+        # pending gaps across ALL gaps for the selected assets.
         from sqlalchemy import select, func
         from app.models.collection_data_gap import CollectionDataGap
+        from uuid import UUID as PythonUUID
 
-        # Query actual pending gaps from database
-        pending_gaps_result = await self.db.execute(
-            select(func.count(CollectionDataGap.id)).where(
-                CollectionDataGap.collection_flow_id == child_flow.id,
-                CollectionDataGap.resolution_status == "pending",
+        # Convert selected_asset_ids to UUIDs for query
+        asset_uuids = []
+        for aid in selected_asset_ids:
+            try:
+                if isinstance(aid, str):
+                    asset_uuids.append(PythonUUID(aid))
+                elif isinstance(aid, PythonUUID):
+                    asset_uuids.append(aid)
+            except (ValueError, TypeError) as e:
+                logger.warning(f"Skipping invalid asset ID: {aid}, error: {e}")
+
+        # Query actual pending gaps from database BY ASSET IDs (not by collection_flow_id)
+        # This ensures we find gaps regardless of which collection flow created them
+        if asset_uuids:
+            pending_gaps_result = await self.db.execute(
+                select(func.count(CollectionDataGap.id)).where(
+                    CollectionDataGap.asset_id.in_(asset_uuids),
+                    CollectionDataGap.resolution_status == "pending",
+                )
             )
-        )
-        actual_pending_gaps = pending_gaps_result.scalar() or 0
+            actual_pending_gaps = pending_gaps_result.scalar() or 0
+
+            logger.info(
+                f"Gap query by asset IDs: {len(asset_uuids)} assets → "
+                f"{actual_pending_gaps} pending gaps found"
+            )
+        else:
+            # Fallback: If no selected_asset_ids provided, use collection_flow_id
+            logger.warning(
+                "No selected_asset_ids provided, falling back to collection_flow_id query"
+            )
+            pending_gaps_result = await self.db.execute(
+                select(func.count(CollectionDataGap.id)).where(
+                    CollectionDataGap.collection_flow_id == child_flow.id,
+                    CollectionDataGap.resolution_status == "pending",
+                )
+            )
+            actual_pending_gaps = pending_gaps_result.scalar() or 0
 
         # Also get summary metadata for comparison/debugging
         summary = result.get("summary", {})
@@ -227,7 +278,7 @@ class CollectionChildFlowService(CollectionChildFlowServiceBase):
         return result
 
     async def _execute_questionnaire_generation(
-        self, child_flow, phase_name: str
+        self, child_flow, phase_name: str, phase_input: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
         Execute questionnaire generation phase.
@@ -238,15 +289,52 @@ class CollectionChildFlowService(CollectionChildFlowServiceBase):
 
         from app.models.collection_data_gap import CollectionDataGap
         from sqlalchemy import select
+        from uuid import UUID as PythonUUID
 
         try:
-            # Get persisted gaps from database
-            gaps_result = await self.db.execute(
-                select(CollectionDataGap).where(
-                    CollectionDataGap.collection_flow_id == child_flow.id,
-                    CollectionDataGap.resolution_status == "pending",
+            # CRITICAL FIX: Query gaps by ASSET IDs, not collection_flow_id
+            # Get selected_asset_ids from phase_input or flow_metadata
+            selected_asset_ids = (phase_input or {}).get("selected_asset_ids", [])
+
+            # If not in phase_input, try to get from flow_metadata
+            if not selected_asset_ids and child_flow.flow_metadata:
+                selected_asset_ids = child_flow.flow_metadata.get(
+                    "selected_asset_ids", []
                 )
-            )
+
+            # Convert to UUIDs
+            asset_uuids = []
+            for aid in selected_asset_ids:
+                try:
+                    if isinstance(aid, str):
+                        asset_uuids.append(PythonUUID(aid))
+                    elif isinstance(aid, PythonUUID):
+                        asset_uuids.append(aid)
+                except (ValueError, TypeError) as e:
+                    logger.warning(f"Skipping invalid asset ID: {aid}, error: {e}")
+
+            # Get persisted gaps from database BY ASSET IDs
+            if asset_uuids:
+                logger.info(
+                    f"Querying gaps by {len(asset_uuids)} asset IDs for questionnaire generation"
+                )
+                gaps_result = await self.db.execute(
+                    select(CollectionDataGap).where(
+                        CollectionDataGap.asset_id.in_(asset_uuids),
+                        CollectionDataGap.resolution_status == "pending",
+                    )
+                )
+            else:
+                # Fallback: use collection_flow_id (may return 0 results if new flow)
+                logger.warning(
+                    "No selected_asset_ids available, falling back to collection_flow_id query"
+                )
+                gaps_result = await self.db.execute(
+                    select(CollectionDataGap).where(
+                        CollectionDataGap.collection_flow_id == child_flow.id,
+                        CollectionDataGap.resolution_status == "pending",
+                    )
+                )
             persisted_gaps = gaps_result.scalars().all()
 
             if not persisted_gaps:
