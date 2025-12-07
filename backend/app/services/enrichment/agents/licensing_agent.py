@@ -31,12 +31,12 @@ from app.services.multi_model_service import TaskComplexity, multi_model_service
 from app.services.persistent_agents.tenant_scoped_agent_pool import (
     TenantScopedAgentPool,
 )
-from app.utils.json_sanitization import safe_parse_llm_json
+from .base_agent import BaseEnrichmentAgent
 
 logger = logging.getLogger(__name__)
 
 
-class LicensingEnrichmentAgent:
+class LicensingEnrichmentAgent(BaseEnrichmentAgent):
     """
     Enriches assets with software licensing information.
 
@@ -213,54 +213,40 @@ IMPORTANT:
 - Include confidence score based on data quality
 """
 
+    # Fallback data for licensing parsing failures
+    LICENSING_FALLBACK = {
+        "license_type": "unknown",
+        "vendor_name": "Unknown",
+        "license_count": 1,
+        "annual_cost": None,
+        "expiration_date": None,
+        "confidence": 0.3,
+    }
+
     def _parse_licensing_response(self, response: str) -> Dict[str, Any]:
         """Parse LLM response into licensing data.
 
-        Uses safe_parse_llm_json per ADR-029 to handle LLM output quirks:
-        - Markdown code blocks (```json...```)
-        - Trailing commas, single quotes
-        - JSON embedded in text
+        Uses base class _parse_and_normalize with ADR-029 compliance.
         """
-        # ADR-029: Use safe_parse_llm_json instead of json.loads
-        data = safe_parse_llm_json(response)
+        return self._parse_and_normalize(
+            response=response,
+            normalizer=self._normalize_licensing_data,
+            fallback_data=self.LICENSING_FALLBACK,
+            agent_name="licensing",
+        )
 
-        if data is None:
-            logger.warning(f"Failed to parse licensing response: {response[:100]}...")
-            return {
-                "license_type": "unknown",
-                "vendor_name": "Unknown",
-                "license_count": 1,
-                "annual_cost": None,
-                "expiration_date": None,
-                "confidence": 0.3,
-                "reasoning": "Failed to parse LLM response",
-            }
-
-        try:
-            normalized = {
-                "license_type": data.get("license_type", "unknown"),
-                "vendor_name": data.get("vendor_name", "Unknown"),
-                "license_count": int(data.get("license_count", 1)),
-                "annual_cost": (
-                    float(data.get("annual_cost", 0.0))
-                    if data.get("annual_cost") is not None
-                    else None
-                ),
-                "expiration_date": data.get("expiration_date"),
-                "confidence": float(data.get("confidence", 0.5)),
-                "reasoning": data.get("reasoning", ""),
-            }
-
-            return normalized
-
-        except (ValueError, TypeError) as e:
-            logger.warning(f"Failed to normalize licensing data: {e}")
-            return {
-                "license_type": "unknown",
-                "vendor_name": "Unknown",
-                "license_count": 1,
-                "annual_cost": None,
-                "expiration_date": None,
-                "confidence": 0.3,
-                "reasoning": "Failed to normalize LLM response data",
-            }
+    def _normalize_licensing_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Normalize licensing data from parsed JSON."""
+        return {
+            "license_type": data.get("license_type", "unknown"),
+            "vendor_name": data.get("vendor_name", "Unknown"),
+            "license_count": int(data.get("license_count", 1)),
+            "annual_cost": (
+                float(data.get("annual_cost", 0.0))
+                if data.get("annual_cost") is not None
+                else None
+            ),
+            "expiration_date": data.get("expiration_date"),
+            "confidence": float(data.get("confidence", 0.5)),
+            "reasoning": data.get("reasoning", ""),
+        }

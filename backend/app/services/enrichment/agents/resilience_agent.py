@@ -32,12 +32,12 @@ from app.services.multi_model_service import TaskComplexity, multi_model_service
 from app.services.persistent_agents.tenant_scoped_agent_pool import (
     TenantScopedAgentPool,
 )
-from app.utils.json_sanitization import safe_parse_llm_json
+from .base_agent import BaseEnrichmentAgent
 
 logger = logging.getLogger(__name__)
 
 
-class ResilienceEnrichmentAgent:
+class ResilienceEnrichmentAgent(BaseEnrichmentAgent):
     """
     Enriches assets with HA/DR configuration and resilience data.
 
@@ -230,63 +230,50 @@ IMPORTANT:
 - Estimate based on industry best practices if data is incomplete
 """
 
+    # Fallback data for resilience parsing failures
+    RESILIENCE_FALLBACK = {
+        "resilience_score": 5.0,
+        "ha_configuration": "none",
+        "backup_status": "none",
+        "dr_tier": 4,
+        "rto": None,
+        "rpo": None,
+        "confidence": 0.3,
+    }
+
     def _parse_resilience_response(self, response: str) -> Dict[str, Any]:
         """Parse LLM response into resilience data.
 
-        Uses safe_parse_llm_json per ADR-029 to handle LLM output quirks:
-        - Markdown code blocks (```json...```)
-        - Trailing commas, single quotes
-        - JSON embedded in text
+        Uses base class _parse_and_normalize with ADR-029 compliance.
         """
-        # ADR-029: Use safe_parse_llm_json instead of json.loads
-        data = safe_parse_llm_json(response)
+        return self._parse_and_normalize(
+            response=response,
+            normalizer=self._normalize_resilience_data,
+            fallback_data=self.RESILIENCE_FALLBACK,
+            agent_name="resilience",
+        )
 
-        if data is None:
-            logger.warning(f"Failed to parse resilience response: {response[:100]}...")
-            return {
-                "resilience_score": 5.0,
-                "ha_configuration": "none",
-                "backup_status": "none",
-                "dr_tier": 4,
-                "rto": None,
-                "rpo": None,
-                "confidence": 0.3,
-                "reasoning": "Failed to parse LLM response",
-            }
+    def _normalize_resilience_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Normalize resilience data from parsed JSON."""
+        normalized = {
+            "resilience_score": float(data.get("resilience_score", 5.0)),
+            "ha_configuration": data.get("ha_configuration", "none"),
+            "backup_status": data.get("backup_status", "none"),
+            "dr_tier": int(data.get("dr_tier", 4)),
+            "rto": (
+                int(data.get("rto", 1440)) if data.get("rto") else None
+            ),  # 24h default
+            "rpo": (
+                int(data.get("rpo", 240)) if data.get("rpo") else None
+            ),  # 4h default
+            "confidence": float(data.get("confidence", 0.5)),
+            "reasoning": data.get("reasoning", ""),
+        }
 
-        try:
-            normalized = {
-                "resilience_score": float(data.get("resilience_score", 5.0)),
-                "ha_configuration": data.get("ha_configuration", "none"),
-                "backup_status": data.get("backup_status", "none"),
-                "dr_tier": int(data.get("dr_tier", 4)),
-                "rto": (
-                    int(data.get("rto", 1440)) if data.get("rto") else None
-                ),  # 24h default
-                "rpo": (
-                    int(data.get("rpo", 240)) if data.get("rpo") else None
-                ),  # 4h default
-                "confidence": float(data.get("confidence", 0.5)),
-                "reasoning": data.get("reasoning", ""),
-            }
+        # Validate ranges
+        normalized["resilience_score"] = max(
+            0.0, min(10.0, normalized["resilience_score"])
+        )
+        normalized["dr_tier"] = max(0, min(4, normalized["dr_tier"]))
 
-            # Validate ranges
-            normalized["resilience_score"] = max(
-                0.0, min(10.0, normalized["resilience_score"])
-            )
-            normalized["dr_tier"] = max(0, min(4, normalized["dr_tier"]))
-
-            return normalized
-
-        except (ValueError, TypeError) as e:
-            logger.warning(f"Failed to normalize resilience data: {e}")
-            return {
-                "resilience_score": 5.0,
-                "ha_configuration": "none",
-                "backup_status": "none",
-                "dr_tier": 4,
-                "rto": None,
-                "rpo": None,
-                "confidence": 0.3,
-                "reasoning": "Failed to normalize LLM response data",
-            }
+        return normalized

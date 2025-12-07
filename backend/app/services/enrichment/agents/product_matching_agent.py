@@ -31,12 +31,12 @@ from app.services.multi_model_service import TaskComplexity, multi_model_service
 from app.services.persistent_agents.tenant_scoped_agent_pool import (
     TenantScopedAgentPool,
 )
-from app.utils.json_sanitization import safe_parse_llm_json
+from .base_agent import BaseEnrichmentAgent
 
 logger = logging.getLogger(__name__)
 
 
-class ProductMatchingAgent:
+class ProductMatchingAgent(BaseEnrichmentAgent):
     """
     Enriches assets with vendor product catalog matching.
 
@@ -263,67 +263,53 @@ IMPORTANT:
 - Prioritize exact matches over fuzzy matches
 """
 
+    # Fallback data for product matching parsing failures
+    PRODUCT_MATCHING_FALLBACK = {
+        "matched_products": [],
+        "primary_product": "Unknown",
+        "match_count": 0,
+        "confidence": 0.2,
+    }
+
     def _parse_matching_response(self, response: str) -> Dict[str, Any]:
         """Parse LLM response into product matching data.
 
-        Uses safe_parse_llm_json per ADR-029 to handle LLM output quirks:
-        - Markdown code blocks (```json...```)
-        - Trailing commas, single quotes
-        - JSON embedded in text
+        Uses base class _parse_and_normalize with ADR-029 compliance.
         """
-        # ADR-029: Use safe_parse_llm_json instead of json.loads
-        data = safe_parse_llm_json(response)
+        return self._parse_and_normalize(
+            response=response,
+            normalizer=self._normalize_matching_data,
+            fallback_data=self.PRODUCT_MATCHING_FALLBACK,
+            agent_name="product_matching",
+        )
 
-        if data is None:
-            logger.warning(
-                f"Failed to parse product matching response: {response[:100]}..."
-            )
-            return {
-                "matched_products": [],
-                "primary_product": "Unknown",
-                "match_count": 0,
-                "confidence": 0.2,
-                "reasoning": "Failed to parse LLM response",
-            }
+    def _normalize_matching_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Normalize product matching data from parsed JSON."""
+        # Validate and normalize matched products
+        matched_products = data.get("matched_products", [])
+        if not isinstance(matched_products, list):
+            matched_products = []
 
-        try:
-            # Validate and normalize matched products
-            matched_products = data.get("matched_products", [])
-            if not isinstance(matched_products, list):
-                matched_products = []
+        normalized_products = []
+        for product in matched_products:
+            try:
+                normalized_product = {
+                    "product_name": product.get("product_name", "Unknown"),
+                    "vendor": product.get("vendor", "Unknown"),
+                    "version": product.get("version", "Unknown"),
+                    "match_method": product.get("match_method", "fuzzy"),
+                    "confidence_score": float(product.get("confidence_score", 0.5)),
+                    "category": product.get("category", "unknown"),
+                    "eol_date": product.get("eol_date"),
+                }
+                normalized_products.append(normalized_product)
+            except (ValueError, TypeError):
+                continue
 
-            normalized_products = []
-            for product in matched_products:
-                try:
-                    normalized_product = {
-                        "product_name": product.get("product_name", "Unknown"),
-                        "vendor": product.get("vendor", "Unknown"),
-                        "version": product.get("version", "Unknown"),
-                        "match_method": product.get("match_method", "fuzzy"),
-                        "confidence_score": float(product.get("confidence_score", 0.5)),
-                        "category": product.get("category", "unknown"),
-                        "eol_date": product.get("eol_date"),
-                    }
-                    normalized_products.append(normalized_product)
-                except (ValueError, TypeError):
-                    continue
-
-            normalized = {
-                "matched_products": normalized_products,
-                "primary_product": data.get("primary_product", "Unknown"),
-                "match_count": len(normalized_products),
-                "confidence": float(data.get("confidence", 0.5)),
-                "reasoning": data.get("reasoning", ""),
-            }
-
-            return normalized
-
-        except (ValueError, TypeError) as e:
-            logger.warning(f"Failed to normalize product matching data: {e}")
-            return {
-                "matched_products": [],
-                "primary_product": "Unknown",
-                "match_count": 0,
-                "confidence": 0.2,
-                "reasoning": "Failed to normalize LLM response data",
-            }
+        return {
+            "matched_products": normalized_products,
+            "primary_product": data.get("primary_product", "Unknown"),
+            "match_count": len(normalized_products),
+            "confidence": float(data.get("confidence", 0.5)),
+            "reasoning": data.get("reasoning", ""),
+        }

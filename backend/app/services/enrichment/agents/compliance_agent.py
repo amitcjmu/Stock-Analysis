@@ -30,12 +30,12 @@ from app.services.multi_model_service import TaskComplexity, multi_model_service
 from app.services.persistent_agents.tenant_scoped_agent_pool import (
     TenantScopedAgentPool,
 )
-from app.utils.json_sanitization import safe_parse_llm_json
+from .base_agent import BaseEnrichmentAgent
 
 logger = logging.getLogger(__name__)
 
 
-class ComplianceEnrichmentAgent:
+class ComplianceEnrichmentAgent(BaseEnrichmentAgent):
     """
     Enriches assets with compliance flags using AI analysis.
 
@@ -226,49 +226,38 @@ IMPORTANT:
 - Include brief reasoning for your classification
 """
 
+    # Fallback data for compliance parsing failures
+    COMPLIANCE_FALLBACK = {
+        "compliance_scopes": [],
+        "data_classification": "internal",
+        "residency": None,
+        "confidence": 0.3,
+    }
+
     def _parse_compliance_response(self, response: str) -> Dict[str, Any]:
         """Parse LLM response into compliance data.
 
-        Uses safe_parse_llm_json per ADR-029 to handle LLM output quirks:
-        - Markdown code blocks (```json...```)
-        - Trailing commas, single quotes
-        - JSON embedded in text
+        Uses base class _parse_and_normalize with ADR-029 compliance.
         """
-        # ADR-029: Use safe_parse_llm_json instead of json.loads
-        data = safe_parse_llm_json(response)
+        return self._parse_and_normalize(
+            response=response,
+            normalizer=self._normalize_compliance_data,
+            fallback_data=self.COMPLIANCE_FALLBACK,
+            agent_name="compliance",
+        )
 
-        if data is None:
-            logger.warning(f"Failed to parse compliance response: {response[:100]}...")
-            return {
-                "compliance_scopes": [],
-                "data_classification": "internal",
-                "residency": None,
-                "confidence": 0.3,
-                "reasoning": "Failed to parse LLM response",
-            }
+    def _normalize_compliance_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Normalize compliance data from parsed JSON."""
+        normalized = {
+            "compliance_scopes": data.get("compliance_scopes", []),
+            "data_classification": data.get("data_classification", "internal"),
+            "residency": data.get("residency"),
+            "confidence": float(data.get("confidence", 0.5)),
+            "reasoning": data.get("reasoning", ""),
+        }
 
-        try:
-            # Validate and normalize data
-            normalized = {
-                "compliance_scopes": data.get("compliance_scopes", []),
-                "data_classification": data.get("data_classification", "internal"),
-                "residency": data.get("residency"),
-                "confidence": float(data.get("confidence", 0.5)),
-                "reasoning": data.get("reasoning", ""),
-            }
+        # Ensure compliance_scopes is a list
+        if not isinstance(normalized["compliance_scopes"], list):
+            normalized["compliance_scopes"] = [normalized["compliance_scopes"]]
 
-            # Ensure compliance_scopes is a list
-            if not isinstance(normalized["compliance_scopes"], list):
-                normalized["compliance_scopes"] = [normalized["compliance_scopes"]]
-
-            return normalized
-
-        except (ValueError, TypeError) as e:
-            logger.warning(f"Failed to normalize compliance data: {e}")
-            return {
-                "compliance_scopes": [],
-                "data_classification": "internal",
-                "residency": None,
-                "confidence": 0.3,
-                "reasoning": "Failed to normalize LLM response data",
-            }
+        return normalized
