@@ -16,7 +16,7 @@
  */
 
 import React, { useState, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   AlertTriangle,
   CheckCircle,
@@ -29,6 +29,7 @@ import {
   Calendar,
   Server,
   Info,
+  RefreshCw,
 } from 'lucide-react';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -184,6 +185,24 @@ export const ComplianceReport: React.FC<ComplianceReportProps> = ({
   const [expandedApps, setExpandedApps] = useState<Set<string>>(new Set());
   const [showEOLDetails, setShowEOLDetails] = useState(false);
   const [expandedTile, setExpandedTile] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+
+  // ============================================================================
+  // Compliance Refresh Mutation
+  // ============================================================================
+
+  const refreshComplianceMutation = useMutation({
+    mutationFn: async () => {
+      return await apiClient.post<ComplianceValidationResponse>(
+        `/master-flows/${flow_id}/compliance/refresh`,
+        {}
+      );
+    },
+    onSuccess: () => {
+      // Invalidate the compliance query to refresh data
+      queryClient.invalidateQueries({ queryKey: ['compliance-validation', flow_id] });
+    },
+  });
 
   // ============================================================================
   // Data Fetching
@@ -320,9 +339,31 @@ export const ComplianceReport: React.FC<ComplianceReportProps> = ({
         </CardHeader>
         <CardContent className="text-center py-8">
           <Info className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <p className="text-sm text-muted-foreground">
-            Compliance validation will be available after the Architecture Standards phase completes.
+          <p className="text-sm text-muted-foreground mb-4">
+            Compliance validation has not been run yet. Click the button below to run the compliance check.
           </p>
+          <Button
+            onClick={() => refreshComplianceMutation.mutate()}
+            disabled={refreshComplianceMutation.isPending}
+            className="mt-2"
+          >
+            {refreshComplianceMutation.isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Running Compliance Check...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Run Compliance Check
+              </>
+            )}
+          </Button>
+          {refreshComplianceMutation.isError && (
+            <p className="text-sm text-destructive mt-2">
+              Failed to run compliance check. Please try again.
+            </p>
+          )}
         </CardContent>
       </Card>
     );
@@ -372,6 +413,32 @@ export const ComplianceReport: React.FC<ComplianceReportProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* Header with Refresh Button */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Shield className="h-5 w-5" />
+          <h3 className="text-lg font-semibold">Technology Compliance</h3>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => refreshComplianceMutation.mutate()}
+          disabled={refreshComplianceMutation.isPending}
+        >
+          {refreshComplianceMutation.isPending ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Refreshing...
+            </>
+          ) : (
+            <>
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Refresh
+            </>
+          )}
+        </Button>
+      </div>
+
       {/* Summary Cards - Clickable tiles with expand functionality */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <SummaryCard
