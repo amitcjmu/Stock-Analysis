@@ -23,7 +23,7 @@ from .schemas import (
     ComplianceValidationResponse,
     EOLStatusInfo,
 )
-from .utils import _parse_by_level
+from .utils import _normalize_app_data, _parse_by_level
 
 
 # Router will be imported from parent __init__.py
@@ -76,7 +76,21 @@ async def get_compliance_validation(
         arch_minimums = phase_results.get("architecture_minimums", {})
         compliance_validation = arch_minimums.get("compliance_validation", {})
 
-        # Build response
+        # Build response - normalize app data to handle key variations
+        normalized_applications = {}
+        for app_id, app_data in compliance_validation.get("applications", {}).items():
+            normalized = _normalize_app_data(app_data)
+            normalized_applications[app_id] = ApplicationComplianceResult(
+                application_id=app_id,
+                application_name=normalized.get("application_name"),
+                is_compliant=normalized.get("is_compliant", True),
+                issues=[
+                    ComplianceIssue(**issue) for issue in normalized.get("issues", [])
+                ],
+                checked_fields=normalized.get("checked_fields", 0),
+                passed_fields=normalized.get("passed_fields", 0),
+            )
+
         response = ComplianceValidationResponse(
             flow_id=flow_id,
             standards_applied=compliance_validation.get("standards_applied", {}),
@@ -88,21 +102,7 @@ async def get_compliance_validation(
                     "non_compliant_count": 0,
                 },
             ),
-            applications={
-                app_id: ApplicationComplianceResult(
-                    application_id=app_id,
-                    application_name=app_data.get("application_name"),
-                    is_compliant=app_data.get("is_compliant", True),
-                    issues=[
-                        ComplianceIssue(**issue) for issue in app_data.get("issues", [])
-                    ],
-                    checked_fields=app_data.get("checked_fields", 0),
-                    passed_fields=app_data.get("passed_fields", 0),
-                )
-                for app_id, app_data in compliance_validation.get(
-                    "applications", {}
-                ).items()
-            },
+            applications=normalized_applications,
             eol_status=[
                 EOLStatusInfo(**eol)
                 for eol in compliance_validation.get("eol_status", [])

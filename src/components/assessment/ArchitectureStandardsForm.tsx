@@ -126,9 +126,9 @@ export const ArchitectureStandardsForm: React.FC<ArchitectureStandardsFormProps>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {typeStandards.map((standard) => (
+                  {typeStandards.map((standard, standardIndex) => (
                     <StandardCard
-                      key={standard.id}
+                      key={standard.id ?? `${type}-${standardIndex}`}
                       standard={standard}
                       isEditing={editingId === standard.id}
                       onEdit={() => setEditingId(standard.id)}
@@ -147,9 +147,9 @@ export const ArchitectureStandardsForm: React.FC<ArchitectureStandardsFormProps>
         </TabsContent>
 
         <TabsContent value="all-standards" className="space-y-3">
-          {standards.map((standard) => (
+          {standards.map((standard, standardIndex) => (
             <StandardCard
-              key={standard.id}
+              key={standard.id ?? `all-${standardIndex}`}
               standard={standard}
               isEditing={editingId === standard.id}
               onEdit={() => setEditingId(standard.id)}

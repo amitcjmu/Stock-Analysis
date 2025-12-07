@@ -23,8 +23,13 @@ from .schemas import (
     ApplicationComplianceResult,
     ComplianceIssue,
     ComplianceValidationResponse,
+    EOLStatusInfo,
 )
-from .utils import _get_default_standards
+from .utils import (
+    _get_eol_status_for_assets,
+    _load_tenant_standards,
+    _normalize_app_data,
+)
 
 # Router will be imported from parent package
 from .. import router as router_local
@@ -100,8 +105,12 @@ async def refresh_compliance_validation(  # noqa: C901
             f"Refreshing compliance for flow {flow_id} with {len(selected_app_ids)} unique applications"
         )
 
-        # Get engagement standards (use defaults if not configured)
-        engagement_standards = _get_default_standards()
+        # Get engagement standards from tenant config, falling back to defaults
+        from uuid import UUID as UUIDType
+
+        engagement_standards = await _load_tenant_standards(
+            db, client_account_id, UUIDType(engagement_id)
+        )
 
         # Get application/asset data directly from the Asset table
         from app.models.asset import Asset
@@ -226,6 +235,15 @@ async def refresh_compliance_validation(  # noqa: C901
             # Fallback for unexpected types
             standards_dict = {}
 
+        # Get EOL status using agent-enriched data and Asset.asset_type classification
+        # This prefers AssetEOLAssessment records from agents over heuristic-based lookups
+        eol_status_list = await _get_eol_status_for_assets(
+            db=db,
+            asset_ids=selected_app_ids,
+            client_account_id=client_account_id,
+            engagement_id=UUIDType(engagement_id),
+        )
+
         compliance_validation = {
             "overall_compliant": overall_compliant,
             "standards_applied": standards_dict,
@@ -235,7 +253,7 @@ async def refresh_compliance_validation(  # noqa: C901
                 "non_compliant_count": non_compliant_count,
             },
             "applications": app_compliance_results,
-            "eol_status": [],  # TODO: Populate from EOL data service
+            "eol_status": eol_status_list,
             "validated_at": datetime.utcnow().isoformat(),
         }
 
@@ -259,25 +277,27 @@ async def refresh_compliance_validation(  # noqa: C901
             f"{compliant_count}/{total_apps} compliant"
         )
 
-        # Build response
+        # Build response - normalize app data to handle key variations
+        normalized_applications = {}
+        for app_id, app_data in app_compliance_results.items():
+            normalized = _normalize_app_data(app_data)
+            normalized_applications[app_id] = ApplicationComplianceResult(
+                application_id=app_id,
+                application_name=normalized.get("application_name"),
+                is_compliant=normalized.get("is_compliant", True),
+                issues=[
+                    ComplianceIssue(**issue) for issue in normalized.get("issues", [])
+                ],
+                checked_fields=normalized.get("checked_fields", 0),
+                passed_fields=normalized.get("passed_fields", 0),
+            )
+
         response = ComplianceValidationResponse(
             flow_id=flow_id,
             standards_applied=compliance_validation.get("standards_applied", {}),
             summary=compliance_validation.get("summary", {}),
-            applications={
-                app_id: ApplicationComplianceResult(
-                    application_id=app_id,
-                    application_name=app_data.get("application_name"),
-                    is_compliant=app_data.get("is_compliant", True),
-                    issues=[
-                        ComplianceIssue(**issue) for issue in app_data.get("issues", [])
-                    ],
-                    checked_fields=app_data.get("checked_fields", 0),
-                    passed_fields=app_data.get("passed_fields", 0),
-                )
-                for app_id, app_data in app_compliance_results.items()
-            },
-            eol_status=[],
+            applications=normalized_applications,
+            eol_status=[EOLStatusInfo(**eol) for eol in eol_status_list],
             validated_at=compliance_validation.get("validated_at"),
         )
 
