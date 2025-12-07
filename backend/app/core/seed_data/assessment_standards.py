@@ -192,7 +192,16 @@ def validate_technology_compliance(
         # Check version compliance
         required_version = matching_standard["supported_versions"][tech]
         if not _is_version_compliant(version, required_version):
+            # Issue keys match ComplianceIssue schema: field, current, required, severity
             issue = {
+                "field": tech,
+                "current": version,
+                "required": required_version,
+                "severity": "critical" if matching_standard["mandatory"] else "medium",
+                "recommendation": (
+                    f"Upgrade {tech} from {version} to {required_version}"
+                ),
+                # Keep legacy keys for backward compatibility
                 "technology": tech,
                 "current_version": version,
                 "required_version": required_version,
