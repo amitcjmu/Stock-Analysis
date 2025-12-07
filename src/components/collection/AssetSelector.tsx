@@ -7,7 +7,7 @@
  */
 
 import React, { useState, useMemo } from 'react';
-import { Search, Filter, Check } from 'lucide-react';
+import { Search, Filter, Check, Layers, Database } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -22,6 +22,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import type { FieldOption } from './types';
 
+// Issue #1201: View mode type for filtering assets
+type ViewMode = 'all' | 'current_flow';
+
 interface AssetSelectorProps {
   options: FieldOption[];
   value: string | string[];
@@ -33,6 +36,11 @@ interface AssetSelectorProps {
   allowSearch?: boolean;
   placeholder?: string;
   className?: string;
+  // Issue #1201: View mode props for filtering by flow
+  flowId?: string;
+  showViewModeToggle?: boolean;
+  defaultViewMode?: ViewMode;
+  onViewModeChange?: (viewMode: ViewMode) => void;
 }
 
 export const AssetSelector: React.FC<AssetSelectorProps> = ({
@@ -45,10 +53,23 @@ export const AssetSelector: React.FC<AssetSelectorProps> = ({
   allowSearch = true,
   placeholder = "Select assets...",
   className,
+  // Issue #1201: New view mode props
+  flowId,
+  showViewModeToggle = false,
+  defaultViewMode = 'all',
+  onViewModeChange,
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
+  // Issue #1201: View mode state
+  const [viewMode, setViewMode] = useState<ViewMode>(defaultViewMode);
+
+  // Handle view mode change
+  const handleViewModeChange = (newMode: ViewMode) => {
+    setViewMode(newMode);
+    onViewModeChange?.(newMode);
+  };
 
   // Ensure value is always an array for easier handling
   const selectedValues = useMemo(() => {
@@ -56,16 +77,20 @@ export const AssetSelector: React.FC<AssetSelectorProps> = ({
     return value ? [value] : [];
   }, [value]);
 
-  // Filter options based on search and type
+  // Filter options based on search, type, and view mode (Issue #1201)
   const filteredOptions = useMemo(() => {
     return options.filter(opt => {
       const matchesSearch = !searchTerm ||
         opt.label.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesType = !typeFilter ||
         opt.metadata?.type === typeFilter;
-      return matchesSearch && matchesType;
+      // Issue #1201: Filter by flow when in current_flow mode
+      const matchesFlow = viewMode === 'all' || !flowId ||
+        opt.metadata?.flow_id === flowId ||
+        opt.metadata?.discovery_flow_id === flowId;
+      return matchesSearch && matchesType && matchesFlow;
     });
-  }, [options, searchTerm, typeFilter]);
+  }, [options, searchTerm, typeFilter, viewMode, flowId]);
 
   // Get unique asset types for filter
   const assetTypes = useMemo(() => {
@@ -93,6 +118,42 @@ export const AssetSelector: React.FC<AssetSelectorProps> = ({
 
   return (
     <div className={cn("space-y-2", className)}>
+      {/* Issue #1201: View Mode Toggle */}
+      {showViewModeToggle && flowId && (
+        <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+          <span className="text-xs text-gray-600 mr-1">View:</span>
+          <button
+            onClick={() => handleViewModeChange('current_flow')}
+            className={cn(
+              "flex items-center gap-1 px-2 py-1 text-xs rounded-md transition-colors",
+              viewMode === 'current_flow'
+                ? "bg-blue-600 text-white"
+                : "bg-white text-gray-600 border hover:bg-gray-100"
+            )}
+            title="Show only assets from the current discovery flow"
+          >
+            <Layers className="h-3 w-3" />
+            Current Flow
+          </button>
+          <button
+            onClick={() => handleViewModeChange('all')}
+            className={cn(
+              "flex items-center gap-1 px-2 py-1 text-xs rounded-md transition-colors",
+              viewMode === 'all'
+                ? "bg-blue-600 text-white"
+                : "bg-white text-gray-600 border hover:bg-gray-100"
+            )}
+            title="Show all assets across all flows"
+          >
+            <Database className="h-3 w-3" />
+            All Assets
+          </button>
+          <span className="ml-auto text-xs text-gray-500">
+            {filteredOptions.length} asset{filteredOptions.length !== 1 ? 's' : ''}
+          </span>
+        </div>
+      )}
+
       {/* Type Filter */}
       {showTypeFilter && assetTypes.length > 1 && (
         <Select value={typeFilter || "all"} onValueChange={(v) => setTypeFilter(v === "all" ? null : v)}>

@@ -49,6 +49,8 @@ export interface FieldOption {
     type?: string;
     completeness?: number;
     gap_count?: number;
+    flow_id?: string;  // Issue #1201: Support current flow filtering
+    discovery_flow_id?: string;  // Alternative field for flow association
   };
 }
 
