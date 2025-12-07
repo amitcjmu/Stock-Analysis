@@ -5,7 +5,6 @@ Helper functions for parsing and processing compliance data.
 """
 
 import logging
-import re
 from typing import Any, Dict, List, Optional
 from uuid import UUID
 
@@ -19,7 +18,24 @@ from .schemas import (
     ThreeLevelComplianceResult,
 )
 
+# Re-export EOL functions for backward compatibility
+from .eol_utils import (
+    _get_eol_status_for_assets,
+    _get_eol_status_for_tech_stack,
+)
+
 logger = logging.getLogger(__name__)
+
+# Explicitly export EOL functions
+__all__ = [
+    "_normalize_issue",
+    "_normalize_app_data",
+    "_load_tenant_standards",
+    "_get_default_standards",
+    "_parse_by_level",
+    "_get_eol_status_for_assets",
+    "_get_eol_status_for_tech_stack",
+]
 
 
 def _normalize_issue(issue: Dict[str, Any]) -> Dict[str, Any]:
@@ -136,95 +152,6 @@ async def _load_tenant_standards(
 
     # Fall back to defaults
     return _get_default_standards()
-
-
-async def _get_eol_status_for_tech_stack(
-    tech_stack: Dict[str, str],
-) -> List[Dict[str, Any]]:
-    """
-    Get EOL status for technologies in a stack.
-
-    Uses EOLLifecycleService for authoritative EOL data.
-
-    Args:
-        tech_stack: Dict of technology -> version pairs
-
-    Returns:
-        List of EOL status dicts for each technology
-    """
-    from app.services.eol_lifecycle.eol_lifecycle_service import get_eol_service
-
-    eol_results = []
-
-    try:
-        eol_service = await get_eol_service()
-
-        for tech, version in tech_stack.items():
-            if not version or version == "unknown":
-                continue
-
-            try:
-                # Determine product type based on technology name
-                # Use word boundaries to prevent false matches like "mysql-connector-java" -> "sql"
-                tech_lower = tech.lower()
-                if any(
-                    re.search(rf"\b{os_name}\b", tech_lower)
-                    for os_name in [
-                        "windows",
-                        "linux",
-                        "rhel",
-                        "ubuntu",
-                        "debian",
-                        "centos",
-                    ]
-                ):
-                    product_type = "os"
-                elif any(
-                    re.search(rf"\b{db_name}\b", tech_lower)
-                    for db_name in [
-                        "sql server",
-                        "sqlserver",
-                        "oracle",
-                        "postgres",
-                        "postgresql",
-                        "mysql",
-                        "mongodb",
-                        "mongo",
-                        "redis",
-                        "mariadb",
-                    ]
-                ):
-                    product_type = "database"
-                else:
-                    product_type = "runtime"
-
-                eol_status = await eol_service.get_eol_status(
-                    tech, version, product_type
-                )
-
-                eol_results.append(
-                    {
-                        "product": eol_status.product,
-                        "version": eol_status.version,
-                        "status": eol_status.status.value,
-                        "eol_date": (
-                            eol_status.eol_date.isoformat()
-                            if eol_status.eol_date
-                            else None
-                        ),
-                        "support_type": eol_status.support_type.value,
-                        "source": eol_status.source.value,
-                        "confidence": eol_status.confidence,
-                    }
-                )
-            except Exception as e:
-                logger.debug(f"Failed to get EOL status for {tech} {version}: {e}")
-                continue
-
-    except Exception as e:
-        logger.warning(f"Failed to initialize EOL service: {e}")
-
-    return eol_results
 
 
 def _get_default_standards() -> List[Dict[str, Any]]:

@@ -26,7 +26,7 @@ from .schemas import (
     EOLStatusInfo,
 )
 from .utils import (
-    _get_eol_status_for_tech_stack,
+    _get_eol_status_for_assets,
     _load_tenant_standards,
     _normalize_app_data,
 )
@@ -235,19 +235,14 @@ async def refresh_compliance_validation(  # noqa: C901
             # Fallback for unexpected types
             standards_dict = {}
 
-        # Collect all unique tech/version pairs for EOL check
-        # Using set of tuples to preserve all versions (dict.update overwrites)
-        unique_tech_versions: set[tuple[str, str]] = set()
-        for app in applications:
-            tech_stack = app.get("technology_stack", {})
-            if isinstance(tech_stack, dict):
-                for tech, version in tech_stack.items():
-                    if tech and version and version != "unknown":
-                        unique_tech_versions.add((tech, version))
-
-        # Convert set of tuples to dict format expected by EOL service
-        tech_stack_to_check = {tech: version for tech, version in unique_tech_versions}
-        eol_status_list = await _get_eol_status_for_tech_stack(tech_stack_to_check)
+        # Get EOL status using agent-enriched data and Asset.asset_type classification
+        # This prefers AssetEOLAssessment records from agents over heuristic-based lookups
+        eol_status_list = await _get_eol_status_for_assets(
+            db=db,
+            asset_ids=selected_app_ids,
+            client_account_id=client_account_id,
+            engagement_id=UUIDType(engagement_id),
+        )
 
         compliance_validation = {
             "overall_compliant": overall_compliant,
