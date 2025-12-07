@@ -16,7 +16,6 @@ Resilience Enrichment Agent - Enriches assets with HA/DR configuration data.
 - rpo: Recovery Point Objective (minutes)
 """
 
-import json
 import logging
 from typing import Any, Dict, List
 from uuid import UUID
@@ -33,11 +32,12 @@ from app.services.multi_model_service import TaskComplexity, multi_model_service
 from app.services.persistent_agents.tenant_scoped_agent_pool import (
     TenantScopedAgentPool,
 )
+from .base_agent import BaseEnrichmentAgent
 
 logger = logging.getLogger(__name__)
 
 
-class ResilienceEnrichmentAgent:
+class ResilienceEnrichmentAgent(BaseEnrichmentAgent):
     """
     Enriches assets with HA/DR configuration and resilience data.
 
@@ -230,45 +230,50 @@ IMPORTANT:
 - Estimate based on industry best practices if data is incomplete
 """
 
+    # Fallback data for resilience parsing failures
+    RESILIENCE_FALLBACK = {
+        "resilience_score": 5.0,
+        "ha_configuration": "none",
+        "backup_status": "none",
+        "dr_tier": 4,
+        "rto": None,
+        "rpo": None,
+        "confidence": 0.3,
+    }
+
     def _parse_resilience_response(self, response: str) -> Dict[str, Any]:
-        """Parse LLM response into resilience data"""
-        try:
-            data = json.loads(response)
+        """Parse LLM response into resilience data.
 
-            normalized = {
-                "resilience_score": float(data.get("resilience_score", 5.0)),
-                "ha_configuration": data.get("ha_configuration", "none"),
-                "backup_status": data.get("backup_status", "none"),
-                "dr_tier": int(data.get("dr_tier", 4)),
-                "rto": (
-                    int(data.get("rto", 1440)) if data.get("rto") else None
-                ),  # 24h default
-                "rpo": (
-                    int(data.get("rpo", 240)) if data.get("rpo") else None
-                ),  # 4h default
-                "confidence": float(data.get("confidence", 0.5)),
-                "reasoning": data.get("reasoning", ""),
-            }
+        Uses base class _parse_and_normalize with ADR-029 compliance.
+        """
+        return self._parse_and_normalize(
+            response=response,
+            normalizer=self._normalize_resilience_data,
+            fallback_data=self.RESILIENCE_FALLBACK,
+            agent_name="resilience",
+        )
 
-            # Validate ranges
-            normalized["resilience_score"] = max(
-                0.0, min(10.0, normalized["resilience_score"])
-            )
-            normalized["dr_tier"] = max(0, min(4, normalized["dr_tier"]))
+    def _normalize_resilience_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Normalize resilience data from parsed JSON."""
+        normalized = {
+            "resilience_score": float(data.get("resilience_score", 5.0)),
+            "ha_configuration": data.get("ha_configuration", "none"),
+            "backup_status": data.get("backup_status", "none"),
+            "dr_tier": int(data.get("dr_tier", 4)),
+            "rto": (
+                int(data.get("rto", 1440)) if data.get("rto") else None
+            ),  # 24h default
+            "rpo": (
+                int(data.get("rpo", 240)) if data.get("rpo") else None
+            ),  # 4h default
+            "confidence": float(data.get("confidence", 0.5)),
+            "reasoning": data.get("reasoning", ""),
+        }
 
-            return normalized
+        # Validate ranges
+        normalized["resilience_score"] = max(
+            0.0, min(10.0, normalized["resilience_score"])
+        )
+        normalized["dr_tier"] = max(0, min(4, normalized["dr_tier"]))
 
-        except (json.JSONDecodeError, ValueError, TypeError) as e:
-            logger.warning(
-                f"Failed to parse resilience response: {response[:100]}..., error: {e}"
-            )
-            return {
-                "resilience_score": 5.0,
-                "ha_configuration": "none",
-                "backup_status": "none",
-                "dr_tier": 4,
-                "rto": None,
-                "rpo": None,
-                "confidence": 0.3,
-                "reasoning": "Failed to parse LLM response",
-            }
+        return normalized

@@ -14,7 +14,6 @@ Compliance Enrichment Agent - Enriches assets with compliance requirements and d
 - evidence_refs: Links to compliance evidence/documentation
 """
 
-import json
 import logging
 from typing import Any, Dict, List
 from uuid import UUID
@@ -31,11 +30,12 @@ from app.services.multi_model_service import TaskComplexity, multi_model_service
 from app.services.persistent_agents.tenant_scoped_agent_pool import (
     TenantScopedAgentPool,
 )
+from .base_agent import BaseEnrichmentAgent
 
 logger = logging.getLogger(__name__)
 
 
-class ComplianceEnrichmentAgent:
+class ComplianceEnrichmentAgent(BaseEnrichmentAgent):
     """
     Enriches assets with compliance flags using AI analysis.
 
@@ -226,45 +226,38 @@ IMPORTANT:
 - Include brief reasoning for your classification
 """
 
+    # Fallback data for compliance parsing failures
+    COMPLIANCE_FALLBACK = {
+        "compliance_scopes": [],
+        "data_classification": "internal",
+        "residency": None,
+        "confidence": 0.3,
+    }
+
     def _parse_compliance_response(self, response: str) -> Dict[str, Any]:
-        """Parse LLM response into compliance data"""
-        try:
-            # Try to parse JSON response
-            data = json.loads(response)
+        """Parse LLM response into compliance data.
 
-            # Validate and normalize data
-            normalized = {
-                "compliance_scopes": data.get("compliance_scopes", []),
-                "data_classification": data.get("data_classification", "internal"),
-                "residency": data.get("residency"),
-                "confidence": float(data.get("confidence", 0.5)),
-                "reasoning": data.get("reasoning", ""),
-            }
+        Uses base class _parse_and_normalize with ADR-029 compliance.
+        """
+        return self._parse_and_normalize(
+            response=response,
+            normalizer=self._normalize_compliance_data,
+            fallback_data=self.COMPLIANCE_FALLBACK,
+            agent_name="compliance",
+        )
 
-            # Ensure compliance_scopes is a list
-            if not isinstance(normalized["compliance_scopes"], list):
-                normalized["compliance_scopes"] = [normalized["compliance_scopes"]]
+    def _normalize_compliance_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Normalize compliance data from parsed JSON."""
+        normalized = {
+            "compliance_scopes": data.get("compliance_scopes", []),
+            "data_classification": data.get("data_classification", "internal"),
+            "residency": data.get("residency"),
+            "confidence": float(data.get("confidence", 0.5)),
+            "reasoning": data.get("reasoning", ""),
+        }
 
-            return normalized
+        # Ensure compliance_scopes is a list
+        if not isinstance(normalized["compliance_scopes"], list):
+            normalized["compliance_scopes"] = [normalized["compliance_scopes"]]
 
-        except json.JSONDecodeError:
-            # Fallback parsing if JSON is malformed
-            logger.warning(
-                f"Failed to parse JSON compliance response: {response[:100]}..."
-            )
-            return {
-                "compliance_scopes": [],
-                "data_classification": "internal",
-                "residency": None,
-                "confidence": 0.3,
-                "reasoning": "Failed to parse LLM response",
-            }
-        except Exception as e:
-            logger.error(f"Error parsing compliance response: {e}", exc_info=True)
-            return {
-                "compliance_scopes": [],
-                "data_classification": "internal",
-                "residency": None,
-                "confidence": 0.0,
-                "reasoning": f"Parsing error: {str(e)}",
-            }
+        return normalized

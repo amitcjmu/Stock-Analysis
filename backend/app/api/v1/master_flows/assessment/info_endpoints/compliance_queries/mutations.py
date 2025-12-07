@@ -87,8 +87,17 @@ async def refresh_compliance_validation(  # noqa: C901
             runtime_state = flow.runtime_state or {}
             selected_app_ids = runtime_state.get("selected_application_ids", [])
 
+        # Deduplicate IDs to handle data quality issues (same ID repeated)
+        # Use dict.fromkeys to preserve order while deduplicating
+        original_count = len(selected_app_ids)
+        selected_app_ids = list(dict.fromkeys(str(aid) for aid in selected_app_ids))
+        if len(selected_app_ids) != original_count:
+            logger.warning(
+                f"Deduplicated selected_app_ids: {original_count} -> {len(selected_app_ids)} unique IDs"
+            )
+
         logger.info(
-            f"Refreshing compliance for flow {flow_id} with {len(selected_app_ids)} applications"
+            f"Refreshing compliance for flow {flow_id} with {len(selected_app_ids)} unique applications"
         )
 
         # Get engagement standards (use defaults if not configured)
@@ -162,7 +171,6 @@ async def refresh_compliance_validation(  # noqa: C901
         # Validate each application's technology stack
         app_compliance_results = {}
         overall_compliant = True
-        total_apps = len(applications)
 
         for app in applications:
             app_id = str(app.get("id") or app.get("application_id", "unknown"))
@@ -190,11 +198,17 @@ async def refresh_compliance_validation(  # noqa: C901
             if not compliance_result.get("compliant", True):
                 overall_compliant = False
 
-        # Build compliance validation structure
+        # Build compliance validation structure - calculate from actual results
+        # Use len(app_compliance_results) as total to ensure consistency with detail data
+        total_apps = len(app_compliance_results)
         compliant_count = sum(
             1 for r in app_compliance_results.values() if r.get("is_compliant", True)
         )
-        non_compliant_count = total_apps - compliant_count
+        non_compliant_count = sum(
+            1
+            for r in app_compliance_results.values()
+            if not r.get("is_compliant", True)
+        )
 
         # Normalize engagement_standards to dict format for response
         # Input can be either a list (from TECH_VERSION_STANDARDS) or dict (from DB)
