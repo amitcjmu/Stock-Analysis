@@ -60,6 +60,18 @@
 
 **Reference:** PR #581 - operations.py lines 245-298
 
+### ❌ Redundant Database Queries
+**Issue:** Recalculating values that were already computed in the same request flow  
+**Why:** Unnecessary database load, slower response times, wasted resources - fundamental to minimize database round trips  
+**Example:** Function A calculates `total_items` with COUNT query, then Function B recalculates same `total_items` with another COUNT query using same filters  
+**Check:**
+- Pass already-computed values as parameters instead of recalculating
+- Reuse query results from earlier in the call chain
+- If a value is needed in multiple places, calculate once and pass it down
+- Review function signatures - if caller already has the value, accept it as parameter
+
+**Reference:** PR #1262 - pagination_queries.py redundant total_items calculation (Dec 2025)
+
 ---
 
 ## Error Handling
@@ -499,6 +511,19 @@ git diff HEAD~1 backend/app/services/asset_service/deduplication/ | grep "^+.*="
 - A simple `grep -c "business_unit"` before/after would have caught this immediately
 
 **Reference:** PR #884 → Commit d327e56ae refactoring bug (Nov 2025)
+
+### ❌ Adding Imports Before New Files Exist in Container
+**Issue:** Modifying imports to reference new modules before ensuring those files exist in the running container  
+**Why:** Causes `ImportError` at startup - backend fails to start, breaks login and all API endpoints  
+**Example:** Splitting `pagination.py` and adding `from .pagination_queries import ...` before rebuilding container  
+**Check:**
+- Create new files FIRST
+- Rebuild container to include new files: `docker-compose build backend`
+- THEN modify imports in existing files
+- Verify imports work: `docker-compose exec backend python -c "from app.module import ..."`
+- Restart backend after rebuild
+
+**Reference:** Issue #1257 - pagination.py split (Dec 2025)
 
 ---
 

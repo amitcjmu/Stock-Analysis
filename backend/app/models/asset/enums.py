@@ -15,6 +15,7 @@ class AssetType(str, enum.Enum):
     SERVER = "server"
     DATABASE = "database"
     APPLICATION = "application"
+    COMPONENT = "component"
 
     # Network Devices
     NETWORK = "network"

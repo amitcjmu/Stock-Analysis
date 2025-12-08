@@ -65,6 +65,7 @@ export interface AssetsByType {
   APPLICATION: Asset[];
   SERVER: Asset[];
   DATABASE: Asset[];
+  COMPONENT: Asset[];
   NETWORK: Asset[];  // Bug #971 Fix: Consolidated network types here
   STORAGE_DEVICE: Asset[];
   SECURITY_DEVICE: Asset[];
@@ -103,6 +104,7 @@ export interface AssetPageData {
     total_pages: number;
   };
   currentPage: number;
+  summary?: AssetSummary;
 }
 
 /**
@@ -111,4 +113,25 @@ export interface AssetPageData {
 export interface FilterOptions {
   environmentOptions: string[];
   criticalityOptions: string[];
+}
+
+/**
+ * Asset summary statistics from backend API
+ * Shared type definition to avoid duplication (DRY principle)
+ */
+export interface AssetSummary {
+  total: number;
+  applications: number;
+  servers: number;
+  databases: number;
+  components: number;
+  network: number;
+  storage: number;
+  security: number;
+  virtualization: number;
+  containers: number;
+  load_balancers: number;
+  unknown: number;
+  discovered?: number;
+  pending?: number;
 }

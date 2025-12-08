@@ -88,6 +88,7 @@ const ApplicationSelection: React.FC = () => {
     allAssets,
     assetsByType,
     filterOptions,
+    summary,
     applicationsLoading,
     flowLoading,
     isFetchingNextPage,
@@ -315,6 +316,7 @@ const ApplicationSelection: React.FC = () => {
                   setSelectedAssetTypes={setSelectedAssetTypes}
                   assetsByType={assetsByType}
                   allAssets={allAssets}
+                  summary={summary}
                   filteredApplications={filteredAssets}
                   selectedApplications={selectedApplications}
                   onSelectAll={(checked) =>
