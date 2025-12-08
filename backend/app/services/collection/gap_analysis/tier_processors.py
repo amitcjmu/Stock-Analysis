@@ -16,6 +16,7 @@ from app.services.persistent_agents.tenant_scoped_agent_pool import (
 from .comprehensive_task_builder import build_comprehensive_gap_analysis_task
 from .gap_persistence import persist_gaps
 from .output_parser import parse_task_output
+from .data_loader import load_related_assets_for_gap_analysis
 
 logger = logging.getLogger(__name__)
 
@@ -79,8 +80,23 @@ class TierProcessorMixin:
             f"✅ Agent created: {agent.role if hasattr(agent, 'role') else 'gap_analysis_specialist'}"
         )
 
+        # Issue #1193 Fix: Load related assets for each asset to consider underlying server data
+        # Applications should inherit OS/virtualization/tech_stack data from mapped servers
+        related_assets_map = await load_related_assets_for_gap_analysis(
+            assets=assets,
+            client_account_id=self.client_account_id,
+            engagement_id=self.engagement_id,
+            db=db,
+        )
+        logger.info(
+            f"📊 Loaded related assets for {len(related_assets_map)} assets "
+            f"(Issue #1193: server data inheritance)"
+        )
+
         # Create and execute task (Per PR #1043: comprehensive gap analysis only, no questionnaires)
-        task_description = build_comprehensive_gap_analysis_task(assets)
+        task_description = build_comprehensive_gap_analysis_task(
+            assets, related_assets_map
+        )
         logger.debug(
             f"📝 Task description length: {len(task_description)} chars (comprehensive gap analysis - no questionnaires)"
         )

@@ -6,12 +6,16 @@ from main scanner to keep main scanner class under 400 lines.
 
 CC Generated for Issue #1111 - IntelligentGapScanner Modularization
 Per ADR-037: Intelligent Gap Detection and Questionnaire Generation Architecture
+
+Updated for Issue #1193: Check related asset data (servers) using field aliases
+from CriticalAttributesDefinition to inherit OS, virtualization, tech stack.
 """
 
 import logging
 from typing import Any, Dict, List, Optional
 
 from app.models import Asset, CanonicalApplication
+from app.services.collection.critical_attributes import CriticalAttributesDefinition
 
 logger = logging.getLogger(__name__)
 
@@ -155,9 +159,15 @@ class DataExtractors:
         """
         Extract value from related assets (via asset_dependencies).
 
+        Uses CriticalAttributesDefinition for field alias resolution to find values
+        even when stored under alternate keys (e.g., 'os' for 'operating_system').
+
+        Fix for Issue #1193: Now checks technical_details JSONB and uses field
+        aliases so application questionnaires consider data from underlying servers.
+
         Args:
             related_assets: List from DataLoaders.load_related_assets()
-            field_id: Field to extract (e.g., "related_database_type")
+            field_id: Field to extract (e.g., "operating_system", "technology_stack")
 
         Returns:
             Value if found in related assets, None otherwise
@@ -171,20 +181,109 @@ class DataExtractors:
         else:
             actual_field = field_id
 
-        # Try to find field in related assets
+        # Get field aliases from CriticalAttributesDefinition
+        field_aliases = self._get_field_aliases(actual_field)
+
+        # Try to find field in related assets using all aliases
         for related_asset in related_assets:
-            # Check standard column
-            if hasattr(related_asset, actual_field):
-                value = getattr(related_asset, actual_field, None)
+            for alias in field_aliases:
+                value = self._extract_value_from_alias(related_asset, alias)
                 if value:
                     return value
 
-            # Check custom_attributes
-            if (
-                related_asset.custom_attributes
-                and actual_field in related_asset.custom_attributes
-            ):
-                return related_asset.custom_attributes[actual_field]
+        return None
+
+    def _get_field_aliases(self, field_id: str) -> List[str]:
+        """
+        Get all field aliases for a given field_id from CriticalAttributesDefinition.
+
+        This ensures we check all possible locations where the data might be stored.
+
+        Args:
+            field_id: The field to look up (e.g., "operating_system")
+
+        Returns:
+            List of aliases to check (e.g., ["operating_system", "os_version", "custom_attributes.os"])
+        """
+        aliases = [field_id]  # Always include the original field
+
+        # Get attribute mappings from CriticalAttributesDefinition
+        attr_mappings = CriticalAttributesDefinition.get_attribute_mapping()
+
+        # Check if field_id matches any attribute name or is in asset_fields
+        for attr_name, attr_config in attr_mappings.items():
+            asset_fields = attr_config.get("asset_fields", [])
+
+            # If field_id matches the attribute name, add all its asset_fields
+            if attr_name == field_id or field_id in asset_fields:
+                for field in asset_fields:
+                    if field not in aliases:
+                        aliases.append(field)
+
+            # Also check partial matches for common field name patterns
+            # E.g., "operating_system" should match "operating_system_version"
+            if field_id in attr_name or attr_name.startswith(field_id):
+                for field in asset_fields:
+                    if field not in aliases:
+                        aliases.append(field)
+
+        return aliases
+
+    def _extract_value_from_alias(self, asset: Asset, alias: str) -> Optional[Any]:
+        """
+        Extract value from a specific alias path on an asset.
+
+        Handles three patterns:
+        - Direct column: "operating_system" -> asset.operating_system
+        - custom_attributes path: "custom_attributes.os" -> asset.custom_attributes["os"]
+        - technical_details path: Check technical_details JSONB as fallback
+
+        Args:
+            asset: Asset to extract from
+            alias: Alias path (e.g., "operating_system", "custom_attributes.os")
+
+        Returns:
+            Value if found, None otherwise
+        """
+        # Handle custom_attributes.* path
+        if alias.startswith("custom_attributes."):
+            key = alias.replace("custom_attributes.", "")
+            if asset.custom_attributes and key in asset.custom_attributes:
+                value = asset.custom_attributes[key]
+                if value is not None and value != "" and value != []:
+                    return value
+            # Also check technical_details for this key
+            if asset.technical_details and key in asset.technical_details:
+                value = asset.technical_details[key]
+                if value is not None and value != "" and value != []:
+                    return value
+            return None
+
+        # Handle other dot-notation paths (e.g., resilience.rto_minutes)
+        if "." in alias:
+            parts = alias.split(".")
+            # Skip enrichment table paths - those are handled by enrichment loader
+            if parts[0] in ["resilience", "compliance_flags", "vulnerabilities"]:
+                return None
+            return None
+
+        # Handle direct column access
+        if hasattr(asset, alias):
+            value = getattr(asset, alias, None)
+            if value is not None and value != "" and value != []:
+                return value
+
+        # Fallback: Check custom_attributes with the alias as key
+        if asset.custom_attributes and alias in asset.custom_attributes:
+            value = asset.custom_attributes[alias]
+            if value is not None and value != "" and value != []:
+                return value
+
+        # Fallback: Check technical_details with the alias as key
+        if asset.technical_details and alias in asset.technical_details:
+            value = asset.technical_details[alias]
+            if value is not None and value != "" and value != []:
+                return value
 
         return None
 

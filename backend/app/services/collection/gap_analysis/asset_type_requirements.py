@@ -32,14 +32,18 @@ class AssetTypeRequirements:
     )
 
     # Asset type specific attribute mappings
+    # Issue #1193 Fix: Applications should NOT include server-level infrastructure attributes
+    # because an application can depend on multiple servers with different OS/configs.
+    # Infrastructure data is collected at the SERVER level, not the application level.
     ASSET_TYPE_REQUIREMENTS: Dict[str, Dict[str, List[str]]] = {
         "application": {
             "infrastructure": [
-                "operating_system_version",  # Apps run on OS
-                "cpu_memory_storage_specs",  # Resource requirements
-                "network_configuration",  # Connectivity needs
-                "performance_baseline",  # App performance metrics
-                "availability_requirements",  # SLA requirements
+                # NOTE: operating_system_version, cpu_memory_storage_specs, network_configuration
+                # are EXCLUDED for applications. These are SERVER-level attributes.
+                # An application can depend on multiple servers with different OS/configs.
+                # Infrastructure data is collected from the related SERVERS, not the app.
+                "availability_requirements",  # SLA requirements ARE relevant at app level
+                "performance_baseline",  # App-level performance metrics ARE relevant
             ],
             "application": ALL_APPLICATION,  # All app attributes relevant
             "business_context": ALL_BUSINESS,  # All business attributes relevant

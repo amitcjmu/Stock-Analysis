@@ -21,6 +21,9 @@ from app.services.collection.gap_analysis.models import (
     IntelligentGap,
     COLLECTION_FLOW_FIELD_METADATA,
 )
+from app.services.collection.gap_analysis.asset_type_requirements import (
+    AssetTypeRequirements,
+)
 from .data_loaders import DataLoaders
 from .data_extractors import DataExtractors
 
@@ -88,6 +91,15 @@ class IntelligentGapScanner:
         canonical_apps = await self.data_loaders.load_canonical_applications(asset.id)
         related_assets = await self.data_loaders.load_related_assets(asset.id)
 
+        # Issue #1193 Fix: Get applicable attributes for this asset type
+        # Applications should NOT get gaps for server-level infrastructure attributes
+        # (operating_system_version, cpu_memory_storage_specs, network_configuration)
+        asset_type = getattr(asset, "asset_type", "application")
+        applicable_attrs = set(
+            AssetTypeRequirements.get_applicable_attributes(asset_type)
+        )
+        inapplicable_count = 0
+
         # Scan fields by section
         for section_id, section_meta in COLLECTION_FLOW_FIELD_METADATA.items():
             # Skip section if not in sections_to_scan
@@ -97,6 +109,13 @@ class IntelligentGapScanner:
             section_fields = section_meta["fields"]
 
             for field_id, field_meta in section_fields.items():
+                # Issue #1193 Fix: Skip fields not applicable to this asset type
+                # E.g., applications should NOT get gaps for operating_system_version
+                # because apps can depend on multiple servers with different OSes
+                if field_id not in applicable_attrs:
+                    inapplicable_count += 1
+                    continue
+
                 # Check all 6 sources
                 data_sources_checked: List[DataSource] = []
 
@@ -212,8 +231,8 @@ class IntelligentGapScanner:
                     )
 
         logger.info(
-            f"Scanned asset {asset.id}: Found {len(gaps)} TRUE gaps "
-            f"(checked 6 sources for {len(COLLECTION_FLOW_FIELD_METADATA)} fields)"
+            f"Scanned asset {asset.id} ({asset_type}): Found {len(gaps)} TRUE gaps "
+            f"(checked 6 sources, skipped {inapplicable_count} inapplicable fields)"
         )
 
         return gaps

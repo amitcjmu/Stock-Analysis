@@ -157,3 +157,71 @@ async def resolve_collection_flow_id(
     )
     logger.error(f"❌ {message}")
     raise ValueError(message)
+
+
+async def load_related_assets_for_gap_analysis(
+    assets: List[Asset],
+    client_account_id: str,
+    engagement_id: str,
+    db: AsyncSession,
+) -> dict:
+    """
+    Load related assets for each asset via asset_dependencies.
+
+    Issue #1193 Fix: Applications should inherit infrastructure data (OS, virtualization,
+    technology stack) from underlying servers they depend on. This function loads
+    those related assets so the AI gap analysis can consider server data when
+    determining gaps for applications.
+
+    Args:
+        assets: List of assets to find related assets for
+        client_account_id: Client account ID for multi-tenant scoping
+        engagement_id: Engagement ID for multi-tenant scoping
+        db: Database session
+
+    Returns:
+        Dict mapping asset_id (str) -> list of related Asset objects
+        Example: {"uuid-of-analytics-engine": [BackupServer, ProxyServer, ...]}
+    """
+    from app.models.asset_dependency import AssetDependency
+
+    related_assets_map = {}
+
+    # Convert IDs to UUIDs
+    client_uuid = (
+        UUID(client_account_id)
+        if isinstance(client_account_id, str)
+        else client_account_id
+    )
+    engagement_uuid = (
+        UUID(engagement_id) if isinstance(engagement_id, str) else engagement_id
+    )
+
+    for asset in assets:
+        # Query assets that this asset depends on (e.g., app depends on servers)
+        # AssetDependency: asset_id = source, depends_on_asset_id = target
+        stmt = (
+            select(Asset)
+            .join(AssetDependency, Asset.id == AssetDependency.depends_on_asset_id)
+            .where(
+                AssetDependency.asset_id == asset.id,
+                AssetDependency.client_account_id == client_uuid,
+                AssetDependency.engagement_id == engagement_uuid,
+            )
+        )
+        result = await db.execute(stmt)
+        related = list(result.scalars().all())
+
+        if related:
+            related_assets_map[str(asset.id)] = related
+            logger.debug(
+                f"📊 Asset '{asset.name}' has {len(related)} related assets: "
+                f"{[r.name for r in related[:5]]}"
+            )
+
+    logger.info(
+        f"✅ Loaded related assets for {len(related_assets_map)}/{len(assets)} assets "
+        f"(Issue #1193: server data inheritance for gap analysis)"
+    )
+
+    return related_assets_map
