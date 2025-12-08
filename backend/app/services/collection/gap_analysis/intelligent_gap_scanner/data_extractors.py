@@ -220,9 +220,9 @@ class DataExtractors:
                     if field not in aliases:
                         aliases.append(field)
 
-            # Also check partial matches for common field name patterns
-            # E.g., "operating_system" should match "operating_system_version"
-            if field_id in attr_name or attr_name.startswith(field_id):
+            # If field_id is the canonical name or one of the asset_fields for this attribute
+            # Use exact matching to prevent false positives
+            if field_id == attr_name or field_id in asset_fields:
                 for field in asset_fields:
                     if field not in aliases:
                         aliases.append(field)

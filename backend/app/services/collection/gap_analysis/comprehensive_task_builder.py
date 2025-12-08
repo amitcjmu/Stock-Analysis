@@ -71,6 +71,15 @@ def build_comprehensive_gap_analysis_task(
         related_asset_fields = {}
         related_asset_info = []
 
+        # Define fields to inherit before the loop
+        # (infrastructure fields that apps typically inherit from servers)
+        inherit_fields = [
+            "operating_system_version",
+            "virtualization_platform",
+            "cpu_memory_storage_specs",
+            "network_configuration",
+        ]
+
         for related in related_assets:
             related_fields = DataIntelligence.get_existing_fields(related)
             related_asset_info.append(
@@ -80,20 +89,22 @@ def build_comprehensive_gap_analysis_task(
                     "fields": related_fields,
                 }
             )
-            # Merge related asset fields into existing_fields with "inherited_from_" prefix
-            # for infrastructure-related fields that apps typically inherit from servers
-            inherit_fields = [
-                "operating_system_version",
-                "virtualization_platform",
-                "cpu_memory_storage_specs",
-                "network_configuration",
-            ]
+            # Aggregate values from each related asset (app can have multiple servers)
             for field_name, field_value in related_fields.items():
                 if field_name in inherit_fields and field_name not in existing_fields:
-                    related_asset_fields[f"inherited_{field_name}"] = {
-                        "value": field_value,
-                        "source": f"related_asset:{related.name}",
-                    }
+                    inherited_key = f"inherited_{field_name}"
+                    if inherited_key not in related_asset_fields:
+                        related_asset_fields[inherited_key] = {
+                            "value": [],
+                            "source": [],
+                        }
+
+                    # Add unique values to the list
+                    if field_value not in related_asset_fields[inherited_key]["value"]:
+                        related_asset_fields[inherited_key]["value"].append(field_value)
+                        related_asset_fields[inherited_key]["source"].append(
+                            f"related_asset:{related.name}"
+                        )
 
         # Get attributes applicable to this asset type (as guidance, not prescription)
         applicable_attrs = AssetTypeRequirements.get_applicable_attributes(
