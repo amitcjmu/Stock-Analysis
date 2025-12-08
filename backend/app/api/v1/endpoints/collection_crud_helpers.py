@@ -86,24 +86,27 @@ def _find_gap_for_field(
     gap = None
     extracted_field = None
 
+    # Use a single variable to chain normalization steps (per Qodo review)
+    lookup_field = field_name
+
     # Strategy 1: Exact match
-    gap = gap_index.get(field_name)
+    gap = gap_index.get(lookup_field)
 
     # Strategy 2: Custom_attributes prefix removal
-    if not gap and field_name.startswith("custom_attributes."):
-        normalized_field = field_name.replace("custom_attributes.", "")
-        gap = gap_index.get(normalized_field)
+    if not gap and lookup_field.startswith("custom_attributes."):
+        lookup_field = lookup_field.replace("custom_attributes.", "")
+        gap = gap_index.get(lookup_field)
 
     # Strategy 3: Composite ID extraction (asset_id__field_name)
-    if not gap and "__" in field_name:
-        parts = field_name.split("__", 1)
+    if not gap and "__" in lookup_field:
+        parts = lookup_field.split("__", 1)
         if len(parts) == 2:
             extracted_field = parts[1]
-            gap = gap_index.get(extracted_field)
+            lookup_field = extracted_field
+            gap = gap_index.get(lookup_field)
 
     # Strategy 4: Semantic field mapping (LLM variations → canonical names)
     if not gap:
-        lookup_field = extracted_field or field_name
         mapped_field = RESPONSE_TO_GAP_FIELD_MAPPING.get(lookup_field)
         if mapped_field:
             gap = gap_index.get(mapped_field)
