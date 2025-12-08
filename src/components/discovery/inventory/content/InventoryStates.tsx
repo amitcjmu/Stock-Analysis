@@ -204,15 +204,15 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
             </>
           ) : hasCompletedWithZeroAssets ? (
             <>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No New Assets Imported</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Import Complete - Existing Assets Updated</h3>
               <p className="text-gray-600 mb-4">
-                The asset inventory phase completed successfully, but no new assets were created for this flow.
+                The asset inventory phase completed successfully. All imported items matched existing assets and were processed accordingly.
               </p>
               <p className="text-sm text-gray-500 mb-2">
-                This typically happens when all detected items were duplicates of existing assets, and you chose to keep the existing records.
+                When using "Replace All" or "Keep Existing" for conflicts, existing asset records are updated or preserved instead of creating duplicates.
               </p>
               <p className="text-sm text-blue-600">
-                💡 Switch to "All Assets" view mode to see all existing assets across all flows.
+                💡 Switch to <strong>"All Assets"</strong> view mode to see the updated existing assets across all flows.
               </p>
             </>
           ) : (

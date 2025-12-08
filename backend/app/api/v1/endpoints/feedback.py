@@ -6,12 +6,15 @@ Security:
 - All endpoints require authentication via RequestContext
 - Input validation prevents XSS via length limits and sanitization
 - DELETE requires authenticated user (admin feature)
+- Screenshot validation decodes base64 and verifies image format
+- JSON fields (browser_info, flow_context) are sanitized to prevent stored XSS
 """
 
+import base64
 import html
 import logging
 import re
-from typing import Optional
+from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, field_validator
@@ -30,6 +33,20 @@ MAX_COMMENT_LENGTH = 2000
 MAX_PAGE_LENGTH = 255
 MAX_BREADCRUMB_LENGTH = 500
 MAX_USER_NAME_LENGTH = 100
+MAX_STEPS_LENGTH = 5000
+MAX_BEHAVIOR_LENGTH = 2000
+MAX_SCREENSHOT_DECODED_SIZE = 5 * 1024 * 1024  # 5MB decoded
+MAX_JSON_FIELD_KEYS = 20  # Max keys in browser_info/flow_context
+MAX_JSON_VALUE_LENGTH = 500  # Max length per JSON string value
+
+# Valid image signatures (magic bytes)
+VALID_IMAGE_SIGNATURES = {
+    b"\x89PNG\r\n\x1a\n": "image/png",
+    b"\xff\xd8\xff": "image/jpeg",
+    b"GIF87a": "image/gif",
+    b"GIF89a": "image/gif",
+    b"RIFF": "image/webp",  # WebP starts with RIFF
+}
 
 
 def sanitize_input(value: str, max_length: int) -> str:
@@ -45,15 +62,101 @@ def sanitize_input(value: str, max_length: int) -> str:
     return value.strip()
 
 
+def sanitize_json_value(value: Any, max_length: int = MAX_JSON_VALUE_LENGTH) -> Any:
+    """Recursively sanitize JSON values to prevent stored XSS (Qodo security fix)."""
+    if value is None:
+        return None
+    if isinstance(value, str):
+        # Truncate and HTML escape string values
+        return html.escape(value[:max_length])
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return value
+    if isinstance(value, list):
+        # Limit list length and sanitize each element
+        return [sanitize_json_value(item) for item in value[:50]]
+    if isinstance(value, dict):
+        # Limit number of keys and sanitize each key/value
+        sanitized = {}
+        for i, (k, v) in enumerate(value.items()):
+            if i >= MAX_JSON_FIELD_KEYS:
+                break
+            # Sanitize key (alphanumeric, underscore, hyphen only)
+            safe_key = re.sub(r"[^a-zA-Z0-9_-]", "", str(k)[:100])
+            if safe_key:
+                sanitized[safe_key] = sanitize_json_value(v)
+        return sanitized
+    # Unknown type - convert to string and sanitize
+    return html.escape(str(value)[:max_length])
+
+
+def validate_image_data(base64_data: str) -> tuple[bool, str]:
+    """
+    Validate base64 screenshot data (Qodo security fix).
+
+    Returns:
+        tuple of (is_valid, error_message)
+    """
+    try:
+        # Handle data URL format: data:image/png;base64,iVBOR...
+        if base64_data.startswith("data:"):
+            # Extract the base64 part after the comma
+            if "," not in base64_data:
+                return False, "Invalid data URL format"
+            header, base64_data = base64_data.split(",", 1)
+            # Validate content type in header
+            if not any(
+                img_type in header
+                for img_type in ["image/png", "image/jpeg", "image/gif", "image/webp"]
+            ):
+                return False, "Invalid image type in data URL"
+
+        # Decode base64
+        try:
+            decoded = base64.b64decode(base64_data)
+        except Exception:
+            return False, "Invalid base64 encoding"
+
+        # Check decoded size
+        if len(decoded) > MAX_SCREENSHOT_DECODED_SIZE:
+            return (
+                False,
+                f"Screenshot exceeds maximum size of {MAX_SCREENSHOT_DECODED_SIZE // (1024*1024)}MB",
+            )
+
+        # Verify image format by checking magic bytes
+        is_valid_image = False
+        for signature in VALID_IMAGE_SIGNATURES:
+            if decoded.startswith(signature):
+                is_valid_image = True
+                break
+
+        if not is_valid_image:
+            return False, "Invalid image format - must be PNG, JPEG, GIF, or WebP"
+
+        return True, ""
+    except Exception as e:
+        return False, f"Screenshot validation failed: {str(e)}"
+
+
 # Feedback endpoint models
 class FeedbackRequest(BaseModel):
     page: str
     rating: int
     comment: str
-    category: str = "ui"
+    category: str = "ui"  # ui, performance, feature, bug, general
     breadcrumb: Optional[str] = None
     timestamp: str
     user_name: Optional[str] = None  # Display name (validated server-side)
+    # Bug report specific fields (Issue #739)
+    severity: Optional[str] = None  # low, medium, high, critical
+    steps_to_reproduce: Optional[str] = None
+    expected_behavior: Optional[str] = None
+    actual_behavior: Optional[str] = None
+    screenshot_data: Optional[str] = None  # Base64 encoded
+    browser_info: Optional[dict] = None  # {name, version, os, platform}
+    flow_context: Optional[dict] = None  # {flow_id, phase, status}
 
     @field_validator("rating")
     @classmethod
@@ -76,6 +179,31 @@ class FeedbackRequest(BaseModel):
     def validate_page(cls, v: str) -> str:
         if len(v) > MAX_PAGE_LENGTH:
             raise ValueError(f"Page must be less than {MAX_PAGE_LENGTH} characters")
+        return v
+
+    @field_validator("severity")
+    @classmethod
+    def validate_severity(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v not in ("low", "medium", "high", "critical"):
+            raise ValueError("Severity must be one of: low, medium, high, critical")
+        return v
+
+    @field_validator("steps_to_reproduce")
+    @classmethod
+    def validate_steps(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and len(v) > MAX_STEPS_LENGTH:
+            raise ValueError(f"Steps must be less than {MAX_STEPS_LENGTH} characters")
+        return v
+
+    @field_validator("screenshot_data")
+    @classmethod
+    def validate_screenshot(cls, v: Optional[str]) -> Optional[str]:
+        """Validate screenshot: decode base64, check size, verify image format (Qodo security fix)."""
+        if v is None:
+            return None
+        is_valid, error_msg = validate_image_data(v)
+        if not is_valid:
+            raise ValueError(error_msg)
         return v
 
 
@@ -107,8 +235,36 @@ async def submit_feedback(
             else None
         )
 
+        # Sanitize bug report fields
+        sanitized_steps = (
+            sanitize_input(request.steps_to_reproduce, MAX_STEPS_LENGTH)
+            if request.steps_to_reproduce
+            else None
+        )
+        sanitized_expected = (
+            sanitize_input(request.expected_behavior, MAX_BEHAVIOR_LENGTH)
+            if request.expected_behavior
+            else None
+        )
+        sanitized_actual = (
+            sanitize_input(request.actual_behavior, MAX_BEHAVIOR_LENGTH)
+            if request.actual_behavior
+            else None
+        )
+
+        # Sanitize JSON fields to prevent stored XSS (Qodo security fix)
+        sanitized_browser_info = (
+            sanitize_json_value(request.browser_info) if request.browser_info else None
+        )
+        sanitized_flow_context = (
+            sanitize_json_value(request.flow_context) if request.flow_context else None
+        )
+
+        # Determine feedback type based on category
+        feedback_type = "bug_report" if request.category == "bug" else "ui_feedback"
+
         logger.info(
-            f"Feedback submission for page: {sanitized_page} "
+            f"Feedback submission ({feedback_type}) for page: {sanitized_page} "
             f"by user: {context.user_id or 'anonymous'}"
         )
 
@@ -116,7 +272,7 @@ async def submit_feedback(
 
         # Create feedback record in database with sanitized inputs
         feedback = Feedback(
-            feedback_type="ui_feedback",
+            feedback_type=feedback_type,
             page=sanitized_page,
             rating=request.rating,
             comment=sanitized_comment,
@@ -125,6 +281,14 @@ async def submit_feedback(
             user_timestamp=request.timestamp,
             user_name=sanitized_user_name or "Anonymous",
             status="new",
+            # Bug report specific fields (Issue #739)
+            severity=request.severity,
+            steps_to_reproduce=sanitized_steps,
+            expected_behavior=sanitized_expected,
+            actual_behavior=sanitized_actual,
+            screenshot_data=request.screenshot_data,  # Validated for size and format
+            browser_info=sanitized_browser_info,  # Sanitized to prevent XSS
+            flow_context=sanitized_flow_context,  # Sanitized to prevent XSS
         )
 
         db.add(feedback)
@@ -172,20 +336,28 @@ async def get_all_feedback(
         # Transform to response format (output is already sanitized on input)
         feedback_list = []
         for record in feedback_records:
-            feedback_list.append(
-                {
-                    "id": str(record.id),
-                    "feedback_type": record.feedback_type,
-                    "page": record.page or "Unknown",
-                    "rating": record.rating or 0,
-                    "comment": record.comment or "",
-                    "category": record.category or "general",
-                    "status": record.status or "new",
-                    "timestamp": record.user_timestamp
-                    or (record.created_at.isoformat() if record.created_at else None),
-                    "user_name": getattr(record, "user_name", None) or "Anonymous",
-                }
-            )
+            feedback_item = {
+                "id": str(record.id),
+                "feedback_type": record.feedback_type,
+                "page": record.page or "Unknown",
+                "rating": record.rating or 0,
+                "comment": record.comment or "",
+                "category": record.category or "general",
+                "status": record.status or "new",
+                "timestamp": record.user_timestamp
+                or (record.created_at.isoformat() if record.created_at else None),
+                "user_name": getattr(record, "user_name", None) or "Anonymous",
+                # Bug report fields (Issue #739)
+                "severity": getattr(record, "severity", None),
+                "steps_to_reproduce": getattr(record, "steps_to_reproduce", None),
+                "expected_behavior": getattr(record, "expected_behavior", None),
+                "actual_behavior": getattr(record, "actual_behavior", None),
+                "browser_info": getattr(record, "browser_info", None),
+                "flow_context": getattr(record, "flow_context", None),
+                # Exclude screenshot_data from list view (too large)
+                "has_screenshot": bool(getattr(record, "screenshot_data", None)),
+            }
+            feedback_list.append(feedback_item)
 
         return {
             "success": True,

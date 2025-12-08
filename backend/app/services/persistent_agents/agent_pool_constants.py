@@ -238,11 +238,36 @@ AGENT_TYPE_CONFIGS = {
             "model": "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
         },
     },
+    # Issue #1243: Three-Level Compliance Validation Agent
+    "compliance_validator": {
+        "role": "Multi-Level Technology Compliance Validation Agent",
+        "goal": "Validate technology stack compliance at OS, application, and component levels "
+        "using real asset data, vendor EOL catalogs, and engagement architecture standards",
+        "backstory": (
+            "Expert in enterprise technology lifecycle management with deep knowledge of EOL "
+            "schedules for operating systems (Windows Server, RHEL, Oracle Linux, AIX, z/OS), "
+            "databases (Oracle, SQL Server, PostgreSQL, MySQL, MongoDB), runtimes (Java, .NET, "
+            "Node.js, Python), and enterprise applications (SAP, Oracle EBS, Salesforce). "
+            "Specializes in three-level compliance validation: OS compliance against engagement "
+            "minimums, COTS application version compliance against vendor support dates, and "
+            "component-level compliance for databases, frameworks, and libraries. Provides "
+            "actionable remediation guidance with upgrade paths and tech debt quantification."
+        ),
+        "tools": ["eol_catalog_lookup", "rag_eol_enrichment", "asset_product_linker"],
+        "max_retries": 3,
+        "memory_enabled": False,  # Per ADR-024: Use TenantMemoryManager instead
+        "llm_config": {
+            "provider": "deepinfra",
+            "model": "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
+            "max_tokens": 8192,  # Comprehensive compliance analysis per asset
+        },
+    },
 }
 
 # Assessment phase-to-agent mapping (for execution engine)
 ASSESSMENT_PHASE_AGENT_MAPPING = {
     "readiness_assessment": "readiness_assessor",
+    "architecture_minimums": "compliance_validator",  # Issue #1243: Three-level compliance
     "complexity_analysis": "complexity_analyst",
     "dependency_analysis": "dependency_analyst",
     "tech_debt_assessment": "complexity_analyst",  # Reuse complexity agent for tech debt
@@ -304,6 +329,10 @@ TOOL_MAPPINGS = {
     "asset_intelligence": "get_asset_intelligence_tools",
     "questionnaire_generation": "create_questionnaire_generation_tools",
     "gap_analysis": "create_gap_analysis_tools",
+    # Issue #1243: Three-level compliance validation tools
+    "eol_catalog_lookup": "create_eol_catalog_lookup_tool",
+    "rag_eol_enrichment": "create_rag_eol_enrichment_tool",
+    "asset_product_linker": "create_asset_product_linker_tool",
 }
 
 

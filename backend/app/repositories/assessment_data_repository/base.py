@@ -20,6 +20,7 @@ from .complexity_queries import ComplexityQueriesMixin
 from .dependency_queries import DependencyQueriesMixin
 from .risk_queries import RiskQueriesMixin
 from .recommendation_queries import RecommendationQueriesMixin
+from .architecture_minimums_queries import ArchitectureMinimumsQueriesMixin  # ADR-039
 
 logger = get_logger(__name__)
 
@@ -30,6 +31,7 @@ class AssessmentDataRepository(
     DependencyQueriesMixin,
     RiskQueriesMixin,
     RecommendationQueriesMixin,
+    ArchitectureMinimumsQueriesMixin,  # ADR-039: Compliance validation queries
 ):
     """
     Tenant-scoped repository for assessment phase data access.

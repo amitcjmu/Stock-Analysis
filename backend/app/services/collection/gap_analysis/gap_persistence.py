@@ -2,10 +2,10 @@
 
 import logging
 import math
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Set, Tuple
 from uuid import UUID
 
-from sqlalchemy import func
+from sqlalchemy import and_, func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,6 +13,54 @@ from app.models.asset import Asset
 from app.models.collection_data_gap import CollectionDataGap
 
 logger = logging.getLogger(__name__)
+
+
+async def _get_resolved_fields(
+    db: AsyncSession,
+    gaps_by_priority: Dict[str, Any],
+) -> Set[Tuple[str, str]]:
+    """Get set of (asset_id, field_name) already resolved in previous flows.
+
+    Args:
+        db: Database session
+        gaps_by_priority: Gaps dict keyed by priority level
+
+    Returns:
+        Set of (asset_id, field_name) tuples that are already resolved
+    """
+    # Get all asset_ids from gaps to check
+    all_asset_ids = set()
+    for priority_level, gaps in gaps_by_priority.items():
+        if isinstance(gaps, list):
+            for gap in gaps:
+                if gap.get("asset_id"):
+                    try:
+                        all_asset_ids.add(UUID(gap["asset_id"]))
+                    except (ValueError, TypeError):
+                        pass
+
+    resolved_fields: Set[Tuple[str, str]] = set()
+    if all_asset_ids:
+        # Query for already-resolved gaps for these assets (from ANY flow)
+        resolved_stmt = select(
+            CollectionDataGap.asset_id, CollectionDataGap.field_name
+        ).where(
+            and_(
+                CollectionDataGap.asset_id.in_(all_asset_ids),
+                CollectionDataGap.resolution_status == "resolved",
+            )
+        )
+        resolved_result = await db.execute(resolved_stmt)
+        for row in resolved_result:
+            resolved_fields.add((str(row.asset_id), row.field_name))
+
+        if resolved_fields:
+            logger.info(
+                f"🔄 Gap Inheritance: Found {len(resolved_fields)} already-resolved fields - "
+                f"will skip creating duplicate gaps"
+            )
+
+    return resolved_fields
 
 
 async def persist_gaps(
@@ -33,6 +81,9 @@ async def persist_gaps(
         Number of gaps persisted
     """
     gaps_by_priority = result_dict.get("gaps", {})
+
+    # GAP INHERITANCE: Get already-resolved fields to skip duplicate gaps
+    resolved_fields = await _get_resolved_fields(db, gaps_by_priority)
     gaps_persisted = 0
     gaps_failed = 0
 
@@ -64,6 +115,14 @@ async def persist_gaps(
                     )
                     gaps_failed += 1
                     continue
+
+                # GAP INHERITANCE: Skip if this field was already resolved in a previous flow
+                field_name = gap.get("field_name", "unknown")
+                if (asset_id_str, field_name) in resolved_fields:
+                    logger.debug(
+                        f"🔄 Skipping already-resolved gap: {field_name} for asset {asset_id_str[:8]}..."
+                    )
+                    continue  # Don't create duplicate gap, user already provided this data
 
                 # Sanitize confidence_score (no NaN/Inf)
                 confidence_score = gap.get("confidence_score")

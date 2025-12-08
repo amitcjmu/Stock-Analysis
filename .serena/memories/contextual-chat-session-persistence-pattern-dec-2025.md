@@ -81,7 +81,7 @@ useEffect(() => {
     setMessages(prev => {
       // Check if there are actual user messages
       const hasUserMessages = prev.some(msg => msg.role === 'user');
-      
+
       if (hasUserMessages) {
         // APPEND navigation message only if actual conversation exists
         return [...prev, {
@@ -145,7 +145,7 @@ const clearHistory = (): void => {
   sessionStorage.setItem(CONVERSATION_ID_KEY, newId);
   setConversationId(newId);
   setMessages([initialGreeting]);
-  
+
   // Fire-and-forget backend cleanup
   apiCall(`/chat/conversation/${conversationId}`, { method: 'DELETE' }).catch(() => {});
 };

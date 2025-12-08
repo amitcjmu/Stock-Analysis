@@ -18,7 +18,7 @@ import type {
  * and integration with the collection flow system.
  */
 class CanonicalApplicationsApi {
-  private readonly baseUrl = '/api/v1/collection/canonical-applications';
+  private readonly baseUrl = '/api/v1/canonical-applications';
 
   /**
    * Get all canonical applications for the current tenant/engagement

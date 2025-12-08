@@ -45,3 +45,13 @@ export type {
 export { SIX_R_STRATEGIES, EFFORT_LEVELS, COST_RANGES } from './RecommendationCard';
 export { TreatmentRecommendations } from './TreatmentRecommendations';
 export type { TreatmentRecommendationsProps, Recommendation } from './TreatmentRecommendations';
+
+// ADR-039: Compliance and EOL Lifecycle
+export { ComplianceReport } from './ComplianceReport';
+export type {
+  ComplianceReportProps,
+  ComplianceIssue,
+  ApplicationComplianceResult,
+  EOLStatusInfo,
+  ComplianceValidationResponse,
+} from './ComplianceReport';

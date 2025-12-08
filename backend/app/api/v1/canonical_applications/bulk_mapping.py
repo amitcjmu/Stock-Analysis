@@ -104,6 +104,100 @@ class BulkMappingResponse(BaseModel):
     )
 
 
+def _validate_tenant_context(context: RequestContext) -> tuple[UUID, UUID]:
+    """Validate tenant context and return UUIDs."""
+    if not context.client_account_id or not context.engagement_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Missing tenant headers: X-Client-Account-ID and X-Engagement-ID required",
+        )
+    try:
+        return UUID(context.client_account_id), UUID(context.engagement_id)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid tenant UUID format: {str(e)}",
+        )
+
+
+async def _process_single_mapping(
+    mapping: AssetMapping,
+    db: AsyncSession,
+    valid_assets: dict,
+    canonical_apps: dict,
+    client_account_uuid: UUID,
+    engagement_uuid: UUID,
+    collection_flow_id: Optional[str],
+    context: RequestContext,
+) -> tuple[str, Optional[dict]]:
+    """
+    Process a single asset mapping.
+
+    Returns:
+        Tuple of (result_type, error_dict) where result_type is
+        'success', 'already_mapped', or 'error'
+    """
+    asset_uuid = UUID(mapping.asset_id)
+    canonical_uuid = UUID(mapping.canonical_application_id)
+
+    # Validate asset exists and belongs to tenant (pre-fetched)
+    asset = valid_assets.get(mapping.asset_id)
+    if not asset:
+        return "error", {
+            "asset_id": mapping.asset_id,
+            "error": "Asset not found or does not belong to tenant",
+        }
+
+    canonical_app = canonical_apps.get(mapping.canonical_application_id)
+
+    # Check if mapping already exists
+    existing_query = select(CollectionFlowApplication).where(
+        CollectionFlowApplication.asset_id == asset_uuid,
+        CollectionFlowApplication.client_account_id == client_account_uuid,
+        CollectionFlowApplication.engagement_id == engagement_uuid,
+    )
+    existing_result = await db.execute(existing_query)
+    existing_mapping = existing_result.scalar_one_or_none()
+
+    if existing_mapping:
+        existing_mapping.canonical_application_id = canonical_uuid
+        existing_mapping.collection_flow_id = (
+            UUID(collection_flow_id)
+            if collection_flow_id
+            else existing_mapping.collection_flow_id
+        )
+        existing_mapping.deduplication_method = "bulk_manual_mapping"
+        existing_mapping.match_confidence = 1.0
+        existing_mapping.collection_status = "mapped"
+        result_type = "already_mapped"
+    else:
+        new_mapping = CollectionFlowApplication(
+            collection_flow_id=UUID(collection_flow_id) if collection_flow_id else None,
+            asset_id=asset_uuid,
+            canonical_application_id=canonical_uuid,
+            client_account_id=client_account_uuid,
+            engagement_id=engagement_uuid,
+            application_name=asset.name,
+            deduplication_method="bulk_manual_mapping",
+            match_confidence=1.0,
+            collection_status="mapped",
+        )
+        db.add(new_mapping)
+        result_type = "success"
+
+    # Audit logging
+    logger.info(
+        f"[AUDIT] Asset mapped: asset_id={mapping.asset_id}, "
+        f"asset_name={asset.name}, "
+        f"canonical_app_id={mapping.canonical_application_id}, "
+        f"canonical_app_name={canonical_app.canonical_name if canonical_app else 'unknown'}, "
+        f"tenant={context.client_account_id}/{context.engagement_id}, "
+        f"user={context.user_id or 'system'}"
+    )
+
+    return result_type, None
+
+
 @router.post("/bulk-map-assets", response_model=BulkMappingResponse)
 async def bulk_map_assets(
     request: BulkMappingRequest,
@@ -118,36 +212,9 @@ async def bulk_map_assets(
     - Atomic transactions: All mappings succeed or all fail
     - Idempotent: Duplicate mappings return already_mapped count
     - Audit logging: Logs all successful mappings with tenant context
-
-    Args:
-        request: Bulk mapping request with asset IDs and canonical app IDs
-        db: Database session
-        context: Multi-tenant request context
-
-    Returns:
-        BulkMappingResponse with success/error counts and details
-
-    Raises:
-        HTTPException(400): Missing tenant headers
-        HTTPException(403): Cross-tenant access attempt detected
-        HTTPException(500): Database or unexpected error
     """
     # Validate tenant context
-    if not context.client_account_id or not context.engagement_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Missing tenant headers: X-Client-Account-ID and X-Engagement-ID required",
-        )
-
-    # Convert context IDs to UUID
-    try:
-        client_account_uuid = UUID(context.client_account_id)
-        engagement_uuid = UUID(context.engagement_id)
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid tenant UUID format: {str(e)}",
-        )
+    client_account_uuid, engagement_uuid = _validate_tenant_context(context)
 
     # Initialize results tracking
     results = {"successfully_mapped": 0, "already_mapped": 0, "errors": []}
@@ -208,90 +275,43 @@ async def bulk_map_assets(
     valid_assets = {str(asset.id): asset for asset in assets_result.scalars().all()}
 
     # Process each mapping with tenant validation and idempotent upsert
-    async with db.begin():
+    # Note: Session uses autobegin, so we don't call begin() explicitly
+    try:
         for mapping in request.mappings:
             try:
-                asset_uuid = UUID(mapping.asset_id)
-                canonical_uuid = UUID(mapping.canonical_application_id)
-
-                # Validate asset exists and belongs to tenant (pre-fetched)
-                asset = valid_assets.get(mapping.asset_id)
-
-                if not asset:
-                    results["errors"].append(
-                        {
-                            "asset_id": mapping.asset_id,
-                            "error": "Asset not found or does not belong to tenant",
-                        }
-                    )
-                    continue
-
-                # Get canonical application (already validated above)
-                canonical_app = canonical_apps.get(mapping.canonical_application_id)
-
-                # Check if mapping already exists for this asset
-                existing_mapping_query = select(CollectionFlowApplication).where(
-                    CollectionFlowApplication.asset_id == asset_uuid,
-                    CollectionFlowApplication.client_account_id == client_account_uuid,
-                    CollectionFlowApplication.engagement_id == engagement_uuid,
+                result_type, error = await _process_single_mapping(
+                    mapping,
+                    db,
+                    valid_assets,
+                    canonical_apps,
+                    client_account_uuid,
+                    engagement_uuid,
+                    request.collection_flow_id,
+                    context,
                 )
-                existing_mapping_result = await db.execute(existing_mapping_query)
-                existing_mapping = existing_mapping_result.scalar_one_or_none()
-
-                if existing_mapping:
-                    # Update existing mapping (idempotent)
-                    existing_mapping.canonical_application_id = canonical_uuid
-                    existing_mapping.collection_flow_id = (
-                        UUID(request.collection_flow_id)
-                        if request.collection_flow_id
-                        else existing_mapping.collection_flow_id
-                    )
-                    existing_mapping.deduplication_method = "bulk_manual_mapping"
-                    existing_mapping.match_confidence = 1.0
-                    existing_mapping.collection_status = "mapped"
+                if result_type == "error":
+                    results["errors"].append(error)
+                elif result_type == "already_mapped":
                     results["already_mapped"] += 1
                 else:
-                    # Create new mapping
-                    new_mapping = CollectionFlowApplication(
-                        collection_flow_id=(
-                            UUID(request.collection_flow_id)
-                            if request.collection_flow_id
-                            else None
-                        ),
-                        asset_id=asset_uuid,
-                        canonical_application_id=canonical_uuid,
-                        client_account_id=client_account_uuid,
-                        engagement_id=engagement_uuid,
-                        application_name=asset.name,  # Preserve legacy field
-                        deduplication_method="bulk_manual_mapping",
-                        match_confidence=1.0,
-                        collection_status="mapped",
-                    )
-                    db.add(new_mapping)
                     results["successfully_mapped"] += 1
-
-                # Audit logging with tenant context
-                logger.info(
-                    f"[AUDIT] Asset mapped: asset_id={mapping.asset_id}, "
-                    f"asset_name={asset.name}, "
-                    f"canonical_app_id={mapping.canonical_application_id}, "
-                    f"canonical_app_name={canonical_app.canonical_name if canonical_app else 'unknown'}, "
-                    f"tenant={context.client_account_id}/{context.engagement_id}, "
-                    f"user={context.user_id or 'system'}"
-                )
-
-            except HTTPException:
-                # Re-raise HTTP exceptions (e.g., validation errors)
-                raise
             except Exception as e:
                 logger.error(
-                    f"Failed to map asset {mapping.asset_id}: {str(e)}", exc_info=True
+                    f"Failed to map asset {mapping.asset_id}: {e}", exc_info=True
                 )
                 results["errors"].append(
                     {"asset_id": mapping.asset_id, "error": f"Mapping failed: {str(e)}"}
                 )
 
-    # Commit is automatic with async context manager
+        # Commit all changes atomically
+        await db.commit()
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Bulk mapping failed, rolled back: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Bulk mapping failed: {str(e)}",
+        )
 
     return BulkMappingResponse(
         total_requested=len(request.mappings),

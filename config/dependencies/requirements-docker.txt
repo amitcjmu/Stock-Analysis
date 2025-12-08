@@ -78,7 +78,7 @@ Levenshtein==0.25.1
 dirtyjson==1.0.8  # JSON parsing for malformed LLM output (ADR-029)
 
 # Security-critical updates
-urllib3==2.5.0  # HTTP library
+urllib3>=2.6.0  # HTTP library
 certifi>=2024.0.0  # SSL certificates
 PyYAML>=6.0.2  # YAML parser
 Jinja2>=3.1.6  # Template engine

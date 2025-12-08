@@ -109,7 +109,7 @@ export const API_CONFIG = {
       ASSETS_CLEANUP: '/unified-discovery/assets/cleanup-duplicates',  // Updated to unified-discovery endpoint as part of API migration
       APPLICATIONS: '/unified-discovery/applications',  // Updated to unified-discovery endpoint as part of API migration
       APP_MAPPINGS: '/unified-discovery/app-server-mappings',  // Updated to unified-discovery endpoint as part of API migration
-      FEEDBACK: '/chat/feedback',  // Global feedback endpoint
+      FEEDBACK: '/feedback',  // Global feedback endpoint (POST to submit, GET to retrieve)
       CHAT: '/chat/chat',  // Global chat endpoint
       // New discovery dashboard endpoints - Updated to unified-discovery as part of API migration
       DISCOVERY_METRICS: '/unified-discovery/assets/discovery-metrics',  // Updated to unified-discovery endpoint as part of API migration

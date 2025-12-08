@@ -28,9 +28,11 @@ import logging
 from typing import List
 from uuid import UUID
 
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
+from app.models.collection_data_gap import CollectionDataGap
 from app.core.redis_config import RedisConnectionManager
 from app.models.asset import Asset
 
@@ -55,6 +57,97 @@ from .section_helpers import (
 from .deduplication_service import deduplicate_common_questions
 
 logger = logging.getLogger(__name__)
+
+
+async def _get_resolved_fields_for_assets(
+    asset_ids: List[UUID], db: AsyncSession
+) -> dict[str, set[str]]:
+    """
+    Get resolved fields for each asset (from ANY previous flow).
+
+    GAP INHERITANCE for questionnaire generation: Skip generating questions
+    for fields that have already been resolved in previous collection flows.
+
+    Args:
+        asset_ids: List of asset UUIDs to check
+        db: Database session
+
+    Returns:
+        Dict mapping asset_id (str) -> set of resolved field_names
+    """
+    if not asset_ids:
+        return {}
+
+    # Query for already-resolved gaps (from ANY flow)
+    resolved_stmt = select(
+        CollectionDataGap.asset_id, CollectionDataGap.field_name
+    ).where(
+        and_(
+            CollectionDataGap.asset_id.in_(asset_ids),
+            CollectionDataGap.resolution_status == "resolved",
+        )
+    )
+    resolved_result = await db.execute(resolved_stmt)
+
+    # Build dict: asset_id -> set of resolved field_names
+    resolved_by_asset: dict[str, set[str]] = {}
+    for row in resolved_result:
+        asset_id_str = str(row.asset_id)
+        if asset_id_str not in resolved_by_asset:
+            resolved_by_asset[asset_id_str] = set()
+        resolved_by_asset[asset_id_str].add(row.field_name)
+
+    total_resolved = sum(len(fields) for fields in resolved_by_asset.values())
+    if total_resolved > 0:
+        logger.info(
+            f"🔄 Gap Inheritance (questionnaire): Found {total_resolved} resolved fields "
+            f"across {len(resolved_by_asset)} asset(s) - will skip generating questions for these"
+        )
+
+    return resolved_by_asset
+
+
+def _filter_gaps_by_resolved(
+    intelligent_gaps: dict[str, List["IntelligentGap"]],
+    resolved_by_asset: dict[str, set[str]],
+) -> tuple[dict[str, List["IntelligentGap"]], int]:
+    """
+    Filter out gaps for fields that have already been resolved.
+
+    Args:
+        intelligent_gaps: Dict mapping asset_id -> list of IntelligentGap
+        resolved_by_asset: Dict mapping asset_id -> set of resolved field_names
+
+    Returns:
+        Tuple of (filtered_gaps dict, count of gaps skipped)
+    """
+    filtered_gaps = {}
+    total_skipped = 0
+
+    for asset_id, gaps in intelligent_gaps.items():
+        resolved_fields = resolved_by_asset.get(asset_id, set())
+
+        if not resolved_fields:
+            # No resolved fields for this asset - keep all gaps
+            filtered_gaps[asset_id] = gaps
+            continue
+
+        # Filter out gaps whose field_id is in resolved_fields
+        original_count = len(gaps)
+        filtered = [g for g in gaps if g.field_id not in resolved_fields]
+        skipped = original_count - len(filtered)
+        total_skipped += skipped
+
+        filtered_gaps[asset_id] = filtered
+
+        if skipped > 0:
+            logger.info(
+                f"🔄 Asset {asset_id[:8]}...: Filtered {skipped} already-resolved gaps "
+                f"({original_count} → {len(filtered)} remaining)"
+            )
+
+    return filtered_gaps, total_skipped
+
 
 # Per ADR-035: Assessment flow sections aligned with Issue #980
 ASSESSMENT_FLOW_SECTIONS = [
@@ -169,6 +262,21 @@ async def _generate_questionnaires_per_section(  # noqa: C901
                         logger.info(f"✅ Cached intelligent gaps for flow {flow_id}")
                     except Exception as e:
                         logger.warning(f"Redis cache write failed, continuing: {e}")
+
+            # GAP INHERITANCE: Filter out already-resolved gaps from questionnaire generation
+            # This prevents asking questions for fields that were answered in previous flows
+            asset_uuids = [asset.id for asset in existing_assets]
+            resolved_by_asset = await _get_resolved_fields_for_assets(asset_uuids, db)
+
+            if resolved_by_asset:
+                intelligent_gaps, gaps_skipped = _filter_gaps_by_resolved(
+                    intelligent_gaps, resolved_by_asset
+                )
+                if gaps_skipped > 0:
+                    logger.info(
+                        f"🔄 Gap Inheritance: Filtered {gaps_skipped} already-resolved gaps "
+                        f"from questionnaire generation"
+                    )
 
             # Count TRUE gaps (now accessing IntelligentGap objects, not dicts)
             total_true_gaps = sum(

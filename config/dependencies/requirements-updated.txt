@@ -67,7 +67,7 @@ lark==1.1.9  # Current version
 Levenshtein==0.29.1  # Updated from 0.25.1
 
 # Additional security-critical updates
-urllib3==2.5.0  # HTTP library used by requests
+urllib3>=2.6.0  # HTTP library used by requests
 certifi==2025.6.15  # SSL certificates
 idna==3.10  # Internationalized domain names
 charset-normalizer==3.4.2  # Character encoding

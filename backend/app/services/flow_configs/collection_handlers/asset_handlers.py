@@ -6,6 +6,7 @@ Provides handler functions for applying resolved gap data to asset records.
 """
 
 import logging
+import re
 import uuid
 from typing import Any, Dict, List, Optional
 
@@ -13,6 +14,11 @@ from sqlalchemy import and_, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
 
+from .asset_field_whitelist import (
+    ASSET_FIELD_WHITELIST,
+    CUSTOM_ATTRIBUTE_FIELDS,
+    TECHNICAL_DETAIL_FIELDS,
+)
 from .base import CollectionHandlerBase, build_field_updates_from_rows
 
 logger = logging.getLogger(__name__)
@@ -24,6 +30,10 @@ class AssetHandlers(CollectionHandlerBase):
     def _handle_integer_field(self, value: list, dst_field: str) -> Optional[int]:
         """Extract integer value from list for numeric fields.
 
+        Issue #1260: Enhanced to handle range inputs like "3-4 cores" by extracting
+        the first number using regex. This handles LLM-generated answer choices that
+        may contain ranges or text alongside numbers.
+
         Args:
             value: List containing potential integer value
             dst_field: Target field name (for logging)
@@ -31,11 +41,41 @@ class AssetHandlers(CollectionHandlerBase):
         Returns:
             Integer value or None if invalid
         """
-        try:
-            return int(value[0]) if value[0] else None
-        except (ValueError, TypeError):
-            logger.warning(f"Invalid value for {dst_field}: {value[0]}")
+        if not value or value[0] is None:
             return None
+
+        raw_value = value[0]
+
+        # If already an integer, return directly
+        if isinstance(raw_value, int):
+            return raw_value
+
+        # Convert to string for regex processing
+        str_value = str(raw_value).strip()
+        if not str_value:
+            return None
+
+        # Try direct integer conversion first (handles "4", "16", etc.)
+        try:
+            return int(str_value)
+        except (ValueError, TypeError):
+            pass
+
+        # Issue #1260: Use regex to extract first number from range/text inputs
+        # Handles cases like "3-4 cores", "8-16", "4 cores", etc.
+        match = re.search(r"\d+", str_value)
+        if match:
+            try:
+                extracted = int(match.group())
+                logger.debug(
+                    f"Extracted integer {extracted} from '{str_value}' for {dst_field}"
+                )
+                return extracted
+            except (ValueError, TypeError):
+                pass
+
+        logger.warning(f"Could not extract integer from '{str_value}' for {dst_field}")
+        return None
 
     def _handle_string_field(self, value: list, dst_field: str) -> Optional[Any]:
         """Extract string value from list, joining multiple values with comma.
@@ -116,16 +156,7 @@ class AssetHandlers(CollectionHandlerBase):
         # ✅ FIX 0.3: Build technical_details JSON comprehensively
         # These fields go into the technical_details JSONB column
         technical_details = {}
-        technical_fields = [
-            "architecture_pattern",
-            "availability_requirements",
-            "data_quality",
-            "integration_complexity",
-            "api_endpoints",
-            "monitoring_enabled",
-            "logging_enabled",
-        ]
-        for field in technical_fields:
+        for field in TECHNICAL_DETAIL_FIELDS:
             if field in field_updates and field_updates[field]:
                 technical_details[field] = field_updates[field]
 
@@ -135,13 +166,7 @@ class AssetHandlers(CollectionHandlerBase):
         # ✅ FIX 0.3: Build custom_attributes JSON comprehensively
         # These fields go into the custom_attributes JSONB column
         custom_attributes = {}
-        custom_fields = [
-            "stakeholder_impact",
-            "vm_type",
-            "custom_tags",
-            "notes",
-        ]
-        for field in custom_fields:
+        for field in CUSTOM_ATTRIBUTE_FIELDS:
             if field in field_updates and field_updates[field]:
                 custom_attributes[field] = field_updates[field]
 
@@ -225,85 +250,8 @@ class AssetHandlers(CollectionHandlerBase):
         field_updates = build_field_updates_from_rows(resolved)
         logger.info(f"📊 Field updates extracted from responses: {field_updates}")
 
-        # ✅ FIX 0.3: Comprehensive Whitelist (Issue #980 - Critical Bug Fix)
-        # Expanded from 10 fields to ~55 fields to cover all Asset model columns
-        # that can be populated via questionnaire responses
-        whitelist = {
-            # === IDENTIFICATION FIELDS ===
-            "name": "name",
-            "asset_name": "asset_name",
-            "hostname": "hostname",
-            "asset_type": "asset_type",
-            "description": "description",
-            "fqdn": "fqdn",
-            # === BUSINESS CONTEXT FIELDS ===
-            "environment": "environment",
-            "business_criticality": "business_criticality",
-            "business_owner": "business_owner",
-            "business_unit": "business_unit",
-            "department": "department",
-            "application_name": "application_name",
-            "application_type": "application_type",
-            "server_role": "server_role",
-            # === TECHNOLOGY STACK FIELDS ===
-            "technology_stack": "technology_stack",
-            "operating_system": "operating_system",
-            "operating_system_version": "operating_system",  # Alias for backward compat
-            "os_version": "os_version",
-            "database_type": "database_type",
-            "database_version": "database_version",
-            # === INFRASTRUCTURE FIELDS ===
-            "cpu_cores": "cpu_cores",
-            "memory_gb": "memory_gb",
-            "storage_gb": "storage_gb",
-            "storage_used_gb": "storage_used_gb",
-            "storage_free_gb": "storage_free_gb",
-            "database_size_gb": "database_size_gb",
-            "virtualization_platform": "virtualization_platform",
-            "virtualization_type": "virtualization_type",
-            # === NETWORK FIELDS ===
-            "ip_address": "ip_address",
-            "mac_address": "mac_address",
-            # === LOCATION FIELDS ===
-            "datacenter": "datacenter",
-            "location": "location",
-            "rack_location": "rack_location",
-            "availability_zone": "availability_zone",
-            "security_zone": "security_zone",
-            # === COST & PERFORMANCE FIELDS ===
-            "current_monthly_cost": "current_monthly_cost",
-            "annual_cost_estimate": "annual_cost_estimate",
-            "estimated_cloud_cost": "estimated_cloud_cost",
-            "cpu_utilization_percent": "cpu_utilization_percent",
-            "memory_utilization_percent": "memory_utilization_percent",
-            "network_throughput_mbps": "network_throughput_mbps",
-            "disk_iops": "disk_iops",
-            # === ASSESSMENT FIELDS ===
-            "assessment_readiness": "assessment_readiness",
-            "assessment_readiness_score": "assessment_readiness_score",
-            "migration_complexity": "migration_complexity",
-            "migration_priority": "migration_priority",
-            "six_r_strategy": "six_r_strategy",
-            "wave_number": "wave_number",
-            "business_logic_complexity": "business_logic_complexity",
-            "configuration_complexity": "configuration_complexity",
-            "change_tolerance": "change_tolerance",
-            "data_volume_characteristics": "data_volume_characteristics",
-            "user_load_patterns": "user_load_patterns",
-            # === DATA CLASSIFICATION & COMPLIANCE ===
-            "application_data_classification": "application_data_classification",
-            "pii_flag": "pii_flag",
-            # === LIFECYCLE & EOL FIELDS ===
-            "eol_date": "eol_date",
-            "eol_risk_level": "eol_risk_level",
-            "eol_technology_assessment": "eol_technology_assessment",
-            "lifecycle": "lifecycle",
-            # === BACKUP & RESILIENCE ===
-            "backup_policy": "backup_policy",
-            # === DISCOVERY METADATA ===
-            "discovery_source": "discovery_source",
-            "discovery_method": "discovery_method",
-        }
+        # Issue #1260: Whitelist moved to asset_field_whitelist.py
+        whitelist = ASSET_FIELD_WHITELIST
 
         asset_ids = await self._resolve_target_asset_ids(db, resolved, context)
         logger.info(f"🎯 Resolved asset IDs for write-back: {asset_ids}")

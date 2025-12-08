@@ -6,7 +6,6 @@ import AttributeMappingTabContent from '../../../../components/discovery/attribu
 import AgentClarificationPanel from '../../../../components/discovery/AgentClarificationPanel';
 import DataClassificationDisplay from '../../../../components/discovery/DataClassificationDisplay';
 import AgentInsightsSection from '../../../../components/discovery/AgentInsightsSection';
-import EnhancedAgentOrchestrationPanel from '../../../../components/discovery/EnhancedAgentOrchestrationPanel';
 import { discoveryFlowService } from '../../../../services/api/discoveryFlowService';
 import type {
   FieldMappingLearningApprovalRequest,
@@ -323,21 +322,13 @@ export const AttributeMappingContent: React.FC<AttributeMappingContentProps> = (
         </div>
       )}
 
-      {/* Agent Insights and Orchestration - ENHANCED WITH SSE */}
+      {/* Agent Insights - ENHANCED WITH SSE */}
       {flowState && (
-        <div className="space-y-6">
-          <AgentInsightsSection
-            pageContext="attribute_mapping"
-            refreshTrigger={sseLastUpdate ? sseLastUpdate.getTime() : undefined}
-            isProcessing={flowUpdates?.status === 'running' || flowUpdates?.phase === 'attribute_mapping'}
-          />
-
-          <EnhancedAgentOrchestrationPanel
-            flowId={effectiveFlowId || flowId}
-            currentPhase="attribute_mapping"
-            flowState={flowState}
-          />
-        </div>
+        <AgentInsightsSection
+          pageContext="attribute_mapping"
+          refreshTrigger={sseLastUpdate ? sseLastUpdate.getTime() : undefined}
+          isProcessing={flowUpdates?.status === 'running' || flowUpdates?.phase === 'attribute_mapping'}
+        />
       )}
     </>
   );

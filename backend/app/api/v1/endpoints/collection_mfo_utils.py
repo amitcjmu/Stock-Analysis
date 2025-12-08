@@ -289,27 +289,46 @@ async def sync_collection_child_flow_state(
     next_phase = phase_result.get("next_phase")
 
     # Handle completion and phase transitions
-    if phase_result.get("status") == "completed" and not next_phase:
-        # CRITICAL FIX (Issue #1066): Check current phase before marking flow COMPLETED
-        # Phases like questionnaire_generation require user input and should PAUSE, not COMPLETE
-        user_input_phases = [
-            "asset_selection",
-            "questionnaire_generation",
-            "manual_collection",
-        ]
+    # CRITICAL FIX (Race Condition Bug): Check agent_decision.action before marking flow COMPLETED
+    # When PhaseTransitionAgent returns FAIL with empty next_phase (e.g., 0 questionnaires found
+    # because background generation hasn't completed), we should NOT mark flow as COMPLETED
+    agent_decision = phase_result.get("agent_decision", {})
+    agent_action = agent_decision.get("action", "").lower() if agent_decision else ""
 
-        if collection_flow.current_phase in user_input_phases:
-            # Phase execution completed, but flow needs user input - PAUSE it
+    if phase_result.get("status") == "completed" and not next_phase:
+        # Check if agent explicitly returned FAIL - this indicates the phase didn't succeed
+        # even though it "completed" (e.g., background task not finished yet)
+        if agent_action == "fail":
+            # Agent returned FAIL - set status to PAUSED to allow retry/resumption
+            # This commonly happens when questionnaire count is 0 due to race condition
+            # with background generation
             collection_flow.status = CollectionFlowStatus.PAUSED.value
-            logger.info(
-                f"Collection flow {collection_flow.flow_id} phase completed - "
-                f"PAUSED at {collection_flow.current_phase} (user input required)"
+            logger.warning(
+                f"Collection flow {collection_flow.flow_id} phase returned FAIL - "
+                f"PAUSED at {collection_flow.current_phase} for retry. "
+                f"Reasoning: {agent_decision.get('reasoning', 'No reasoning provided')}"
             )
         else:
-            # Flow completed successfully (e.g., reached finalization)
-            collection_flow.status = CollectionFlowStatus.COMPLETED.value
-            collection_flow.current_phase = "finalization"
-            logger.info(f"Collection flow {collection_flow.flow_id} completed")
+            # CRITICAL FIX (Issue #1066): Check current phase before marking flow COMPLETED
+            # Phases like questionnaire_generation require user input and should PAUSE, not COMPLETE
+            user_input_phases = [
+                "asset_selection",
+                "questionnaire_generation",
+                "manual_collection",
+            ]
+
+            if collection_flow.current_phase in user_input_phases:
+                # Phase execution completed, but flow needs user input - PAUSE it
+                collection_flow.status = CollectionFlowStatus.PAUSED.value
+                logger.info(
+                    f"Collection flow {collection_flow.flow_id} phase completed - "
+                    f"PAUSED at {collection_flow.current_phase} (user input required)"
+                )
+            else:
+                # Flow completed successfully (e.g., reached finalization)
+                collection_flow.status = CollectionFlowStatus.COMPLETED.value
+                collection_flow.current_phase = "finalization"
+                logger.info(f"Collection flow {collection_flow.flow_id} completed")
 
     elif next_phase:
         # Transition to next phase

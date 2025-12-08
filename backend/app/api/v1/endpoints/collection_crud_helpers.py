@@ -8,15 +8,112 @@ import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import select
+from sqlalchemy import and_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
 from app.models import User
+from app.models.collection_data_gap import CollectionDataGap
 from app.models.collection_flow import CollectionFlow
 from app.models.collection_questionnaire_response import CollectionQuestionnaireResponse
 
 logger = logging.getLogger(__name__)
+
+# Semantic field mapping: response_field → gap_field
+# Maps questionnaire field names (LLM-generated) to gap field names (from gap detection)
+# This enables gap resolution when LLM generates slightly different field names
+RESPONSE_TO_GAP_FIELD_MAPPING = {
+    # Code quality variations
+    "code_quality_metric_level": "code_quality_metrics",
+    "code_quality": "code_quality_metrics",
+    "code_quality_score": "code_quality_metrics",
+    # Compliance variations
+    "compliance_requirements": "compliance_constraints",
+    "compliance_status": "compliance_constraints",
+    # Resource specs - multiple response fields may map to single composite gap
+    "cpu_cores": "cpu_memory_storage_specs",
+    "memory_gb": "cpu_memory_storage_specs",
+    "storage_gb": "cpu_memory_storage_specs",
+    "ram_gb": "cpu_memory_storage_specs",
+    "disk_space": "cpu_memory_storage_specs",
+    # Documentation variations
+    "documentation_completeness": "documentation_quality",
+    "documentation_quality_assessment": "documentation_quality",
+    "docs_status": "documentation_quality",
+    # EOL variations
+    "eol_assessment_status": "eol_technology_assessment",
+    "eol_status": "eol_technology_assessment",
+    "end_of_life_status": "eol_technology_assessment",
+    # OS variations
+    "operating_system": "operating_system_version",
+    "os_version": "operating_system_version",
+    "os_type": "operating_system_version",
+    # Change tolerance variations
+    "change_frequency": "change_tolerance",
+    "change_window": "change_tolerance",
+    # Business criticality variations
+    "criticality": "business_criticality",
+    "business_impact": "business_criticality",
+    # User load variations
+    "user_count": "user_load_patterns",
+    "concurrent_users": "user_load_patterns",
+    "peak_users": "user_load_patterns",
+    # Data volume variations
+    "data_size": "data_volume_characteristics",
+    "database_size": "data_volume_characteristics",
+}
+
+
+def _find_gap_for_field(
+    field_name: str,
+    gap_index: Dict[str, Any],
+) -> tuple[Any, Optional[str]]:
+    """Find a gap in the index that matches the given field name.
+
+    Tries multiple matching strategies:
+    1. Exact match
+    2. Custom_attributes prefix removal
+    3. Composite ID extraction (asset_id__field_name)
+    4. Semantic mapping (LLM variations → canonical names)
+
+    Args:
+        field_name: The field name from the response
+        gap_index: Dictionary mapping field names to gap objects
+
+    Returns:
+        Tuple of (gap object or None, extracted_field or None)
+    """
+    gap = None
+    extracted_field = None
+
+    # Use a single variable to chain normalization steps (per Qodo review)
+    lookup_field = field_name
+
+    # Strategy 1: Exact match
+    gap = gap_index.get(lookup_field)
+
+    # Strategy 2: Custom_attributes prefix removal
+    if not gap and lookup_field.startswith("custom_attributes."):
+        lookup_field = lookup_field.replace("custom_attributes.", "")
+        gap = gap_index.get(lookup_field)
+
+    # Strategy 3: Composite ID extraction (asset_id__field_name)
+    if not gap and "__" in lookup_field:
+        parts = lookup_field.split("__", 1)
+        if len(parts) == 2:
+            extracted_field = parts[1]
+            lookup_field = extracted_field
+            gap = gap_index.get(lookup_field)
+
+    # Strategy 4: Semantic field mapping (LLM variations → canonical names)
+    if not gap:
+        mapped_field = RESPONSE_TO_GAP_FIELD_MAPPING.get(lookup_field)
+        if mapped_field:
+            gap = gap_index.get(mapped_field)
+            if gap:
+                logger.info(f"✅ Semantic mapping: '{lookup_field}' → '{mapped_field}'")
+
+    return gap, extracted_field
 
 
 def validate_uuid(value: Optional[str], field_name: str) -> Optional[uuid.UUID]:
@@ -270,42 +367,16 @@ async def resolve_data_gaps(
             )
             continue
 
-        # ENHANCED NORMALIZATION: Try multiple field name formats
-        # Format 1: Exact match (e.g., "technology_stack")
-        # Format 2: Strip custom_attributes prefix
-        # (e.g., "custom_attributes.architecture_pattern" -> "architecture_pattern")
-        # Format 3: Extract from composite ID (e.g., "55f62e1b__data_quality_55f62e1b" -> "data_quality_55f62e1b")
+        # Use multi-strategy gap matching (extracted to reduce complexity)
+        gap, extracted_field = _find_gap_for_field(field_name, gap_index)
 
-        gap = None
-
-        # Strategy 1: Try exact match first
-        gap = gap_index.get(field_name)
-
-        # Strategy 2: Try with custom_attributes prefix removed
-        if not gap and field_name.startswith("custom_attributes."):
-            normalized_field = field_name.replace("custom_attributes.", "")
-            gap = gap_index.get(normalized_field)
-            if gap:
-                logger.debug(
-                    f"Normalized field name: {field_name} -> {normalized_field}"
-                )
-
-        # Strategy 3: Try extracting from composite field ID (asset_id__field_name)
-        if not gap and "__" in field_name:
-            parts = field_name.split("__", 1)
-            if len(parts) == 2:
-                extracted_field = parts[1]
-                gap = gap_index.get(extracted_field)
-                if gap:
-                    logger.debug(
-                        f"Extracted field from composite ID: {field_name} -> {extracted_field}"
-                    )
-
-        # 🔍 DIAGNOSTIC: Log match/mismatch for each field
+        # Log unmatched fields for debugging
         if not gap:
+            lookup_field = extracted_field or field_name
             logger.warning(
-                f"🔍 NO MATCH: Response field '{field_name}' not found in gap_index. "
-                f"Tried: exact match, custom_attributes prefix, composite ID extraction"
+                f"🔍 NO MATCH: Response field '{field_name}' "
+                f"(lookup: '{lookup_field}') not found in gap_index. "
+                f"Available gaps: {list(gap_index.keys())}"
             )
 
         if gap:
@@ -332,6 +403,37 @@ async def resolve_data_gaps(
                 f"with value: {gap.resolved_value[:50]}..."
             )
 
+            # ✅ CRITICAL FIX: Also resolve ALL OTHER gaps for same (asset_id, field_name)
+            # The unique constraint allows multiple gap_types per field, but when user
+            # provides an answer, ALL gaps for that field should be marked resolved.
+            # This prevents duplicate gaps from appearing in new collection flows.
+            if gap.asset_id:
+                additional_resolved = await db.execute(
+                    update(CollectionDataGap)
+                    .where(
+                        and_(
+                            CollectionDataGap.asset_id == gap.asset_id,
+                            CollectionDataGap.field_name == gap.field_name,
+                            CollectionDataGap.resolution_status == "pending",
+                            CollectionDataGap.id
+                            != gap.id,  # Exclude already-updated gap
+                        )
+                    )
+                    .values(
+                        resolution_status="resolved",
+                        resolved_at=datetime.utcnow(),
+                        resolved_by="manual_submission",
+                        resolved_value=gap.resolved_value,
+                    )
+                )
+                additional_count = additional_resolved.rowcount
+                if additional_count > 0:
+                    gaps_resolved += additional_count
+                    logger.info(
+                        f"🔄 Also resolved {additional_count} additional gap(s) for "
+                        f"field '{gap.field_name}' (different gap_types)"
+                    )
+
     if gaps_resolved > 0:
         logger.info(f"Resolved {gaps_resolved} data gaps through manual submission")
 
@@ -346,7 +448,14 @@ async def apply_asset_writeback(
     db: AsyncSession,
 ) -> None:
     """Apply resolved gaps to assets via write-back service."""
+    # DIAGNOSTIC: Log entry point
+    logger.info(
+        f"🔍 WRITEBACK START: gaps_resolved={gaps_resolved}, flow_id={flow.id}, "
+        f"engagement_id={context.engagement_id}, client_account_id={context.client_account_id}"
+    )
+
     if gaps_resolved <= 0:
+        logger.info(f"🔍 WRITEBACK SKIP: gaps_resolved={gaps_resolved} <= 0")
         return
 
     try:
@@ -360,12 +469,15 @@ async def apply_asset_writeback(
             "client_account_id": context.client_account_id,
             "user_id": current_user.id,
         }
+        logger.info(f"🔍 WRITEBACK CONTEXT: {writeback_context}")
 
         await apply_resolved_gaps_to_assets(db, flow.id, writeback_context)
-        logger.info(f"Successfully applied {gaps_resolved} resolved gaps to assets")
+        logger.info(f"✅ Successfully applied {gaps_resolved} resolved gaps to assets")
 
     except Exception as e:
-        logger.error(f"Asset write-back failed after manual submission: {e}")
+        logger.error(
+            f"❌ Asset write-back failed after manual submission: {e}", exc_info=True
+        )
         # Don't fail the entire operation if write-back fails
 
 

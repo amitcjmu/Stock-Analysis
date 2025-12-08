@@ -1,8 +1,8 @@
 import React from 'react'
 import { useState, useRef, useCallback } from 'react'
 import { useEffect } from 'react'
-import { MessageCircle, Lightbulb, HelpCircle, ChevronRight } from 'lucide-react'
-import { Send, X, Bot, User, Star, ThumbsUp, History } from 'lucide-react'
+import { MessageCircle, Lightbulb, HelpCircle, ChevronRight, Camera, AlertTriangle } from 'lucide-react'
+import { Send, X, Bot, User, Star, ThumbsUp, History, Bug, Sparkles, Wrench } from 'lucide-react'
 import { apiCall, API_CONFIG } from '../../config/api';
 import { Markdown } from '../../utils/markdown';
 import { useAuth } from '../../contexts/AuthContext';
@@ -98,6 +98,13 @@ How can I assist you with your migration today?`;
   const [feedback, setFeedback] = useState('');
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+  // Enhanced bug report state (Issue #739)
+  const [feedbackCategory, setFeedbackCategory] = useState<'general' | 'bug' | 'feature' | 'improvement'>('general');
+  const [severity, setSeverity] = useState<'low' | 'medium' | 'high' | 'critical'>('medium');
+  const [stepsToReproduce, setStepsToReproduce] = useState('');
+  const [expectedBehavior, setExpectedBehavior] = useState('');
+  const [actualBehavior, setActualBehavior] = useState('');
+  const [screenshotData, setScreenshotData] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const previousRouteRef = useRef<string | null>(null);
@@ -346,8 +353,53 @@ If a question is outside these bounds, respond: "I'm specialized in IT migration
     }
   };
 
+  // Get browser info for bug reports
+  const getBrowserInfo = useCallback(() => {
+    const ua = navigator.userAgent;
+    const browserInfo: Record<string, string> = {
+      userAgent: ua,
+      platform: navigator.platform,
+      language: navigator.language,
+      screenResolution: `${window.screen.width}x${window.screen.height}`,
+      viewportSize: `${window.innerWidth}x${window.innerHeight}`,
+      url: window.location.href,
+    };
+    // Try to detect browser name/version
+    if (ua.includes('Firefox/')) browserInfo.browser = 'Firefox';
+    else if (ua.includes('Chrome/')) browserInfo.browser = 'Chrome';
+    else if (ua.includes('Safari/')) browserInfo.browser = 'Safari';
+    else if (ua.includes('Edge/')) browserInfo.browser = 'Edge';
+    return browserInfo;
+  }, []);
+
+  // Handle screenshot paste
+  const handlePaste = useCallback((e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        const file = item.getAsFile();
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            setScreenshotData(event.target?.result as string);
+          };
+          reader.readAsDataURL(file);
+        }
+        break;
+      }
+    }
+  }, []);
+
   const submitFeedback = async (): Promise<void> => {
+    // For bug reports, require description and severity
+    const isBugReport = feedbackCategory === 'bug';
     if (!feedback.trim() || rating === 0) return;
+    if (isBugReport && (!actualBehavior.trim() || !expectedBehavior.trim())) {
+      alert('For bug reports, please describe both expected and actual behavior.');
+      return;
+    }
 
     setIsSubmittingFeedback(true);
     try {
@@ -357,13 +409,25 @@ If a question is outside these bounds, respond: "I'm specialized in IT migration
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          page: currentPage,
+          page: pageContext?.page_name || currentPage,
           rating: rating,
           comment: feedback,
-          category: 'ui',
-          breadcrumb: breadcrumbPath || window.location.pathname,
+          category: feedbackCategory,
+          breadcrumb: breadcrumb || breadcrumbPath || window.location.pathname,
           timestamp: new Date().toISOString(),
-          user_name: user?.full_name || 'Anonymous'
+          user_name: user?.full_name || 'Anonymous',
+          // Bug report specific fields (Issue #739)
+          severity: isBugReport ? severity : null,
+          steps_to_reproduce: isBugReport ? stepsToReproduce : null,
+          expected_behavior: isBugReport ? expectedBehavior : null,
+          actual_behavior: isBugReport ? actualBehavior : null,
+          screenshot_data: screenshotData,
+          browser_info: getBrowserInfo(),
+          flow_context: flowState ? {
+            flow_id: flowState.flow_id,
+            current_phase: flowState.current_phase,
+            status: flowState.status,
+          } : null,
         })
       });
 
@@ -372,6 +436,12 @@ If a question is outside these bounds, respond: "I'm specialized in IT migration
         setFeedbackSubmitted(false);
         setRating(0);
         setFeedback('');
+        setFeedbackCategory('general');
+        setSeverity('medium');
+        setStepsToReproduce('');
+        setExpectedBehavior('');
+        setActualBehavior('');
+        setScreenshotData(null);
         setActiveTab('chat');
       }, 2000);
     } catch (error) {
@@ -586,62 +656,214 @@ If a question is outside these bounds, respond: "I'm specialized in IT migration
               </div>
             </>
           ) : (
-            /* Feedback Form */
-            <div className="p-6">
+            /* Enhanced Feedback Form (Issue #739) */
+            <div className="p-6 overflow-y-auto" style={{ maxHeight: 'calc(100% - 20px)' }} onPaste={handlePaste}>
               {feedbackSubmitted ? (
                 <div className="text-center py-12">
                   <div className="bg-green-100 p-4 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
                     <ThumbsUp className="h-8 w-8 text-green-600" />
                   </div>
                   <h3 className="text-lg font-medium text-gray-900 mb-2">Thank you!</h3>
-                  <p className="text-gray-600">Your feedback has been submitted successfully.</p>
+                  <p className="text-gray-600">Your {feedbackCategory === 'bug' ? 'bug report' : 'feedback'} has been submitted successfully.</p>
                 </div>
               ) : (
-                <div className="space-y-6">
+                <div className="space-y-4">
                   <div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">How was your experience?</h3>
-                    <p className="text-sm text-gray-600 mb-4">
-                      Page: {pageContext?.page_name || currentPage} • {breadcrumb || breadcrumbPath || window.location.pathname}
+                    <p className="text-sm text-gray-600 mb-3">
+                      Page: {pageContext?.page_name || currentPage}
                     </p>
 
+                    {/* Feedback Type Selector */}
+                    <div className="grid grid-cols-4 gap-2 mb-4">
+                      <button
+                        onClick={() => setFeedbackCategory('general')}
+                        className={`flex flex-col items-center p-2 rounded-lg border-2 transition-colors ${
+                          feedbackCategory === 'general' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <MessageCircle className={`h-5 w-5 ${feedbackCategory === 'general' ? 'text-blue-600' : 'text-gray-500'}`} />
+                        <span className="text-xs mt-1">General</span>
+                      </button>
+                      <button
+                        onClick={() => setFeedbackCategory('bug')}
+                        className={`flex flex-col items-center p-2 rounded-lg border-2 transition-colors ${
+                          feedbackCategory === 'bug' ? 'border-red-500 bg-red-50' : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <Bug className={`h-5 w-5 ${feedbackCategory === 'bug' ? 'text-red-600' : 'text-gray-500'}`} />
+                        <span className="text-xs mt-1">Bug</span>
+                      </button>
+                      <button
+                        onClick={() => setFeedbackCategory('feature')}
+                        className={`flex flex-col items-center p-2 rounded-lg border-2 transition-colors ${
+                          feedbackCategory === 'feature' ? 'border-purple-500 bg-purple-50' : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <Sparkles className={`h-5 w-5 ${feedbackCategory === 'feature' ? 'text-purple-600' : 'text-gray-500'}`} />
+                        <span className="text-xs mt-1">Feature</span>
+                      </button>
+                      <button
+                        onClick={() => setFeedbackCategory('improvement')}
+                        className={`flex flex-col items-center p-2 rounded-lg border-2 transition-colors ${
+                          feedbackCategory === 'improvement' ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <Wrench className={`h-5 w-5 ${feedbackCategory === 'improvement' ? 'text-green-600' : 'text-gray-500'}`} />
+                        <span className="text-xs mt-1">Improve</span>
+                      </button>
+                    </div>
+
                     {/* Rating */}
-                    <div className="flex items-center space-x-2 mb-6">
+                    <div className="flex items-center space-x-2 mb-4">
                       {Array.from({ length: 5 }, (_, i) => (
                         <button
                           key={i}
                           onClick={() => setRating(i + 1)}
                           className={`p-1 ${i < rating ? 'text-yellow-400' : 'text-gray-300'} hover:text-yellow-400 transition-colors`}
                         >
-                          <Star className="h-8 w-8 fill-current" />
+                          <Star className="h-6 w-6 fill-current" />
                         </button>
                       ))}
-                      <span className="ml-3 text-sm text-gray-600">
-                        {rating > 0 ? `${rating} star${rating > 1 ? 's' : ''}` : 'Select a rating'}
+                      <span className="ml-2 text-sm text-gray-600">
+                        {rating > 0 ? `${rating}/5` : 'Rate'}
                       </span>
                     </div>
                   </div>
 
-                  {/* Comment */}
+                  {/* Bug-specific fields */}
+                  {feedbackCategory === 'bug' && (
+                    <div className="space-y-3 p-3 bg-red-50 rounded-lg border border-red-200">
+                      <div className="flex items-center gap-2 text-red-700 text-sm font-medium">
+                        <AlertTriangle className="h-4 w-4" />
+                        Bug Report Details
+                      </div>
+
+                      {/* Severity */}
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Severity</label>
+                        <div className="flex gap-2">
+                          {(['low', 'medium', 'high', 'critical'] as const).map((sev) => (
+                            <button
+                              key={sev}
+                              onClick={() => setSeverity(sev)}
+                              className={`px-2 py-1 text-xs rounded-full transition-colors ${
+                                severity === sev
+                                  ? sev === 'critical' ? 'bg-red-600 text-white'
+                                    : sev === 'high' ? 'bg-orange-500 text-white'
+                                    : sev === 'medium' ? 'bg-yellow-500 text-white'
+                                    : 'bg-green-500 text-white'
+                                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                              }`}
+                            >
+                              {sev.charAt(0).toUpperCase() + sev.slice(1)}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Steps to Reproduce */}
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Steps to Reproduce (optional)
+                        </label>
+                        <textarea
+                          value={stepsToReproduce}
+                          onChange={(e) => setStepsToReproduce(e.target.value)}
+                          placeholder="1. Go to...&#10;2. Click on...&#10;3. See error"
+                          className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-red-500"
+                          rows={2}
+                        />
+                      </div>
+
+                      {/* Expected vs Actual */}
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Expected Behavior *
+                          </label>
+                          <textarea
+                            value={expectedBehavior}
+                            onChange={(e) => setExpectedBehavior(e.target.value)}
+                            placeholder="What should happen?"
+                            className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-red-500"
+                            rows={2}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Actual Behavior *
+                          </label>
+                          <textarea
+                            value={actualBehavior}
+                            onChange={(e) => setActualBehavior(e.target.value)}
+                            placeholder="What actually happened?"
+                            className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-red-500"
+                            rows={2}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Screenshot */}
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Screenshot (Ctrl+V to paste)
+                        </label>
+                        {screenshotData ? (
+                          <div className="relative">
+                            <img src={screenshotData} alt="Screenshot" className="max-h-24 rounded border" />
+                            <button
+                              onClick={() => setScreenshotData(null)}
+                              className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 text-xs text-gray-500 p-2 border border-dashed border-gray-300 rounded">
+                            <Camera className="h-4 w-4" />
+                            <span>Take a screenshot and paste here (Ctrl+V)</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Comment/Description */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Tell us more about your experience
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {feedbackCategory === 'bug' ? 'Additional Details' :
+                       feedbackCategory === 'feature' ? 'Feature Description' :
+                       feedbackCategory === 'improvement' ? 'Improvement Suggestion' :
+                       'Your Feedback'}
                     </label>
                     <textarea
                       value={feedback}
                       onChange={(e) => setFeedback(e.target.value)}
-                      placeholder="What worked well? What could be improved? Any suggestions?"
+                      placeholder={
+                        feedbackCategory === 'bug' ? 'Any additional context about the bug...' :
+                        feedbackCategory === 'feature' ? 'Describe the feature you would like...' :
+                        feedbackCategory === 'improvement' ? 'How could we improve this?' :
+                        'Share your thoughts...'
+                      }
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      rows={4}
+                      rows={3}
                     />
                   </div>
 
                   {/* Submit Button */}
                   <button
                     onClick={submitFeedback}
-                    disabled={!feedback.trim() || rating === 0 || isSubmittingFeedback}
-                    className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={!feedback.trim() || rating === 0 || isSubmittingFeedback ||
+                      (feedbackCategory === 'bug' && (!expectedBehavior.trim() || !actualBehavior.trim()))}
+                    className={`w-full py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                      feedbackCategory === 'bug' ? 'bg-red-600 hover:bg-red-700 text-white' :
+                      feedbackCategory === 'feature' ? 'bg-purple-600 hover:bg-purple-700 text-white' :
+                      feedbackCategory === 'improvement' ? 'bg-green-600 hover:bg-green-700 text-white' :
+                      'bg-blue-600 hover:bg-blue-700 text-white'
+                    }`}
                   >
-                    {isSubmittingFeedback ? 'Submitting...' : 'Submit Feedback'}
+                    {isSubmittingFeedback ? 'Submitting...' :
+                      feedbackCategory === 'bug' ? 'Submit Bug Report' : 'Submit Feedback'}
                   </button>
                 </div>
               )}

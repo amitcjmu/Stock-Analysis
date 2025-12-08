@@ -32,11 +32,12 @@ from app.services.multi_model_service import TaskComplexity, multi_model_service
 from app.services.persistent_agents.tenant_scoped_agent_pool import (
     TenantScopedAgentPool,
 )
+from .base_agent import BaseEnrichmentAgent
 
 logger = logging.getLogger(__name__)
 
 
-class DependencyEnrichmentAgent:
+class DependencyEnrichmentAgent(BaseEnrichmentAgent):
     """
     Enriches assets with dependency relationship mapping.
 
@@ -257,68 +258,79 @@ IMPORTANT:
 - Provide confidence score based on data quality
 """
 
+    # Fallback data for dependency parsing failures
+    DEPENDENCY_FALLBACK = {
+        "dependencies": [],
+        "dependency_count": 0,
+        "critical_dependencies": 0,
+        "recommended_wave": 1,
+        "confidence": 0.2,
+    }
+
     def _parse_dependency_response(
         self, response: str, all_assets: List[Asset]
     ) -> Dict[str, Any]:
-        """Parse LLM response into dependency data"""
-        try:
-            data = json.loads(response)
+        """Parse LLM response into dependency data.
 
-            # Build asset name to ID mapping
-            asset_name_to_id = {
-                asset.asset_name: asset.id for asset in all_assets if asset.asset_name
-            }
+        Uses base class _parse_and_normalize with ADR-029 compliance.
+        Note: This method wraps the normalizer to pass all_assets context.
+        """
 
-            # Validate and normalize dependencies
-            dependencies = data.get("dependencies", [])
-            if not isinstance(dependencies, list):
-                dependencies = []
+        # Create a normalizer that captures all_assets
+        def normalizer_with_assets(data: Dict[str, Any]) -> Dict[str, Any]:
+            return self._normalize_dependency_data(data, all_assets)
 
-            normalized_deps = []
-            for dep in dependencies:
-                try:
-                    dep_name = dep.get("depends_on_asset_name")
-                    # Try to resolve asset name to ID
-                    dep_asset_id = asset_name_to_id.get(dep_name)
+        return self._parse_and_normalize(
+            response=response,
+            normalizer=normalizer_with_assets,
+            fallback_data=self.DEPENDENCY_FALLBACK,
+            agent_name="dependency",
+        )
 
-                    if dep_asset_id:  # Only include if we can resolve the asset
-                        normalized_dep = {
-                            "depends_on_asset_name": dep_name,
-                            "depends_on_asset_id": str(dep_asset_id),
-                            "dependency_type": dep.get("dependency_type", "network"),
-                            "criticality": dep.get("criticality", "medium"),
-                            "bidirectional": bool(dep.get("bidirectional", False)),
-                            "description": dep.get("description", ""),
-                        }
-                        normalized_deps.append(normalized_dep)
-                except (ValueError, TypeError):
-                    continue
+    def _normalize_dependency_data(
+        self, data: Dict[str, Any], all_assets: List[Asset]
+    ) -> Dict[str, Any]:
+        """Normalize dependency data from parsed JSON."""
+        # Build asset name to ID mapping
+        asset_name_to_id = {
+            asset.asset_name: asset.id for asset in all_assets if asset.asset_name
+        }
 
-            # Count critical dependencies
-            critical_count = sum(
-                1 for d in normalized_deps if d.get("criticality") == "critical"
-            )
+        # Validate and normalize dependencies
+        dependencies = data.get("dependencies", [])
+        if not isinstance(dependencies, list):
+            dependencies = []
 
-            normalized = {
-                "dependencies": normalized_deps,
-                "dependency_count": len(normalized_deps),
-                "critical_dependencies": critical_count,
-                "recommended_wave": int(data.get("recommended_wave", 1)),
-                "confidence": float(data.get("confidence", 0.5)),
-                "reasoning": data.get("reasoning", ""),
-            }
+        normalized_deps = []
+        for dep in dependencies:
+            try:
+                dep_name = dep.get("depends_on_asset_name")
+                # Try to resolve asset name to ID
+                dep_asset_id = asset_name_to_id.get(dep_name)
 
-            return normalized
+                if dep_asset_id:  # Only include if we can resolve the asset
+                    normalized_dep = {
+                        "depends_on_asset_name": dep_name,
+                        "depends_on_asset_id": str(dep_asset_id),
+                        "dependency_type": dep.get("dependency_type", "network"),
+                        "criticality": dep.get("criticality", "medium"),
+                        "bidirectional": bool(dep.get("bidirectional", False)),
+                        "description": dep.get("description", ""),
+                    }
+                    normalized_deps.append(normalized_dep)
+            except (ValueError, TypeError):
+                continue
 
-        except (json.JSONDecodeError, ValueError, TypeError) as e:
-            logger.warning(
-                f"Failed to parse dependency response: {response[:100]}..., error: {e}"
-            )
-            return {
-                "dependencies": [],
-                "dependency_count": 0,
-                "critical_dependencies": 0,
-                "recommended_wave": 1,
-                "confidence": 0.2,
-                "reasoning": "Failed to parse LLM response",
-            }
+        # Count critical dependencies
+        critical_count = sum(
+            1 for d in normalized_deps if d.get("criticality") == "critical"
+        )
+
+        return {
+            "dependencies": normalized_deps,
+            "dependency_count": len(normalized_deps),
+            "critical_dependencies": critical_count,
+            "recommended_wave": int(data.get("recommended_wave", 1)),
+            "confidence": float(data.get("confidence", 0.5)),
+            "reasoning": data.get("reasoning", ""),
+        }
