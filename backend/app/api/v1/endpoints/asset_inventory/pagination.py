@@ -86,7 +86,7 @@ async def list_assets_paginated(
             page_size = per_page
 
         # Fetch assets from database with optional filters
-        assets, total_items, total_pages, filter_conditions = await _get_assets_from_db(
+        assets, total_items, total_pages = await _get_assets_from_db(
             db,
             context,
             page,
@@ -107,7 +107,7 @@ async def list_assets_paginated(
 
         # Calculate summary statistics from ALL assets (not just current page)
         summary_stats = await _get_summary_stats_from_db(
-            db, filter_conditions, total_items
+            db, context, total_items, flow_id, search, environment, business_criticality
         )
 
         # Find last updated timestamp

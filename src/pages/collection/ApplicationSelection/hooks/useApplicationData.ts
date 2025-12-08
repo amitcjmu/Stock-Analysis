@@ -9,7 +9,7 @@ import { useCallback, useMemo } from "react";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { apiCall } from "@/config/api";
 import type { Asset } from "@/types/asset";
-import type { AssetPageData, AssetsByType, FilterOptions } from "../types";
+import type { AssetPageData, AssetsByType, FilterOptions, AssetSummary } from "../types";
 import { ASSET_TYPE_NORMALIZATION } from "../types";
 import type { CollectionFlowResponse } from "@/services/api/collection-flow";
 
@@ -27,18 +27,7 @@ interface UseApplicationDataReturn {
   allAssets: Asset[];
   assetsByType: AssetsByType;
   filterOptions: FilterOptions;
-  summary: {
-    total: number;
-    applications: number;
-    servers: number;
-    databases: number;
-    components: number;
-    network: number;
-    storage: number;
-    security: number;
-    virtualization: number;
-    unknown: number;
-  } | null;
+  summary: AssetSummary | null;
 
   // Loading states
   applicationsLoading: boolean;
@@ -171,6 +160,7 @@ export const useApplicationData = ({
       APPLICATION: [],
       SERVER: [],
       DATABASE: [],
+      COMPONENT: [],
       NETWORK: [],  // Bug #971 Fix: Consolidated network types
       STORAGE_DEVICE: [],
       SECURITY_DEVICE: [],
@@ -213,7 +203,7 @@ export const useApplicationData = ({
   }, [allAssets]);
 
   // Extract summary from first page (contains counts for ALL assets)
-  const summary = useMemo(() => {
+  const summary = useMemo((): AssetSummary | null => {
     const firstPageSummary = applicationsData?.pages?.[0]?.summary;
     if (!firstPageSummary) return null;
     return {
@@ -226,7 +216,11 @@ export const useApplicationData = ({
       storage: firstPageSummary.storage || 0,
       security: firstPageSummary.security || 0,
       virtualization: firstPageSummary.virtualization || 0,
+      containers: firstPageSummary.containers || 0,
+      load_balancers: firstPageSummary.load_balancers || 0,
       unknown: firstPageSummary.unknown || 0,
+      discovered: firstPageSummary.discovered,
+      pending: firstPageSummary.pending,
     };
   }, [applicationsData]);
 
@@ -245,12 +239,12 @@ export const useApplicationData = ({
     enabled: !!flowId,
   });
 
-    return {
-      allAssets,
-      assetsByType,
-      filterOptions,
-      summary,
-      applicationsLoading,
+  return {
+    allAssets,
+    assetsByType,
+    filterOptions,
+    summary,
+    applicationsLoading,
     flowLoading,
     isFetchingNextPage,
     hasNextPage: hasNextPage || false,

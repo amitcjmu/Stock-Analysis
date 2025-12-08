@@ -17,25 +17,14 @@ import {
   Cloud,
 } from "lucide-react";
 import type { Asset } from "@/types/asset";
-import type { AssetsByType } from "../types";
+import type { AssetsByType, AssetSummary } from "../types";
 
 interface SelectionControlsProps {
   selectedAssetTypes: Set<string>;
   setSelectedAssetTypes: React.Dispatch<React.SetStateAction<Set<string>>>;
   assetsByType: AssetsByType;
   allAssets: Asset[];
-  summary: {
-    total: number;
-    applications: number;
-    servers: number;
-    databases: number;
-    components: number;
-    network: number;
-    storage: number;
-    security: number;
-    virtualization: number;
-    unknown: number;
-  } | null;
+  summary: AssetSummary | null;
   filteredApplications: Asset[];
   selectedApplications: Set<string>;
   onSelectAll: (checked: boolean) => void;
@@ -117,7 +106,7 @@ export const SelectionControls: React.FC<SelectionControlsProps> = ({
             </Button>
           )}
 
-          {(summary?.components ?? 0) > 0 && (
+          {(summary?.components ?? assetsByType.COMPONENT.length) > 0 && (
             <Button
               variant={
                 selectedAssetTypes.has("COMPONENT") ? "default" : "outline"
@@ -126,7 +115,7 @@ export const SelectionControls: React.FC<SelectionControlsProps> = ({
               onClick={() => toggleAssetType("COMPONENT")}
             >
               <Cpu className="h-3 w-3 mr-1" />
-              Components ({summary?.components ?? 0})
+              Components ({summary?.components ?? assetsByType.COMPONENT.length})
             </Button>
           )}
 

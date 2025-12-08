@@ -13,30 +13,24 @@ from app.core.context import RequestContext
 from app.models.asset import Asset
 
 
-async def _get_assets_from_db(
-    db: AsyncSession,
+def _build_filter_conditions(
     context: RequestContext,
-    page: int,
-    page_size: int,
     flow_id: Optional[str] = None,
     search: Optional[str] = None,
     environment: Optional[str] = None,
     business_criticality: Optional[str] = None,
-):
-    """Fetch assets from database with pagination and filtering.
+) -> List:
+    """Build filter conditions for asset queries.
 
     Args:
-        db: Database session
         context: Request context with tenant information
-        page: Page number (1-indexed)
-        page_size: Number of items per page
         flow_id: Optional discovery flow ID to filter assets
         search: Optional search term to filter by asset name (case-insensitive)
         environment: Optional environment filter
         business_criticality: Optional business criticality filter
 
     Returns:
-        Tuple of (assets, total_items, total_pages, filter_conditions)
+        List of SQLAlchemy filter conditions
     """
     # Build filter conditions once (DRY principle)
     # SECURITY: Always enforce multi-tenancy - no platform admin bypass for regular users
@@ -62,6 +56,39 @@ async def _get_assets_from_db(
     if business_criticality:
         filter_conditions.append(Asset.business_criticality == business_criticality)
 
+    return filter_conditions
+
+
+async def _get_assets_from_db(
+    db: AsyncSession,
+    context: RequestContext,
+    page: int,
+    page_size: int,
+    flow_id: Optional[str] = None,
+    search: Optional[str] = None,
+    environment: Optional[str] = None,
+    business_criticality: Optional[str] = None,
+):
+    """Fetch assets from database with pagination and filtering.
+
+    Args:
+        db: Database session
+        context: Request context with tenant information
+        page: Page number (1-indexed)
+        page_size: Number of items per page
+        flow_id: Optional discovery flow ID to filter assets
+        search: Optional search term to filter by asset name (case-insensitive)
+        environment: Optional environment filter
+        business_criticality: Optional business criticality filter
+
+    Returns:
+        Tuple of (assets, total_items, total_pages)
+    """
+    # Build filter conditions using shared utility
+    filter_conditions = _build_filter_conditions(
+        context, flow_id, search, environment, business_criticality
+    )
+
     # Build base query with shared filter conditions
     query = (
         select(Asset)  # SKIP_TENANT_CHECK - Filters applied via filter_conditions list
@@ -86,21 +113,33 @@ async def _get_assets_from_db(
 
     total_pages = (total_items + page_size - 1) // page_size if total_items > 0 else 0
 
-    return assets, total_items, total_pages, filter_conditions
+    return assets, total_items, total_pages
 
 
 async def _get_summary_stats_from_db(
     db: AsyncSession,
-    filter_conditions: List,
+    context: RequestContext,
     total_items: int,
+    flow_id: Optional[str] = None,
+    search: Optional[str] = None,
+    environment: Optional[str] = None,
+    business_criticality: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Get summary statistics from database query (all assets, not just current page).
 
     Args:
         db: Database session
-        filter_conditions: List of filter conditions to apply
+        context: Request context with tenant information
         total_items: Total count of assets (already calculated, to avoid redundant query)
+        flow_id: Optional discovery flow ID to filter assets
+        search: Optional search term to filter by asset name (case-insensitive)
+        environment: Optional environment filter
+        business_criticality: Optional business criticality filter
     """
+    # Build filter conditions using shared utility
+    filter_conditions = _build_filter_conditions(
+        context, flow_id, search, environment, business_criticality
+    )
     from sqlalchemy import case
     from sqlalchemy.sql.functions import coalesce
 

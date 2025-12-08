@@ -149,50 +149,6 @@ def _analyze_asset_types(
     return asset_types_found, unclassified_count, needs_classification
 
 
-def _calculate_summary_stats(
-    asset_dicts: List[Dict[str, Any]], total_items: int
-) -> Dict[str, Any]:
-    """Calculate summary statistics for assets."""
-    summary_stats = {
-        "total": total_items,
-        "filtered": total_items,
-        "applications": 0,
-        "servers": 0,
-        "databases": 0,
-        "devices": 0,
-        "unknown": 0,
-        "discovered": 0,
-        "pending": 0,
-        "device_breakdown": {},
-    }
-
-    device_terms = ["device", "network", "storage", "security", "infrastructure"]
-
-    for asset_dict in asset_dicts:
-        asset_type = (asset_dict.get("asset_type") or "").lower()
-        status = asset_dict.get("status")
-
-        # Count by asset type
-        if asset_type == "application":
-            summary_stats["applications"] += 1
-        elif asset_type == "server":
-            summary_stats["servers"] += 1
-        elif asset_type == "database":
-            summary_stats["databases"] += 1
-        elif any(term in asset_type for term in device_terms):
-            summary_stats["devices"] += 1
-        elif not asset_type or asset_type == "unknown":
-            summary_stats["unknown"] += 1
-
-        # Count by status
-        if status == "discovered":
-            summary_stats["discovered"] += 1
-        elif status == "pending":
-            summary_stats["pending"] += 1
-
-    return summary_stats
-
-
 def _find_last_updated(asset_dicts: List[Dict[str, Any]]) -> Optional[str]:
     """Find the most recent updated_at timestamp."""
     last_updated = None
