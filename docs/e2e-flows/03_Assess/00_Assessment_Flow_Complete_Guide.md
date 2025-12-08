@@ -1,9 +1,22 @@
 # Assessment Flow - Complete Implementation Guide
 
-**Last Updated:** 2025-11-19
+**Last Updated:** 2025-12-08
 **Version:** 3.1.0
 **Pattern:** Direct Flow (UnifiedAssessmentFlow)
 **Status:** ✅ PRODUCTION READY
+
+## 🎯 Overview
+
+The Assessment flow is an AI-powered analysis workflow that evaluates cloud readiness and generates 6R migration recommendations for collected assets. It uses the Direct Flow pattern (UnifiedAssessmentFlow) with CrewAI agents to analyze architecture standards, technical debt, dependencies, and generate migration strategies with confidence scores.
+
+**Key Capabilities:**
+- Cloud architecture standards assessment with readiness scores against target cloud patterns
+- Technical debt analysis identifying complexity hotspots and modernization priorities
+- Dependency mapping for inter-application relationships and migration wave sequencing
+- 6R strategy recommendations (Rehost/Replatform/Refactor/Repurchase/Retire/Retain) with confidence scores
+- Two-phase completion: Agent completes analysis → User reviews → User confirms (prevents auto-completion)
+- Junction table persistence for 6R strategies via canonical application linkage (ADR-036)
+- Dual state architecture: Pydantic models for API/DB, In-Memory models for CrewAI execution
 
 ## 1. Quick Reference Card
 

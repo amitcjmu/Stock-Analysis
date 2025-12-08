@@ -1,8 +1,21 @@
 # Decommission Flow - Architecture Summary
 
-**Last Updated:** 2025-11-10
-**Purpose:** Quick reference guide for understanding the Decommission flow architecture before making code changes
+**Last Updated:** 2025-12-08
+**Purpose:** Comprehensive reference guide for understanding the Decommission flow architecture before making code changes
 **Status:** Documentation updated to reflect November 2025 implementation reality
+
+## 🎯 Overview
+
+The Decommission flow is a human-in-the-loop workflow that safely retires legacy systems identified for Retire/Retain strategies from the Assessment flow. It orchestrates planned shutdown sequences with multiple approval gates, backup verification, and rollback capabilities to ensure safe decommissioning of on-premise infrastructure.
+
+**Key Capabilities:**
+- Decommission planning with AI-generated shutdown sequences and dependency awareness
+- Data migration verification ensuring all critical data is backed up before system shutdown
+- Human-in-the-loop approvals with multiple approval gates to prevent accidental decommissioning
+- Rollback capability with emergency restoration procedures if issues discovered post-shutdown
+- Compliance audit trails with complete logging of all decommission actions for regulatory compliance
+- Assessment integration receiving Retire/Retain decisions from Assessment flow for target systems
+- Scheduled shutdown windows with configurable maintenance windows for system shutdown execution
 
 ## 🚧 Implementation Status
 

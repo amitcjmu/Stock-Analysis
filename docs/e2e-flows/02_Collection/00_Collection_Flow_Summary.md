@@ -1,6 +1,20 @@
-# E2E Flow: Collection Phase
+# Collection Flow - Architecture Summary
 
-This document outlines the end-to-end user and data flow for the **Collection** phase of the migration process, which is fully integrated with the Master Flow Orchestrator (MFO) architecture.
+**Last Updated:** 2025-12-08
+**Purpose:** Comprehensive reference guide for understanding the Collection flow architecture before making code changes
+
+## 🎯 Overview
+
+The Collection flow is a multi-phase, AI-powered data gathering workflow that identifies missing asset information through intelligent gap analysis and generates adaptive questionnaires to collect it. It uses CrewAI agents orchestrated by the Master Flow Orchestrator (MFO) to process data through seven distinct phases, ensuring assets have complete data before assessment.
+
+**Key Capabilities:**
+- Two-phase gap analysis: Tier 1 programmatic scanning (instant) + Tier 2 AI enhancement (detailed insights)
+- Intelligent questionnaire generation with context-aware MCQ questions per-asset, per-section based on TRUE gaps only
+- Gap inheritance - already-resolved gaps from ANY previous collection flow are never re-asked
+- Adaptive form system that adjusts dynamically based on asset data quality and existing answers
+- Asset write-back - resolved questionnaire responses automatically populate asset fields
+- Cross-section deduplication to prevent redundant questions across sections and assets
+- Assessment readiness tracking with automatic status updates when collection completes
 
 ## Recent Updates
 

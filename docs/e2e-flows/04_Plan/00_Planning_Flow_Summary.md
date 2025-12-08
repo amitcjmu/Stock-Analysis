@@ -1,10 +1,21 @@
-# E2E Flow: Planning Phase
+# Planning Flow - Architecture Summary
 
-This document outlines the end-to-end user and data flow for the **Planning** phase of the migration process, which is fully integrated with the Master Flow Orchestrator (MFO) architecture.
-
-**Last Updated:** 2025-11-10
+**Last Updated:** 2025-12-08
 **Status:** Actively Implemented (November 2025)
-**Review Cycle:** Quarterly (next review: 2026-02-10)
+**Purpose:** Comprehensive reference guide for understanding the Planning flow architecture before making code changes
+
+## 🎯 Overview
+
+The Planning flow is an AI-powered migration planning workflow that organizes assessed applications into sequenced waves based on dependencies, 6R strategies, resource capacity, and business constraints. It uses CrewAI agents to generate optimized wave plans, resource allocations, timelines, and cost estimates, translating assessment results into actionable migration plans.
+
+**Key Capabilities:**
+- Intelligent wave planning with AI-generated migration waves based on dependency analysis and complexity
+- Resource allocation optimization across infrastructure and personnel capacity constraints
+- Timeline generation with Gantt chart visualization and milestone tracking
+- Cost estimation with migration cost projections and resource utilization forecasts
+- Configurable migration start date with user-defined dates propagated through wave calculations
+- Wave retrigger functionality to regenerate plans with updated configuration without losing progress
+- Async background execution for long-running wave planning (~2+ minutes) with polling support
 
 ---
 
