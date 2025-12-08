@@ -52,7 +52,7 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
   className = "",
   flowId
 }) => {
-  const { client, engagement } = useAuth();
+  const { client, engagement, getAuthHeaders } = useAuth();
   const queryClient = useQueryClient();
   const { flowState: flow, executeFlowPhase, isExecutingPhase, refreshFlow } = useUnifiedDiscoveryFlow(flowId);
 
@@ -301,7 +301,8 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
             },
             flowId,
             client?.id,
-            engagement?.id
+            engagement?.id,
+            getAuthHeaders()
           );
 
           setShowConflictModal(false);
@@ -339,13 +340,14 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
         },
         flowId,
         client?.id,
-        engagement?.id
+        engagement?.id,
+        getAuthHeaders()
       );
 
       setShowConflictModal(false);
       setAssetConflicts([]);
     }
-  }, [showConflictModal, flow?.status, flowId, client?.id, engagement?.id, assetConflicts.length]);
+  }, [showConflictModal, flow?.status, flowId, client?.id, engagement?.id, assetConflicts.length, getAuthHeaders]);
 
   // Handle conflict resolution completion
   const handleConflictResolutionComplete = async (): Promise<void> => {

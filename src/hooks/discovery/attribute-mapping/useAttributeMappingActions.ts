@@ -591,7 +591,8 @@ export const useAttributeMappingActions = (
         },
         flowId,
         client?.id,
-        engagement?.id
+        engagement?.id,
+        getAuthHeaders()
       );
 
       return false;

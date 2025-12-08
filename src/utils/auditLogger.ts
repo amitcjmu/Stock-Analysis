@@ -23,30 +23,19 @@ export interface AuditLogEvent {
  * @param flowId - Flow ID (optional, for flow-related events)
  * @param clientId - Client account ID (optional, from auth context)
  * @param engagementId - Engagement ID (optional, from auth context)
+ * @param authHeaders - Authentication headers (optional, should be passed from AuthContext.getAuthHeaders())
  */
 export async function logTerminalStateAuditEvent(
   event: AuditLogEvent,
   flowId?: string,
   clientId?: string,
-  engagementId?: string
+  engagementId?: string,
+  authHeaders?: Record<string, string>
 ): Promise<void> {
   try {
-    // Get auth context if available
-    let authHeaders: Record<string, string> = {};
-    try {
-      // Check for browser environment before accessing localStorage (SSR-safe)
-      if (typeof window !== 'undefined') {
-        const authToken = localStorage.getItem('auth_token');
-        if (authToken) {
-          authHeaders = {
-            'Authorization': `Bearer ${authToken}`,
-          };
-        }
-      }
-    } catch (e) {
-      // Auth context not available, continue without it
-      SecureLogger.debug('Auth context not available for audit logging', { error: e });
-    }
+    // Use provided auth headers or empty object
+    // Callers should pass auth headers from AuthContext.getAuthHeaders() to follow established pattern
+    const headers = authHeaders || {};
 
     // Prepare audit payload
     const auditPayload = {
@@ -69,7 +58,7 @@ export async function logTerminalStateAuditEvent(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...authHeaders,
+        ...headers,
       },
       body: JSON.stringify(auditPayload),
     });
@@ -81,10 +70,19 @@ export async function logTerminalStateAuditEvent(
   } catch (error) {
     // Don't throw - audit logging should not break the application
     // Log error for debugging but continue execution
-    SecureLogger.warn('Failed to log audit event', {
-      error: error instanceof Error ? error.message : String(error),
+    // Include HTTP status code and error details for audit integrity tracking
+    const errorDetails: Record<string, unknown> = {
       action_type: event.action_type,
       resource_type: event.resource_type,
-    });
+      error: error instanceof Error ? error.message : String(error),
+    };
+
+    // Extract HTTP status code if available (from apiCall error)
+    if (error && typeof error === 'object' && 'status' in error) {
+      errorDetails.http_status = error.status;
+      errorDetails.error_code = 'code' in error ? error.code : undefined;
+    }
+
+    SecureLogger.warn('Failed to log audit event', errorDetails);
   }
 }

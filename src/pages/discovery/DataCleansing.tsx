@@ -39,7 +39,7 @@ import { assetConflictService } from '../../services/api/assetConflictService';
 import type { AssetConflict } from '../../types/assetConflict';
 
 const DataCleansing: React.FC = () => {
-  const { user, client, engagement, isLoading: isAuthLoading, setCurrentFlow } = useAuth();
+  const { user, client, engagement, isLoading: isAuthLoading, setCurrentFlow, getAuthHeaders } = useAuth();
   const [pendingQuestions, setPendingQuestions] = useState(0);
 
   // Asset conflict resolution state
@@ -766,10 +766,11 @@ const DataCleansing: React.FC = () => {
         },
         effectiveFlowId,
         client?.id,
-        engagement?.id
+        engagement?.id,
+        getAuthHeaders()
       );
     }
-  }, [isFlowTerminalState, flowStatus, effectiveFlowId, client?.id, engagement?.id]);
+  }, [isFlowTerminalState, flowStatus, effectiveFlowId, client?.id, engagement?.id, getAuthHeaders]);
 
   // CC FIX: Use sample data from dataCleansingAnalysis API response (ADR-038)
   // Fall back to flow data for backward compatibility

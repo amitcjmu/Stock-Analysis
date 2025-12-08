@@ -6,8 +6,9 @@ Handles terminal state action blocking and modal closure events.
 import logging
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, Body, Depends, Request
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, Body, Depends, HTTPException, Request, status
+from pydantic import BaseModel, Field, ValidationError
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
@@ -50,6 +51,32 @@ async def log_audit_event(
     try:
         from app.models.rbac.audit_models import AccessAuditLog
 
+        # Validate user_id is present (required for audit trail)
+        if not context.user_id:
+            logger.error(
+                "Audit log creation failed: user_id is required but missing from context",
+                extra={
+                    "action_type": audit_data.action_type,
+                    "resource_type": audit_data.resource_type,
+                    "ip_address": (
+                        context.ip_address or request.client.host
+                        if request.client
+                        else None
+                    ),
+                },
+            )
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail={
+                    "error_code": "AUDIT_AUTHENTICATION_ERROR",
+                    "message": "User authentication required for audit logging",
+                    "details": (
+                        "User context is required to create an audit log entry. "
+                        "Please ensure you are authenticated."
+                    ),
+                },
+            )
+
         # Extract flow_id from details if present
         flow_id = audit_data.details.get("flow_id") if audit_data.details else None
 
@@ -86,9 +113,18 @@ async def log_audit_event(
         await db.commit()
         await db.refresh(audit_log)
 
+        # Use structured logging to prevent log injection
         logger.info(
-            f"✅ Audit log created: {audit_data.action_type} - {audit_data.result} "
-            f"(flow_id: {flow_id}, resource: {audit_data.resource_type})"
+            "Audit log created successfully",
+            extra={
+                "action_type": audit_data.action_type,
+                "result": audit_data.result,
+                "flow_id": flow_id,
+                "resource_type": audit_data.resource_type,
+                "resource_id": audit_data.resource_id,
+                "audit_log_id": str(audit_log.id),
+                "user_id": str(context.user_id) if context.user_id else None,
+            },
         )
 
         return {
@@ -97,11 +133,70 @@ async def log_audit_event(
             "audit_log_id": str(audit_log.id),
         }
 
+    except ValidationError as e:
+        # Validation errors (e.g., invalid data format)
+        logger.error(
+            "Audit log validation error",
+            exc_info=True,
+            extra={
+                "action_type": audit_data.action_type if audit_data else None,
+                "resource_type": audit_data.resource_type if audit_data else None,
+                "error": str(e),
+                "error_type": type(e).__name__,
+            },
+        )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "error_code": "AUDIT_VALIDATION_ERROR",
+                "message": "Invalid audit log data",
+                "details": str(e),
+            },
+        )
+    except SQLAlchemyError as e:
+        # Database errors (connection, constraint violations, etc.)
+        logger.error(
+            "Audit log database error",
+            exc_info=True,
+            extra={
+                "action_type": audit_data.action_type if audit_data else None,
+                "resource_type": audit_data.resource_type if audit_data else None,
+                "error": str(e),
+                "error_type": type(e).__name__,
+            },
+        )
+        # Rollback the transaction
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "error_code": "AUDIT_DATABASE_ERROR",
+                "message": "Failed to persist audit log to database",
+                "details": "Database operation failed. Please try again or contact support if the issue persists.",
+            },
+        )
     except Exception as e:
-        logger.error(f"❌ Failed to log audit event: {e}", exc_info=True)
-        # Don't raise - audit logging should not break the application
-        # Return success with warning to prevent frontend errors
-        return {
-            "status": "warning",
-            "message": f"Audit event logged with warnings: {str(e)}",
-        }
+        # Other unexpected errors
+        logger.error(
+            "Failed to log audit event",
+            exc_info=True,
+            extra={
+                "action_type": audit_data.action_type if audit_data else None,
+                "resource_type": audit_data.resource_type if audit_data else None,
+                "error": str(e),
+                "error_type": type(e).__name__,
+            },
+        )
+        # Rollback the transaction if it's still active
+        try:
+            await db.rollback()
+        except Exception:
+            pass  # Ignore rollback errors
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "error_code": "AUDIT_LOG_ERROR",
+                "message": "Failed to log audit event",
+                "details": "An unexpected error occurred while logging the audit event.",
+            },
+        )

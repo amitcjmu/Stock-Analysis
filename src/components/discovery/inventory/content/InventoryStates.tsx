@@ -83,7 +83,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   setHasTriggeredInventory,
   onOpenConflictModal
 }) => {
-  const { client, engagement } = useAuth();
+  const { client, engagement, getAuthHeaders } = useAuth();
   // Memory leak prevention: Track if component is mounted
   const isMountedRef = React.useRef(true);
 
@@ -113,10 +113,11 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
         },
         undefined, // flowId not available in this component
         client?.id,
-        engagement?.id
+        engagement?.id,
+        getAuthHeaders()
       );
     }
-  }, [isFlowTerminalState, flowStatus, client?.id, engagement?.id]);
+  }, [isFlowTerminalState, flowStatus, client?.id, engagement?.id, getAuthHeaders]);
 
   // Check if we need to execute the asset inventory phase
   // FIX #447: Support both phases_completed array and phase_completion object

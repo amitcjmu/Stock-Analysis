@@ -47,7 +47,7 @@ export const AttributeMappingHeader: React.FC<AttributeMappingHeaderProps> = ({
   onContinueToDataCleansing,
   isNavigatingToDataCleansing
 }) => {
-  const { client, engagement } = useAuth();
+  const { client, engagement, getAuthHeaders } = useAuth();
   const isFlowPaused = flowStatus === 'paused' || flowStatus === 'waiting_for_approval' || flowStatus === 'waiting_for_user_approval';
 
   // CRITICAL FIX: Disable Execute button when flow is in terminal state
@@ -69,10 +69,11 @@ export const AttributeMappingHeader: React.FC<AttributeMappingHeaderProps> = ({
         },
         undefined, // flowId not available in this component
         client?.id,
-        engagement?.id
+        engagement?.id,
+        getAuthHeaders()
       );
     }
-  }, [isFlowTerminalState, flowStatus, client?.id, engagement?.id]);
+  }, [isFlowTerminalState, flowStatus, client?.id, engagement?.id, getAuthHeaders]);
 
   // Count mappings that need review
   // CC FIX: Align filter logic with ThreeColumnFieldMapper's categorization

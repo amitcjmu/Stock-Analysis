@@ -15,7 +15,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { logTerminalStateAuditEvent } from '../../utils/auditLogger';
 
 const Inventory = (): JSX.Element => {
-  const { client, engagement } = useAuth();
+  const { client, engagement, getAuthHeaders } = useAuth();
 
   // Asset preview state (Issue #907)
   const [showPreviewModal, setShowPreviewModal] = useState(false);
@@ -78,7 +78,8 @@ const Inventory = (): JSX.Element => {
         },
         effectiveFlowId,
         client?.id,
-        engagement?.id
+        engagement?.id,
+        getAuthHeaders()
       );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -103,12 +104,13 @@ const Inventory = (): JSX.Element => {
         },
         effectiveFlowId,
         client?.id,
-        engagement?.id
+        engagement?.id,
+        getAuthHeaders()
       );
 
       setShowPreviewModal(false);
     }
-  }, [showPreviewModal, isFlowTerminalState, effectiveFlowId, flowStatus, client?.id, engagement?.id]);
+  }, [showPreviewModal, isFlowTerminalState, effectiveFlowId, flowStatus, client?.id, engagement?.id, getAuthHeaders]);
 
   // Debug info for flow detection
   console.log('🔍 Inventory flow detection:', {

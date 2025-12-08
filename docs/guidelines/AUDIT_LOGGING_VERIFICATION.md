@@ -194,3 +194,4 @@ async def log_audit_event(...):  # ✅ Async endpoint
 - ✅ Action type clearly identifies the blocked action
 - ✅ Reason provides human-readable explanation
 - ✅ Additional context in `details` object
+
