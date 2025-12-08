@@ -23,13 +23,14 @@
 import { useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '../../../contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { apiCall } from '../../../config/api';
 import { isFlowTerminal } from '@/constants/flowStates';
 import type { FieldMapping } from '@/types/api/discovery/field-mapping-types';
 import type { DiscoveryFlowData } from '@/types/discovery';
 import type { FlowUpdate } from '../../useFlowUpdates'
 import { useFlowUpdates } from '../../useFlowUpdates'
+import { logTerminalStateAuditEvent } from '@/utils/auditLogger';
 
 // Agent decision structure from backend
 interface AgentDecision {
@@ -89,7 +90,7 @@ export const useAttributeMappingActions = (
 ): AttributeMappingActionsResult => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user, getAuthHeaders } = useAuth();
+  const { user, getAuthHeaders, client, engagement } = useAuth();
 
   // Subscribe to real-time agent decisions via SSE
   const { data: flowUpdate } = useFlowUpdates(flow?.id, {
@@ -573,6 +574,27 @@ export const useAttributeMappingActions = (
 
     if (isFlowTerminal(flowStatus)) {
       console.log(`❌ Cannot continue: Flow is in terminal state (${flowStatus})`);
+
+      // Audit log: Terminal state blocked navigation to data cleansing
+      const flowId = (flow as FlowUpdate | DiscoveryFlowData | { id?: string })?.flow_id || ('id' in flow ? flow.id : undefined);
+      logTerminalStateAuditEvent(
+        {
+          action_type: 'continue_to_data_cleansing_blocked',
+          resource_type: 'discovery_flow',
+          resource_id: flowId,
+          result: 'blocked',
+          reason: `Navigation blocked: Flow is in terminal state (${flowStatus})`,
+          details: {
+            flow_status: flowStatus,
+            action_name: 'Continue to Data Cleansing',
+          },
+        },
+        flowId,
+        client?.id,
+        engagement?.id,
+        getAuthHeaders()
+      );
+
       return false;
     }
 
@@ -642,7 +664,7 @@ export const useAttributeMappingActions = (
     }
 
     return true;
-  }, [flow, fieldMappings, agentDecision]);
+  }, [flow, fieldMappings, agentDecision, client?.id, engagement?.id]);
 
   return {
     handleTriggerFieldMappingCrew,

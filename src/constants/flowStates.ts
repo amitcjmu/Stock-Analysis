@@ -3,6 +3,8 @@
  * Mirrors backend flow constants with UI-specific additions.
  */
 
+import SecureLogger from '../utils/secureLogger';
+
 // Flow Status Constants
 export const FLOW_STATUSES = {
   PENDING: 'pending',
@@ -245,6 +247,29 @@ export const TERMINAL_STATES = [
   'archived'
 ] as const;
 
+/**
+ * Array of all known flow statuses (terminal and non-terminal).
+ * Used for validation and unknown status detection.
+ * This helps catch backend schema changes and unexpected API responses early.
+ */
+export const KNOWN_STATUSES = [
+  ...TERMINAL_STATES,
+  'running',
+  'processing',
+  'validating',
+  'paused',
+  'waiting_for_approval',
+  'waiting_for_user_approval',
+  'pending',
+  'queued',
+  'starting',
+  'initializing',
+  'waiting',
+  'retry',
+  'timeout',
+  'rollback'
+] as const;
+
 export const ERROR_STATUSES = [
   FLOW_STATUSES.FAILED,
   FLOW_STATUSES.TIMEOUT,
@@ -265,12 +290,27 @@ export const isActiveStatus = (status: FlowStatus): boolean => {
  * Case-insensitive check for compatibility with various API responses.
  * This is the single source of truth for terminal state checking.
  *
+ * Unknown statuses are logged with WARNING severity to provide visibility
+ * into edge cases and help catch backend schema changes early.
+ *
  * @param status - Flow status string (can be any case)
  * @returns true if the status is a terminal state
  */
 export const isFlowTerminal = (status: string | undefined | null): boolean => {
   if (!status) return false;
-  return TERMINAL_STATES.includes(status.toLowerCase() as typeof TERMINAL_STATES[number]);
+
+  const normalizedStatus = status.toLowerCase();
+
+  // Log unknown statuses for monitoring
+  if (!KNOWN_STATUSES.includes(normalizedStatus as typeof KNOWN_STATUSES[number])) {
+    SecureLogger.warn('Unknown flow status encountered', {
+      status,
+      normalizedStatus,
+      context: 'terminal_state_check'
+    });
+  }
+
+  return TERMINAL_STATES.includes(normalizedStatus as typeof TERMINAL_STATES[number]);
 };
 
 /**

@@ -11,16 +11,8 @@ import type {
 import { createApiClient } from '../utils/api';
 
 // Example: Discovery Flow API Usage
-interface DiscoveryFlowData {
-  flowId: string;
-  status: 'pending' | 'in_progress' | 'completed' | 'failed';
-  results: DiscoveryResult[];
-  metadata: {
-    createdAt: string;
-    updatedAt: string;
-    createdBy: string;
-  };
-}
+// Note: Using the unified DiscoveryFlowData type from @/types/discovery
+import type { DiscoveryFlowData } from '../types/discovery';
 
 interface DiscoveryResult {
   id: string;

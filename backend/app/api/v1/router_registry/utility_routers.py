@@ -71,3 +71,12 @@ def register_utility_routers(api_router: APIRouter):
         logger.info("✅ Observability router included")
     else:
         logger.warning("⚠️ Observability router not available")
+
+    # Audit logging endpoint
+    try:
+        from app.api.v1.endpoints.audit import router as audit_router
+
+        api_router.include_router(audit_router)
+        logger.info("✅ Audit router included")
+    except ImportError as e:
+        logger.warning(f"Audit router import failed: {e}")

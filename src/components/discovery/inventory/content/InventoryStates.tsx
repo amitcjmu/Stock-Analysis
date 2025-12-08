@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { isFlowTerminal } from '@/constants/flowStates';
 import { InventoryContentFallback } from '../InventoryContentFallback';
+import { useAuditLogger } from '@/hooks/useAuditLogger';
 
 interface LoadingStateProps {
   isExecutingPhase: boolean;
@@ -81,6 +82,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   setHasTriggeredInventory,
   onOpenConflictModal
 }) => {
+  const logAuditEvent = useAuditLogger();
   // Memory leak prevention: Track if component is mounted
   const isMountedRef = React.useRef(true);
 
@@ -93,6 +95,25 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   // CRITICAL FIX: Check if flow is in terminal state - disable inventory buttons for completed/cancelled flows
   const flowStatus = flow?.status;
   const isFlowTerminalState = isFlowTerminal(flowStatus);
+
+  // Handler for blocked actions due to terminal state
+  const handleBlockedAction = React.useCallback((actionType: string, actionName: string) => {
+    if (isFlowTerminalState) {
+      logAuditEvent(
+        {
+          action_type: actionType,
+          resource_type: 'discovery_flow',
+          result: 'blocked',
+          reason: `Action blocked: Flow is in terminal state (${flowStatus})`,
+          details: {
+            flow_status: flowStatus,
+            action_name: actionName,
+          },
+        },
+        undefined // flowId not available in this component
+      );
+    }
+  }, [isFlowTerminalState, flowStatus, logAuditEvent]);
 
   // Check if we need to execute the asset inventory phase
   // FIX #447: Support both phases_completed array and phase_completion object
@@ -175,6 +196,10 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
                   </p>
                   <Button
                     onClick={async () => {
+                      if (isFlowTerminalState) {
+                        handleBlockedAction('run_asset_inventory_manual_blocked', 'Run Asset Inventory Manually');
+                        return;
+                      }
                       try {
                         console.log('📦 Manual execution of asset inventory phase...');
                         setHasTriggeredInventory(true);
@@ -239,6 +264,10 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
                   </p>
                   <Button
                     onClick={async () => {
+                      if (isFlowTerminalState) {
+                        handleBlockedAction('create_asset_inventory_blocked', 'Create Asset Inventory');
+                        return;
+                      }
                       try {
                         console.log('📦 Executing asset inventory phase...');
                         await executeFlowPhase('asset_inventory', {

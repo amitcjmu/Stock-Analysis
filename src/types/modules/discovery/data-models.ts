@@ -110,24 +110,12 @@ export interface FlowState {
 
 /**
  * Discovery flow data structure
+ *
+ * @deprecated Import from '@/types/discovery' instead.
+ * This export is maintained for backward compatibility.
+ * The authoritative type is defined in src/types/discovery.ts
  */
-export interface DiscoveryFlowData {
-  id: string;
-  flow_id: string;
-  client_account_id: string;
-  engagement_id: string;
-  user_id: string;
-  flow_name: string;
-  flow_description?: string;
-  status: FlowStatus;
-  progress: number;
-  phases: PhaseCompletion;
-  current_phase: string;
-  next_phase?: string;
-  created_at: string;
-  updated_at: string;
-  completed_at?: string;
-}
+export type { DiscoveryFlowData } from '../../../discovery';
 
 /**
  * Data import entity

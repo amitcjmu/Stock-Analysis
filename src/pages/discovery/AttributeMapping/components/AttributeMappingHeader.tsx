@@ -5,6 +5,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { isFlowTerminal } from '@/constants/flowStates';
 import { AttributeMappingState } from '../types';
 import type { FieldMapping } from '@/types/api/discovery/field-mapping-types';
+import { useAuditLogger } from '@/hooks/useAuditLogger';
 
 interface AttributeMappingHeaderProps {
   mappingProgress: {
@@ -45,10 +46,30 @@ export const AttributeMappingHeader: React.FC<AttributeMappingHeaderProps> = ({
   onContinueToDataCleansing,
   isNavigatingToDataCleansing
 }) => {
+  const logAuditEvent = useAuditLogger();
   const isFlowPaused = flowStatus === 'paused' || flowStatus === 'waiting_for_approval' || flowStatus === 'waiting_for_user_approval';
 
   // CRITICAL FIX: Disable Execute button when flow is in terminal state
   const isFlowTerminalState = isFlowTerminal(flowStatus);
+
+  // Handler for blocked actions due to terminal state
+  const handleBlockedAction = React.useCallback((actionType: string, actionName: string) => {
+    if (isFlowTerminalState) {
+      logAuditEvent(
+        {
+          action_type: actionType,
+          resource_type: 'discovery_flow',
+          result: 'blocked',
+          reason: `Action blocked: Flow is in terminal state (${flowStatus})`,
+          details: {
+            flow_status: flowStatus,
+            action_name: actionName,
+          },
+        },
+        undefined // flowId not available in this component
+      );
+    }
+  }, [isFlowTerminalState, flowStatus, logAuditEvent]);
 
   // Count mappings that need review
   // CC FIX: Align filter logic with ThreeColumnFieldMapper's categorization
@@ -165,7 +186,13 @@ export const AttributeMappingHeader: React.FC<AttributeMappingHeaderProps> = ({
         </Button>
 
         <Button
-          onClick={onTriggerAnalysis}
+          onClick={() => {
+            if (isFlowTerminalState) {
+              handleBlockedAction('trigger_analysis_blocked', 'Trigger Analysis');
+            } else {
+              onTriggerAnalysis();
+            }
+          }}
           disabled={isAgenticLoading || isFlowTerminalState}
           variant="outline"
           className="flex items-center space-x-2"
@@ -177,7 +204,13 @@ export const AttributeMappingHeader: React.FC<AttributeMappingHeaderProps> = ({
 
         {needsReviewCount > 0 && (
           <Button
-            onClick={onBulkApproveNeedsReview}
+            onClick={() => {
+              if (isFlowTerminalState) {
+                handleBlockedAction('bulk_approve_blocked', 'Bulk Approve Needs Review');
+              } else {
+                onBulkApproveNeedsReview();
+              }
+            }}
             disabled={isAgenticLoading || isFlowTerminalState}
             variant="outline"
             className="flex items-center space-x-2 bg-blue-50 hover:bg-blue-100 border-blue-300"
@@ -192,7 +225,13 @@ export const AttributeMappingHeader: React.FC<AttributeMappingHeaderProps> = ({
 
         {onReprocessMappings && hasFieldMappings && (
           <Button
-            onClick={onReprocessMappings}
+            onClick={() => {
+              if (isFlowTerminalState) {
+                handleBlockedAction('reprocess_mappings_blocked', 'Reprocess Mappings');
+              } else {
+                onReprocessMappings();
+              }
+            }}
             disabled={isAgenticLoading || isFlowTerminalState}
             variant="outline"
             className="flex items-center space-x-2"
