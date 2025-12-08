@@ -110,7 +110,8 @@ const Inventory = (): JSX.Element => {
 
       setShowPreviewModal(false);
     }
-  }, [showPreviewModal, isFlowTerminalState, effectiveFlowId, flowStatus, client?.id, engagement?.id, getAuthHeaders]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showPreviewModal, isFlowTerminalState, effectiveFlowId, flowStatus, client?.id, engagement?.id]);
 
   // Debug info for flow detection
   console.log('🔍 Inventory flow detection:', {

@@ -110,8 +110,10 @@ async def log_audit_event(
         )
 
         db.add(audit_log)
-        await db.commit()
-        await db.refresh(audit_log)
+        # Flush to get the generated ID without committing the transaction
+        # This ensures transactional integrity - if subsequent operations fail,
+        # we can rollback the entire transaction
+        await db.flush()
 
         # Use structured logging to prevent log injection
         logger.info(
@@ -126,6 +128,9 @@ async def log_audit_event(
                 "user_id": str(context.user_id) if context.user_id else None,
             },
         )
+
+        # Commit the transaction after all operations succeed
+        await db.commit()
 
         return {
             "status": "success",

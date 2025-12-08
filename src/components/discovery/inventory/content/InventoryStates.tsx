@@ -4,8 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { isFlowTerminal } from '@/constants/flowStates';
 import { InventoryContentFallback } from '../InventoryContentFallback';
-import { logTerminalStateAuditEvent } from '@/utils/auditLogger';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuditLogger } from '@/hooks/useAuditLogger';
 
 interface LoadingStateProps {
   isExecutingPhase: boolean;
@@ -83,7 +82,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   setHasTriggeredInventory,
   onOpenConflictModal
 }) => {
-  const { client, engagement, getAuthHeaders } = useAuth();
+  const logAuditEvent = useAuditLogger();
   // Memory leak prevention: Track if component is mounted
   const isMountedRef = React.useRef(true);
 
@@ -100,7 +99,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   // Handler for blocked actions due to terminal state
   const handleBlockedAction = React.useCallback((actionType: string, actionName: string) => {
     if (isFlowTerminalState) {
-      logTerminalStateAuditEvent(
+      logAuditEvent(
         {
           action_type: actionType,
           resource_type: 'discovery_flow',
@@ -111,13 +110,10 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
             action_name: actionName,
           },
         },
-        undefined, // flowId not available in this component
-        client?.id,
-        engagement?.id,
-        getAuthHeaders()
+        undefined // flowId not available in this component
       );
     }
-  }, [isFlowTerminalState, flowStatus, client?.id, engagement?.id, getAuthHeaders]);
+  }, [isFlowTerminalState, flowStatus, logAuditEvent]);
 
   // Check if we need to execute the asset inventory phase
   // FIX #447: Support both phases_completed array and phase_completion object

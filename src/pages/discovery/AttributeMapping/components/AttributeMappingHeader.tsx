@@ -5,8 +5,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { isFlowTerminal } from '@/constants/flowStates';
 import { AttributeMappingState } from '../types';
 import type { FieldMapping } from '@/types/api/discovery/field-mapping-types';
-import { logTerminalStateAuditEvent } from '@/utils/auditLogger';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuditLogger } from '@/hooks/useAuditLogger';
 
 interface AttributeMappingHeaderProps {
   mappingProgress: {
@@ -47,7 +46,7 @@ export const AttributeMappingHeader: React.FC<AttributeMappingHeaderProps> = ({
   onContinueToDataCleansing,
   isNavigatingToDataCleansing
 }) => {
-  const { client, engagement, getAuthHeaders } = useAuth();
+  const logAuditEvent = useAuditLogger();
   const isFlowPaused = flowStatus === 'paused' || flowStatus === 'waiting_for_approval' || flowStatus === 'waiting_for_user_approval';
 
   // CRITICAL FIX: Disable Execute button when flow is in terminal state
@@ -56,7 +55,7 @@ export const AttributeMappingHeader: React.FC<AttributeMappingHeaderProps> = ({
   // Handler for blocked actions due to terminal state
   const handleBlockedAction = React.useCallback((actionType: string, actionName: string) => {
     if (isFlowTerminalState) {
-      logTerminalStateAuditEvent(
+      logAuditEvent(
         {
           action_type: actionType,
           resource_type: 'discovery_flow',
@@ -67,13 +66,10 @@ export const AttributeMappingHeader: React.FC<AttributeMappingHeaderProps> = ({
             action_name: actionName,
           },
         },
-        undefined, // flowId not available in this component
-        client?.id,
-        engagement?.id,
-        getAuthHeaders()
+        undefined // flowId not available in this component
       );
     }
-  }, [isFlowTerminalState, flowStatus, client?.id, engagement?.id, getAuthHeaders]);
+  }, [isFlowTerminalState, flowStatus, logAuditEvent]);
 
   // Count mappings that need review
   // CC FIX: Align filter logic with ThreeColumnFieldMapper's categorization

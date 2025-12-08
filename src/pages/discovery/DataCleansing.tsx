@@ -770,7 +770,10 @@ const DataCleansing: React.FC = () => {
         getAuthHeaders()
       );
     }
-  }, [isFlowTerminalState, flowStatus, effectiveFlowId, client?.id, engagement?.id, getAuthHeaders]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isFlowTerminalState, flowStatus, effectiveFlowId, client?.id, engagement?.id]);
+  // Note: getAuthHeaders is intentionally excluded from dependencies
+  // to prevent unnecessary re-renders. It's called at execution time.
 
   // CC FIX: Use sample data from dataCleansingAnalysis API response (ADR-038)
   // Fall back to flow data for backward compatibility
