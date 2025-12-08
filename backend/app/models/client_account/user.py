@@ -71,6 +71,19 @@ class User(Base):
         comment="Indicates if the user is a platform administrator.",
     )
 
+    # Password Reset
+    password_reset_token = Column(
+        String(255),
+        nullable=True,
+        index=True,
+        comment="Hashed token for password reset. Expires after 15 minutes.",
+    )
+    password_reset_token_expires_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="Expiration timestamp for the password reset token.",
+    )
+
     # Default Context (for faster context establishment)
     default_client_id = Column(
         PostgresUUID(as_uuid=True),

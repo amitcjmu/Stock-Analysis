@@ -36,6 +36,8 @@ import {
 import {
   LazyIndex,
   LazyLogin,
+  LazyForgotPassword,
+  LazyResetPassword,
   LazyDiscovery,
   LazyAssess,
   LazyPlan,
@@ -203,11 +205,13 @@ const AuthenticatedApp = (): JSX.Element => {
     );
   }
 
-  // If user is not authenticated, show only login route
+  // If user is not authenticated, show login, forgot password, and reset password routes
   if (!isAuthenticated) {
     return (
       <Routes>
         <Route path="/login" element={<LazyLogin />} />
+        <Route path="/forgot-password" element={<LazyForgotPassword />} />
+        <Route path="/reset-password" element={<LazyResetPassword />} />
         <Route path="*" element={<LazyLogin />} />
       </Routes>
     );

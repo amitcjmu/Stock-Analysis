@@ -59,6 +59,18 @@ export const LazyLogin = createLazyRoute(
   LoadingPriority.CRITICAL,
 );
 
+export const LazyForgotPassword = createLazyRoute(
+  () => import("@/pages/ForgotPassword"),
+  "Forgot Password",
+  LoadingPriority.CRITICAL,
+);
+
+export const LazyResetPassword = createLazyRoute(
+  () => import("@/pages/ResetPassword"),
+  "Reset Password",
+  LoadingPriority.CRITICAL,
+);
+
 // HIGH PRIORITY - Main workflow pages
 export const LazyDiscovery = createLazyRoute(
   () => import("@/pages/Discovery"),

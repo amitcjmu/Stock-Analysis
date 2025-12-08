@@ -239,4 +239,98 @@ export const authApi = {
 
     return response.json();
   },
+
+  async forgotPassword(email: string, reset_url_base?: string): Promise<{ status: string; message: string; email_sent: boolean }> {
+    const response = await fetch(`${API_BASE_URL}/api/v1/auth/forgot-password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, reset_url_base }),
+    });
+
+    if (!response.ok) {
+      let errorMessage = 'Password reset request failed';
+      const status = response.status;
+
+      try {
+        const errorData = await response.json();
+        if (errorData.detail) {
+          errorMessage = errorData.detail;
+        }
+      } catch (jsonError) {
+        errorMessage = `Request failed with status ${status}`;
+      }
+
+      const error = new Error(errorMessage) as Error & { status?: number };
+      error.status = status;
+      throw error;
+    }
+
+    return response.json();
+  },
+
+  async validateResetToken(token: string): Promise<{ status: string; valid: boolean; message: string; email: string | null }> {
+    const response = await fetch(`${API_BASE_URL}/api/v1/auth/validate-reset-token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ token }),
+    });
+
+    if (!response.ok) {
+      let errorMessage = 'Token validation failed';
+      const status = response.status;
+
+      try {
+        const errorData = await response.json();
+        if (errorData.detail) {
+          errorMessage = errorData.detail;
+        }
+      } catch (jsonError) {
+        errorMessage = `Request failed with status ${status}`;
+      }
+
+      const error = new Error(errorMessage) as Error & { status?: number };
+      error.status = status;
+      throw error;
+    }
+
+    return response.json();
+  },
+
+  async resetPassword(token: string, new_password: string, confirm_password: string): Promise<{ status: string; message: string }> {
+    const response = await fetch(`${API_BASE_URL}/api/v1/auth/reset-password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ token, new_password, confirm_password }),
+    });
+
+    if (!response.ok) {
+      let errorMessage = 'Password reset failed';
+      const status = response.status;
+
+      try {
+        const errorData = await response.json();
+        if (errorData.detail) {
+          errorMessage = errorData.detail;
+        }
+      } catch (jsonError) {
+        if (status === 400) {
+          errorMessage = 'Invalid or expired reset token';
+        } else {
+          errorMessage = `Request failed with status ${status}`;
+        }
+      }
+
+      const error = new Error(errorMessage) as Error & { status?: number };
+      error.status = status;
+      throw error;
+    }
+
+    return response.json();
+  },
 };
