@@ -345,6 +345,28 @@ def upgrade() -> None:
             f"""
             DO $$
             BEGIN
+                -- First check if the table exists (some tables may not be created yet)
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.tables
+                    WHERE table_schema = 'migration'
+                    AND table_name = '{table}'
+                ) THEN
+                    RAISE NOTICE 'Table migration.{table} does not exist, skipping FK constraint';
+                    RETURN;
+                END IF;
+
+                -- Check if table has the required columns
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_schema = 'migration'
+                    AND table_name = '{table}'
+                    AND column_name = 'client_account_id'
+                ) THEN
+                    RAISE NOTICE 'Table migration.{table} missing client_account_id column, skipping FK constraint';
+                    RETURN;
+                END IF;
+
+                -- Now check if constraint already exists
                 IF NOT EXISTS (
                     SELECT 1 FROM pg_constraint
                     WHERE conname = '{constraint_name}'
@@ -354,17 +376,28 @@ def upgrade() -> None:
                     FOREIGN KEY (client_account_id, engagement_id)
                     REFERENCES migration.engagements (client_account_id, id)
                     ON DELETE CASCADE;
+                    RAISE NOTICE 'Added FK constraint {constraint_name} to migration.{table}';
                 END IF;
             END $$;
             """
         )
 
         # Add composite index for performance (if not exists)
+        # Also check table existence first
         index_name = f"ix_{table}_tenant_composite"
         op.execute(
             f"""
-            CREATE INDEX IF NOT EXISTS {index_name}
-            ON migration.{table} (client_account_id, engagement_id);
+            DO $$
+            BEGIN
+                IF EXISTS (
+                    SELECT 1 FROM information_schema.tables
+                    WHERE table_schema = 'migration'
+                    AND table_name = '{table}'
+                ) THEN
+                    CREATE INDEX IF NOT EXISTS {index_name}
+                    ON migration.{table} (client_account_id, engagement_id);
+                END IF;
+            END $$;
             """
         )
 
@@ -528,15 +561,21 @@ def downgrade() -> None:
     for table in TENANT_SCOPED_TABLES:
         constraint_name = f"fk_{table}_engagement_hierarchy"
         index_name = f"ix_{table}_tenant_composite"
+        # Only try to drop if table exists
         op.execute(
             f"""
-            ALTER TABLE migration.{table}
-            DROP CONSTRAINT IF EXISTS {constraint_name};
-            """
-        )
-        op.execute(
-            f"""
-            DROP INDEX IF EXISTS migration.{index_name};
+            DO $$
+            BEGIN
+                IF EXISTS (
+                    SELECT 1 FROM information_schema.tables
+                    WHERE table_schema = 'migration'
+                    AND table_name = '{table}'
+                ) THEN
+                    ALTER TABLE migration.{table}
+                    DROP CONSTRAINT IF EXISTS {constraint_name};
+                    DROP INDEX IF EXISTS migration.{index_name};
+                END IF;
+            END $$;
             """
         )
 
