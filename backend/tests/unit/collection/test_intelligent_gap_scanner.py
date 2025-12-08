@@ -54,12 +54,17 @@ def setup_mock_db_session_empty():
     Create properly mocked async database session that returns empty results.
 
     This helper ensures consistent mocking across all tests.
+
+    Note: scalar_one_or_none() and scalars() are SYNCHRONOUS methods in SQLAlchemy,
+    only execute() is async. Using regular Mock (not AsyncMock) prevents
+    "coroutine object has no attribute" errors.
     """
     session = AsyncMock()
 
     # Mock execute to return proper async result
-    mock_result = AsyncMock()
-    mock_result.scalar_one_or_none = AsyncMock(return_value=None)
+    # IMPORTANT: scalar_one_or_none is NOT async in SQLAlchemy - use regular Mock
+    mock_result = Mock()
+    mock_result.scalar_one_or_none = Mock(return_value=None)
     mock_result.scalars = Mock(return_value=Mock(all=Mock(return_value=[])))
 
     session.execute = AsyncMock(return_value=mock_result)
@@ -824,6 +829,114 @@ class TestPerformance:
         assert duration_ms < 500, f"Scan took {duration_ms}ms (target: <500ms)"
 
 
+# Test Suite 13: Issue #1193 - Asset Type Applicability
+class TestAssetTypeApplicability:
+    """
+    Test asset type-specific field applicability (Issue #1193).
+
+    GPT5.1 Codex recommended these regression tests to ensure:
+    1. Server assets retain infrastructure gaps
+    2. Application assets skip infrastructure gaps
+    3. Unknown/custom asset types fallback to all attributes (don't skip mapped fields)
+    """
+
+    @pytest.mark.asyncio
+    async def test_server_retains_infrastructure_gaps(self):
+        """Test: SERVER asset with empty OS fields produces infrastructure gaps."""
+        mock_db_session = setup_mock_db_session_empty()
+        scanner = IntelligentGapScanner(mock_db_session, uuid4(), uuid4())
+
+        # Create server asset with missing infrastructure fields
+        mock_asset = Mock()
+        mock_asset.id = uuid4()
+        mock_asset.name = "TestServer-001"
+        mock_asset.asset_type = "server"
+        mock_asset.operating_system = None  # Gap
+        mock_asset.os_version = None  # Gap
+        mock_asset.cpu_cores = None  # Gap
+        mock_asset.memory_gb = None  # Gap
+        mock_asset.storage_gb = None  # Gap
+        mock_asset.ip_address = None
+        mock_asset.fqdn = None
+        mock_asset.virtualization_platform = None
+        mock_asset.custom_attributes = {}
+        mock_asset.technical_details = {}
+        mock_asset.environment = None
+
+        gaps = await scanner.scan_gaps(mock_asset)
+        gap_fields = {g.field_id for g in gaps}
+
+        # Server SHOULD have infrastructure gaps
+        assert (
+            "operating_system" in gap_fields or "os_version" in gap_fields
+        ), f"Server should have OS gaps, got: {gap_fields}"
+
+    @pytest.mark.asyncio
+    async def test_application_skips_infrastructure_gaps(self):
+        """Test: APPLICATION asset does NOT get infrastructure gaps."""
+        mock_db_session = setup_mock_db_session_empty()
+        scanner = IntelligentGapScanner(mock_db_session, uuid4(), uuid4())
+
+        # Create application asset with missing infrastructure fields
+        mock_asset = Mock()
+        mock_asset.id = uuid4()
+        mock_asset.name = "TestApp-001"
+        mock_asset.asset_type = "application"
+        mock_asset.operating_system = None  # Should NOT be a gap for apps
+        mock_asset.os_version = None  # Should NOT be a gap for apps
+        mock_asset.cpu_cores = None  # Should NOT be a gap for apps
+        mock_asset.memory_gb = None  # Should NOT be a gap for apps
+        mock_asset.storage_gb = None
+        mock_asset.ip_address = None
+        mock_asset.fqdn = None
+        mock_asset.virtualization_platform = None
+        mock_asset.custom_attributes = {}
+        mock_asset.technical_details = {}
+        mock_asset.environment = None
+
+        gaps = await scanner.scan_gaps(mock_asset)
+        gap_fields = {g.field_id for g in gaps}
+
+        # Application should NOT have OS/CPU/memory gaps
+        infra_fields = {"operating_system", "os_version", "cpu_cores", "memory_gb"}
+        found_infra_gaps = gap_fields & infra_fields
+        assert (
+            len(found_infra_gaps) == 0
+        ), f"Application should NOT have infra gaps, but found: {found_infra_gaps}"
+
+    @pytest.mark.asyncio
+    async def test_unknown_asset_type_keeps_mapped_infrastructure_gaps(self):
+        """Test: Unknown/custom asset type still checks mapped infrastructure gaps."""
+        mock_db_session = setup_mock_db_session_empty()
+        scanner = IntelligentGapScanner(mock_db_session, uuid4(), uuid4())
+
+        # Create asset with unknown type
+        mock_asset = Mock()
+        mock_asset.id = uuid4()
+        mock_asset.name = "CustomAppliance-001"
+        mock_asset.asset_type = "custom_appliance"  # Not in ASSET_TYPE_REQUIREMENTS
+        mock_asset.operating_system = None  # Should still be a gap (fallback)
+        mock_asset.os_version = None
+        mock_asset.cpu_cores = None
+        mock_asset.memory_gb = None
+        mock_asset.storage_gb = None
+        mock_asset.ip_address = None
+        mock_asset.fqdn = None
+        mock_asset.virtualization_platform = None
+        mock_asset.custom_attributes = {}
+        mock_asset.technical_details = {}
+        mock_asset.environment = None
+
+        gaps = await scanner.scan_gaps(mock_asset)
+        gap_fields = {g.field_id for g in gaps}
+
+        # Unknown asset type should fallback to ALL attributes (including infra)
+        # This ensures unknown types don't silently skip fields
+        assert (
+            "operating_system" in gap_fields or "os_version" in gap_fields
+        ), f"Unknown asset type should have OS gaps (fallback to all attrs), got: {gap_fields}"
+
+
 # Summary Statistics
 # Total test cases: 100+ (covering all requirements)
 # Test categories:
@@ -839,4 +952,5 @@ class TestPerformance:
 # - Error handling: 3 tests
 # - Integration scenarios: 5 tests
 # - Performance: 1 test
-# Total: 49 core tests + variations = 100+ test scenarios
+# - Asset type applicability (Issue #1193): 3 tests
+# Total: 52 core tests + variations = 100+ test scenarios
