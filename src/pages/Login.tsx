@@ -1,7 +1,7 @@
 import React from 'react'
 import { useState, useEffect, useCallback } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Shield, Mail, Lock, User, Building2, Eye, EyeOff, AlertCircle, CheckCircle, XCircle, Info } from 'lucide-react';
+import { Shield, Mail, Lock, User, Building2, Eye, EyeOff, AlertCircle, CheckCircle, XCircle, Info, ChevronDown, ChevronRight } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,6 +26,7 @@ const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showDemoCredentials, setShowDemoCredentials] = useState(false);
 
   // Login form state
   const [loginData, setLoginData] = useState({
@@ -405,14 +406,27 @@ const Login: React.FC = () => {
                 </div>
               )}
 
-              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <h4 className="font-medium text-blue-900 text-sm mb-2">Demo Credentials:</h4>
-                <div className="text-xs text-blue-800 space-y-1">
-                  <div><strong>Demo User:</strong> demo@demo-corp.com / Demo123!</div>
-                  <div><strong>Manager:</strong> manager@demo-corp.com / Demo123!</div>
-                  <div><strong>Analyst:</strong> analyst@demo-corp.com / Demo123!</div>
-                  <div><strong>Viewer:</strong> viewer@demo-corp.com / Demo123!</div>
-                </div>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setShowDemoCredentials(!showDemoCredentials)}
+                  className="w-full p-3 flex items-center justify-between text-left hover:bg-blue-100 transition-colors"
+                >
+                  <span className="font-medium text-blue-900 text-sm">Demo Credentials</span>
+                  {showDemoCredentials ? (
+                    <ChevronDown className="h-4 w-4 text-blue-600" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 text-blue-600" />
+                  )}
+                </button>
+                {showDemoCredentials && (
+                  <div className="px-3 pb-3 text-xs text-blue-800 space-y-1 border-t border-blue-200 pt-2">
+                    <div><strong>Demo User:</strong> demo@demo-corp.com / Demo123!</div>
+                    <div><strong>Manager:</strong> manager@demo-corp.com / Demo123!</div>
+                    <div><strong>Analyst:</strong> analyst@demo-corp.com / Demo123!</div>
+                    <div><strong>Viewer:</strong> viewer@demo-corp.com / Demo123!</div>
+                  </div>
+                )}
               </div>
 
               <Button type="submit" className="w-full" disabled={loading}>
