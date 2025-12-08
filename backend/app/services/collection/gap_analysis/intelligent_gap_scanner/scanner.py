@@ -102,8 +102,15 @@ class IntelligentGapScanner:
         # Applications should NOT get gaps for server-level infrastructure attributes
         # (operating_system_version, cpu_memory_storage_specs, network_configuration)
         asset_type = getattr(asset, "asset_type", "application")
-        applicable_attrs = set(
-            AssetTypeRequirements.get_applicable_attributes(asset_type)
+        applicable_attrs_list = AssetTypeRequirements.get_applicable_attributes(
+            asset_type
+        )
+        # GPT5.1 Codex Safety: If get_applicable_attributes returns empty (unknown/typo),
+        # fallback to ALL attributes to avoid skipping mapped fields for unknown types
+        applicable_attrs = (
+            set(applicable_attrs_list)
+            if applicable_attrs_list
+            else set(AssetTypeRequirements.ALL_CRITICAL_ATTRIBUTES)
         )
         inapplicable_count = 0
 
