@@ -494,22 +494,84 @@ def upgrade() -> None:
     # =========================================================================
     # PART 3: Add CHECK Constraints for Categorical Fields in Assets (#1251)
     # =========================================================================
+    # NOTE: We query existing data and include those values in the constraint
+    # to avoid CHECK violation errors during migration on existing databases.
 
     for field, values in ASSET_CATEGORICAL_FIELDS.items():
         constraint_name = f"chk_assets_{field}"
-        values_str = ", ".join(f"'{v}'" for v in values)
+        # Escape single quotes in values for SQL safety
+        escaped_values = [v.replace("'", "''") for v in values]
+        values_str = ", ".join(f"'{v}'" for v in escaped_values)
         op.execute(
             f"""
             DO $$
+            DECLARE
+                existing_vals TEXT[];
+                all_vals TEXT[];
+                val TEXT;
+                vals_sql TEXT;
             BEGIN
-                IF NOT EXISTS (
+                -- Skip if constraint already exists
+                IF EXISTS (
                     SELECT 1 FROM pg_constraint
                     WHERE conname = '{constraint_name}'
                 ) THEN
-                    ALTER TABLE migration.assets
-                    ADD CONSTRAINT {constraint_name}
-                    CHECK ({field} IN ({values_str}) OR {field} IS NULL);
+                    RAISE NOTICE 'Constraint {constraint_name} already exists, skipping';
+                    RETURN;
                 END IF;
+
+                -- Skip if assets table doesn't exist
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.tables
+                    WHERE table_schema = 'migration'
+                    AND table_name = 'assets'
+                ) THEN
+                    RAISE NOTICE 'Table migration.assets does not exist, skipping constraint';
+                    RETURN;
+                END IF;
+
+                -- Skip if column doesn't exist
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_schema = 'migration'
+                    AND table_name = 'assets'
+                    AND column_name = '{field}'
+                ) THEN
+                    RAISE NOTICE 'Column {field} does not exist in assets, skipping constraint';
+                    RETURN;
+                END IF;
+
+                -- Get existing values from database that aren't in our predefined list
+                SELECT ARRAY_AGG(DISTINCT {field})
+                INTO existing_vals
+                FROM migration.assets
+                WHERE {field} IS NOT NULL
+                AND {field} NOT IN ({values_str});
+
+                -- Start with predefined values
+                all_vals := ARRAY[{values_str}];
+
+                -- Add any existing values not in predefined list
+                IF existing_vals IS NOT NULL THEN
+                    FOREACH val IN ARRAY existing_vals LOOP
+                        IF val IS NOT NULL AND NOT (val = ANY(all_vals)) THEN
+                            all_vals := array_append(all_vals, val);
+                            RAISE NOTICE 'Including existing value for {field}: %', val;
+                        END IF;
+                    END LOOP;
+                END IF;
+
+                -- Build the VALUES clause
+                SELECT string_agg('''' || replace(v, '''', '''''') || '''', ', ')
+                INTO vals_sql
+                FROM unnest(all_vals) AS v;
+
+                -- Add the CHECK constraint with all values
+                EXECUTE format(
+                    'ALTER TABLE migration.assets ADD CONSTRAINT %I CHECK (%I IN (%s) OR %I IS NULL)',
+                    '{constraint_name}', '{field}', vals_sql, '{field}'
+                );
+                RAISE NOTICE 'Added constraint {constraint_name}';
             END $$;
             """
         )
