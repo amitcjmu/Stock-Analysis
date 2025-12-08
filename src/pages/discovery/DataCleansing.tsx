@@ -1,11 +1,12 @@
 import React from 'react'
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useEffect } from 'react'
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useUnifiedDiscoveryFlow } from '../../hooks/useUnifiedDiscoveryFlow';
 import { isFlowTerminal } from '../../constants/flowStates';
 import { usePhaseAwareFlowResolver } from '../../hooks/discovery/attribute-mapping/usePhaseAwareFlowResolver';
+import { logTerminalStateAuditEvent } from '../../utils/auditLogger';
 import { useLatestImport, useAssets, useDataCleansingStats, useDataCleansingAnalysis, useTriggerDataCleansingAnalysis } from '../../hooks/discovery/useDataCleansingQueries';
 import { downloadRawData, downloadCleanedData, applyRecommendation } from '../../services/dataCleansingService';
 import { API_CONFIG } from '../../config/api'
@@ -38,7 +39,7 @@ import { assetConflictService } from '../../services/api/assetConflictService';
 import type { AssetConflict } from '../../types/assetConflict';
 
 const DataCleansing: React.FC = () => {
-  const { user, client, engagement, isLoading: isAuthLoading, setCurrentFlow } = useAuth();
+  const { user, client, engagement, isLoading: isAuthLoading, setCurrentFlow, getAuthHeaders } = useAuth();
   const [pendingQuestions, setPendingQuestions] = useState(0);
 
   // Asset conflict resolution state
@@ -748,6 +749,32 @@ const DataCleansing: React.FC = () => {
     (noDataToProcess && allQuestionsAnswered)
   );
 
+  // Handler for blocked navigation due to terminal state
+  const handleBlockedNavigation = React.useCallback(() => {
+    if (isFlowTerminalState) {
+      logTerminalStateAuditEvent(
+        {
+          action_type: 'continue_to_inventory_blocked',
+          resource_type: 'discovery_flow',
+          resource_id: effectiveFlowId,
+          result: 'blocked',
+          reason: `Navigation blocked: Flow is in terminal state (${flowStatus})`,
+          details: {
+            flow_status: flowStatus,
+            action_name: 'Continue to Inventory',
+          },
+        },
+        effectiveFlowId,
+        client?.id,
+        engagement?.id,
+        getAuthHeaders()
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isFlowTerminalState, flowStatus, effectiveFlowId, client?.id, engagement?.id]);
+  // Note: getAuthHeaders is intentionally excluded from dependencies
+  // to prevent unnecessary re-renders. It's called at execution time.
+
   // CC FIX: Use sample data from dataCleansingAnalysis API response (ADR-038)
   // Fall back to flow data for backward compatibility
   const rawDataSample = dataCleansingAnalysis?.raw_data_sample || flow?.raw_data?.slice(0, 3) || [];
@@ -1154,7 +1181,13 @@ const DataCleansing: React.FC = () => {
                 <DataCleansingNavigationButtons
                   canContinue={canContinueToInventory}
                   onBackToAttributeMapping={handleBackToAttributeMapping}
-                  onContinueToInventory={handleContinueToInventory}
+                  onContinueToInventory={() => {
+                    if (isFlowTerminalState) {
+                      handleBlockedNavigation();
+                    } else {
+                      handleContinueToInventory();
+                    }
+                  }}
                 />
               </div>
 

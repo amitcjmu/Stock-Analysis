@@ -81,23 +81,19 @@ export interface ControlDiscoveryFlowResponse extends BaseApiResponse<FlowAction
 }
 
 // Flow Data Models
-export interface DiscoveryFlowData {
-  id: string;
-  flow_id: string;
-  flow_name: string;
-  flow_description?: string;
-  status: FlowStatus;
-  current_phase: string;
-  progress: number;
-  configuration: DiscoveryFlowConfiguration;
-  context: MultiTenantContext;
-  created_at: string;
-  updated_at: string;
-  created_by: string;
-  metadata: FlowMetadata;
-  phases: FlowPhase[];
-  state: FlowState;
-}
+/**
+ * DiscoveryFlowData type
+ *
+ * @deprecated Import from '@/types/discovery' instead.
+ * This export is maintained for backward compatibility.
+ * The authoritative type is defined in src/types/discovery.ts
+ *
+ * Note: The unified type in src/types/discovery.ts is more comprehensive
+ * and includes all fields from the actual API response. For API-specific
+ * types that extend DiscoveryFlowData, use the base type and add
+ * API-specific fields as needed.
+ */
+export type { DiscoveryFlowData } from '../../discovery';
 
 export interface DiscoveryFlowConfiguration {
   enable_auto_mapping?: boolean;
