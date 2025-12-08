@@ -11,7 +11,7 @@ Per ADR-037: Intelligent Gap Detection and Questionnaire Generation Architecture
 """
 
 import logging
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional, Set
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,6 +21,10 @@ from app.services.collection.gap_analysis.models import (
     IntelligentGap,
     COLLECTION_FLOW_FIELD_METADATA,
 )
+from app.services.collection.gap_analysis.asset_type_requirements import (
+    AssetTypeRequirements,
+)
+from app.services.collection.critical_attributes import CriticalAttributesDefinition
 from .data_loaders import DataLoaders
 from .data_extractors import DataExtractors
 
@@ -71,6 +75,12 @@ class IntelligentGapScanner:
         self.data_loaders = DataLoaders(db, client_account_id, engagement_id)
         self.data_extractors = DataExtractors()
 
+        # Build field_id → attribute mapping for proper applicability checks
+        # Issue #1193 Fix: COLLECTION_FLOW_FIELD_METADATA uses field_ids (e.g., "operating_system")
+        # but AssetTypeRequirements uses attribute names (e.g., "operating_system_version")
+        # This mapping bridges the gap
+        self._field_to_attr_map = self._build_field_to_attr_map()
+
     async def scan_gaps(self, asset: Asset) -> List[IntelligentGap]:
         """
         Scan asset for TRUE gaps across all 6 data sources.
@@ -88,6 +98,22 @@ class IntelligentGapScanner:
         canonical_apps = await self.data_loaders.load_canonical_applications(asset.id)
         related_assets = await self.data_loaders.load_related_assets(asset.id)
 
+        # Issue #1193 Fix: Get applicable attributes for this asset type
+        # Applications should NOT get gaps for server-level infrastructure attributes
+        # (operating_system_version, cpu_memory_storage_specs, network_configuration)
+        asset_type = getattr(asset, "asset_type", "application")
+        applicable_attrs_list = AssetTypeRequirements.get_applicable_attributes(
+            asset_type
+        )
+        # GPT5.1 Codex Safety: If get_applicable_attributes returns empty (unknown/typo),
+        # fallback to ALL attributes to avoid skipping mapped fields for unknown types
+        applicable_attrs = (
+            set(applicable_attrs_list)
+            if applicable_attrs_list
+            else set(AssetTypeRequirements.ALL_CRITICAL_ATTRIBUTES)
+        )
+        inapplicable_count = 0
+
         # Scan fields by section
         for section_id, section_meta in COLLECTION_FLOW_FIELD_METADATA.items():
             # Skip section if not in sections_to_scan
@@ -97,6 +123,17 @@ class IntelligentGapScanner:
             section_fields = section_meta["fields"]
 
             for field_id, field_meta in section_fields.items():
+                # Issue #1193 Fix: Skip fields not applicable to this asset type
+                # E.g., applications should NOT get gaps for operating_system, cpu_cores, etc.
+                # because apps can depend on multiple servers with different OSes
+                #
+                # GPT5.1 Codex Fix: field_id (e.g., "operating_system") != attribute name
+                # (e.g., "operating_system_version"). Use _is_field_applicable() to map
+                # field_ids to their corresponding attributes and check if ANY are applicable.
+                if not self._is_field_applicable(field_id, applicable_attrs):
+                    inapplicable_count += 1
+                    continue
+
                 # Check all 6 sources
                 data_sources_checked: List[DataSource] = []
 
@@ -212,8 +249,8 @@ class IntelligentGapScanner:
                     )
 
         logger.info(
-            f"Scanned asset {asset.id}: Found {len(gaps)} TRUE gaps "
-            f"(checked 6 sources for {len(COLLECTION_FLOW_FIELD_METADATA)} fields)"
+            f"Scanned asset {asset.id} ({asset_type}): Found {len(gaps)} TRUE gaps "
+            f"(checked 6 sources, skipped {inapplicable_count} inapplicable fields)"
         )
 
         return gaps
@@ -295,3 +332,101 @@ class IntelligentGapScanner:
                 confidence=0.70,
             )
         return None
+
+    def _build_field_to_attr_map(self) -> Dict[str, List[str]]:
+        """
+        Build mapping from field_id to list of attribute names.
+
+        Issue #1193 Fix (GPT5.1 Codex): COLLECTION_FLOW_FIELD_METADATA uses field_ids
+        like "operating_system", "cpu_cores", etc. but AssetTypeRequirements uses
+        attribute names like "operating_system_version", "cpu_memory_storage_specs".
+
+        This method creates a reverse mapping from field_id -> [attribute names]
+        so we can check if a field_id maps to any applicable attribute.
+
+        Example mapping:
+            "operating_system" -> ["operating_system_version"]
+            "os_version" -> ["operating_system_version"]
+            "cpu_cores" -> ["cpu_memory_storage_specs"]
+            "memory_gb" -> ["cpu_memory_storage_specs"]
+            "technology_stack" -> ["technology_stack"]  # Direct match
+
+        Returns:
+            Dict mapping field_id to list of attribute names it belongs to
+        """
+        field_to_attr: Dict[str, List[str]] = {}
+
+        # Get attribute mappings from CriticalAttributesDefinition
+        attr_mapping = CriticalAttributesDefinition.get_attribute_mapping()
+
+        for attr_name, attr_config in attr_mapping.items():
+            asset_fields = attr_config.get("asset_fields", [])
+
+            for field in asset_fields:
+                # Handle custom_attributes.* paths - extract just the field name
+                if field.startswith("custom_attributes."):
+                    field_key = field.replace("custom_attributes.", "")
+                elif "." in field:
+                    # Skip complex paths like "resilience.rto_minutes"
+                    # (these are enrichment table paths, not field_ids)
+                    continue
+                else:
+                    field_key = field
+
+                # Add to mapping
+                if field_key not in field_to_attr:
+                    field_to_attr[field_key] = []
+                if attr_name not in field_to_attr[field_key]:
+                    field_to_attr[field_key].append(attr_name)
+
+        logger.debug(
+            f"Built field_id → attribute mapping with {len(field_to_attr)} field_ids"
+        )
+        return field_to_attr
+
+    def _is_field_applicable(self, field_id: str, applicable_attrs: Set[str]) -> bool:
+        """
+        Check if a field_id is applicable for the given asset type.
+
+        Issue #1193 Fix (GPT5.1 Codex): Instead of checking if field_id is directly
+        in applicable_attrs (which would fail since they use different naming),
+        we look up which attribute(s) the field_id maps to and check if ANY of
+        those attributes are applicable.
+
+        Args:
+            field_id: Field from COLLECTION_FLOW_FIELD_METADATA (e.g., "operating_system")
+            applicable_attrs: Set of applicable attribute names for this asset type
+                             (e.g., {"operating_system_version", "technology_stack", ...})
+
+        Returns:
+            True if field should be scanned for this asset type, False to skip
+
+        Example:
+            field_id="operating_system", applicable_attrs={"technology_stack", ...}
+            -> "operating_system" maps to "operating_system_version"
+            -> "operating_system_version" NOT in applicable_attrs
+            -> Return False (skip this field for applications)
+
+            field_id="technology_stack", applicable_attrs={"technology_stack", ...}
+            -> "technology_stack" maps to "technology_stack"
+            -> "technology_stack" IS in applicable_attrs
+            -> Return True (scan this field)
+        """
+        # Look up which attributes this field_id maps to
+        mapped_attrs = self._field_to_attr_map.get(field_id, [])
+
+        if not mapped_attrs:
+            # Field not found in mapping - default to applicable
+            # This ensures we don't accidentally skip fields not in the mapping
+            logger.debug(
+                f"Field '{field_id}' not in attribute mapping, defaulting to applicable"
+            )
+            return True
+
+        # Check if ANY mapped attribute is applicable
+        for attr in mapped_attrs:
+            if attr in applicable_attrs:
+                return True
+
+        # None of the mapped attributes are applicable - skip this field
+        return False

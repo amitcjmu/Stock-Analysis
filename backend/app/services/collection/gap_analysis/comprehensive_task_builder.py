@@ -24,7 +24,9 @@ from app.services.collection.gap_analysis.data_intelligence import DataIntellige
 logger = logging.getLogger(__name__)
 
 
-def build_comprehensive_gap_analysis_task(assets: List[Asset]) -> str:
+def build_comprehensive_gap_analysis_task(
+    assets: List[Asset], related_assets_map: dict = None
+) -> str:
     """Build task for comprehensive AI gap detection (gaps ONLY, no questionnaires).
 
     Per PR #1043: Auto-trigger phase that:
@@ -38,21 +40,71 @@ def build_comprehensive_gap_analysis_task(assets: List[Asset]) -> str:
     - Agent decides which attributes are missing AND relevant for each asset type
     - Agent autonomously filters irrelevant gaps (e.g., "user_patterns" for databases)
 
+    UPDATED for Issue #1193 (December 2025):
+    - Now accepts related_assets_map to include data from underlying servers
+    - Applications inherit OS/virtualization/tech_stack data from mapped servers
+    - This prevents redundant gap questions for data that exists in related assets
+
     This is different from:
     - build_task_description(): Builds gaps AND questionnaires
     - build_enhancement_task_description(): Only enhances existing heuristic gaps
 
     Args:
         assets: List of Asset objects for agent to comprehensively analyze
+        related_assets_map: Dict mapping asset_id -> list of related Asset objects
+                           (e.g., servers that an application depends on)
 
     Returns:
         Task description string for CrewAI agent with full autonomy to detect gaps
     """
+    if related_assets_map is None:
+        related_assets_map = {}
     # Build asset summary with current data (let agent determine gaps)
     asset_summary = []
     for asset in assets[:10]:  # Show first 10
         # Get existing fields from all sources (model + JSONB)
         existing_fields = DataIntelligence.get_existing_fields(asset)
+
+        # Issue #1193 Fix: Also include fields from related assets (e.g., servers)
+        # This allows applications to inherit OS/virtualization/tech_stack from servers
+        related_assets = related_assets_map.get(str(asset.id), [])
+        related_asset_fields = {}
+        related_asset_info = []
+
+        # Define fields to inherit before the loop
+        # (infrastructure fields that apps typically inherit from servers)
+        inherit_fields = [
+            "operating_system_version",
+            "virtualization_platform",
+            "cpu_memory_storage_specs",
+            "network_configuration",
+        ]
+
+        for related in related_assets:
+            related_fields = DataIntelligence.get_existing_fields(related)
+            related_asset_info.append(
+                {
+                    "name": related.name,
+                    "type": related.asset_type,
+                    "fields": related_fields,
+                }
+            )
+            # Aggregate values from each related asset (app can have multiple servers)
+            for field_name, field_value in related_fields.items():
+                if field_name in inherit_fields and field_name not in existing_fields:
+                    inherited_key = f"inherited_{field_name}"
+                    if inherited_key not in related_asset_fields:
+                        related_asset_fields[inherited_key] = {
+                            "value": [],
+                            "source": [],
+                        }
+
+                    # Add unique values to the list
+                    if field_value not in related_asset_fields[inherited_key]["value"]:
+                        related_asset_fields[inherited_key]["value"].append(field_value)
+                        related_asset_fields[inherited_key]["source"].append(
+                            f"related_asset:{related.name}"
+                        )
 
         # Get attributes applicable to this asset type (as guidance, not prescription)
         applicable_attrs = AssetTypeRequirements.get_applicable_attributes(
@@ -63,17 +115,26 @@ def build_comprehensive_gap_analysis_task(assets: List[Asset]) -> str:
             "id": str(asset.id),
             "name": asset.name,
             "type": asset.asset_type,
-            "current_fields": existing_fields,  # Data that exists
+            "current_fields": existing_fields,  # Data that exists on this asset
+            "inherited_from_related_assets": related_asset_fields,  # Data from servers
+            "related_assets_count": len(
+                related_assets
+            ),  # How many servers it depends on
             "applicable_attributes_count": len(
                 applicable_attrs
             ),  # Guidance on typical scope
         }
+
+        # Include detailed related asset info if there are related assets
+        if related_asset_info:
+            asset_data["related_assets"] = related_asset_info
 
         asset_summary.append(asset_data)
 
         logger.debug(
             f"Asset {asset.name} ({asset.asset_type}): "
             f"{len(existing_fields)} existing fields, "
+            f"{len(related_asset_fields)} inherited fields from {len(related_assets)} related assets, "
             f"{len(applicable_attrs)} typically applicable attributes"
         )
 
@@ -94,12 +155,24 @@ INSTRUCTIONS:
 4. Assign priority: 1=blocks migration, 2=impacts cost/complexity, 3=optimization, 4=nice-to-have
 5. Set confidence_score (0.0-1.0): 1.0=definitely missing, 0.5=maybe relevant
 6. Return gaps ONLY (no questionnaires - those generate separately)
+7. **CHECK INHERITED DATA FROM RELATED ASSETS** - Applications inherit infrastructure data
+   from underlying servers. If "inherited_from_related_assets" has data like
+   operating_system_version, virtualization_platform, etc., DO NOT create gaps for those!
 
 WHY NO TOOLS:
 - You have complete Asset metadata with current_fields
 - Data validation tools are for CSV imports, not gap analysis
 - Tools would return "0 records" because no raw import data exists at this stage
 - Direct analysis is 6x faster and more accurate
+
+**IMPORTANT - RELATED ASSET DATA INHERITANCE (Issue #1193)**:
+- Applications often depend on servers (via asset_dependencies)
+- Each asset includes "inherited_from_related_assets" showing data from dependent assets
+- For APPLICATIONS: If a related SERVER has operating_system, virtualization_platform,
+  cpu_memory_storage_specs, or network_configuration, DO NOT create gaps for these fields!
+- The inherited data IS the data for the application's infrastructure context
+- Example: If "Analytics Engine" (app) depends on "BackupServer-02" (server) with
+  operating_system="CentOS 8", DO NOT create an operating_system_version gap for the app
 
 YOUR MISSION - CLOUD MIGRATION READINESS:
 You are a cloud migration architect. Your goal is to identify missing data that impacts:
