@@ -8,11 +8,12 @@ import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import select
+from sqlalchemy import and_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
 from app.models import User
+from app.models.collection_data_gap import CollectionDataGap
 from app.models.collection_flow import CollectionFlow
 from app.models.collection_questionnaire_response import CollectionQuestionnaireResponse
 
@@ -399,6 +400,37 @@ async def resolve_data_gaps(
                 f"with value: {gap.resolved_value[:50]}..."
             )
 
+            # ✅ CRITICAL FIX: Also resolve ALL OTHER gaps for same (asset_id, field_name)
+            # The unique constraint allows multiple gap_types per field, but when user
+            # provides an answer, ALL gaps for that field should be marked resolved.
+            # This prevents duplicate gaps from appearing in new collection flows.
+            if gap.asset_id:
+                additional_resolved = await db.execute(
+                    update(CollectionDataGap)
+                    .where(
+                        and_(
+                            CollectionDataGap.asset_id == gap.asset_id,
+                            CollectionDataGap.field_name == gap.field_name,
+                            CollectionDataGap.resolution_status == "pending",
+                            CollectionDataGap.id
+                            != gap.id,  # Exclude already-updated gap
+                        )
+                    )
+                    .values(
+                        resolution_status="resolved",
+                        resolved_at=datetime.utcnow(),
+                        resolved_by="manual_submission",
+                        resolved_value=gap.resolved_value,
+                    )
+                )
+                additional_count = additional_resolved.rowcount
+                if additional_count > 0:
+                    gaps_resolved += additional_count
+                    logger.info(
+                        f"🔄 Also resolved {additional_count} additional gap(s) for "
+                        f"field '{gap.field_name}' (different gap_types)"
+                    )
+
     if gaps_resolved > 0:
         logger.info(f"Resolved {gaps_resolved} data gaps through manual submission")
 
@@ -413,7 +445,14 @@ async def apply_asset_writeback(
     db: AsyncSession,
 ) -> None:
     """Apply resolved gaps to assets via write-back service."""
+    # DIAGNOSTIC: Log entry point
+    logger.info(
+        f"🔍 WRITEBACK START: gaps_resolved={gaps_resolved}, flow_id={flow.id}, "
+        f"engagement_id={context.engagement_id}, client_account_id={context.client_account_id}"
+    )
+
     if gaps_resolved <= 0:
+        logger.info(f"🔍 WRITEBACK SKIP: gaps_resolved={gaps_resolved} <= 0")
         return
 
     try:
@@ -427,12 +466,15 @@ async def apply_asset_writeback(
             "client_account_id": context.client_account_id,
             "user_id": current_user.id,
         }
+        logger.info(f"🔍 WRITEBACK CONTEXT: {writeback_context}")
 
         await apply_resolved_gaps_to_assets(db, flow.id, writeback_context)
-        logger.info(f"Successfully applied {gaps_resolved} resolved gaps to assets")
+        logger.info(f"✅ Successfully applied {gaps_resolved} resolved gaps to assets")
 
     except Exception as e:
-        logger.error(f"Asset write-back failed after manual submission: {e}")
+        logger.error(
+            f"❌ Asset write-back failed after manual submission: {e}", exc_info=True
+        )
         # Don't fail the entire operation if write-back fails
 
 
