@@ -96,13 +96,10 @@ curl http://localhost:9090/-/healthy
 ```
 
 ### Step 5: Access Grafana
-**URL**: https://aiforceasses.cloudsmarthcl.com:9999
+**URL**: https://aiforceassessgrafana.cloudsmarthcl.com/
 **Login**: admin / `<GRAFANA_ADMIN_PASSWORD from .env.observability>`
 
-**⚠️ IMPORTANT**: You'll need NSG rule for port 9999:
-- Protocol: TCP
-- Port: 9999
-- Source: Office IP (recommended) OR Any (less secure)
+**⚠️ IMPORTANT**: Access is via dedicated subdomain with Azure Front Door/App Gateway handling TLS termination.
 
 ### Step 6: Verify Datasources
 In Grafana:
@@ -244,7 +241,7 @@ docker exec -it migration_postgres psql -U grafana_readonly -d migration_db -c "
 ## ✅ Success Criteria
 
 After deployment, you should be able to:
-- [ ] Access Grafana at https://aiforceasses.cloudsmarthcl.com:9999
+- [ ] Access Grafana at https://aiforceassessgrafana.cloudsmarthcl.com/
 - [ ] Login with admin credentials
 - [ ] See 4 datasources configured (Loki, Tempo, Prometheus, PostgreSQL)
 - [ ] Query logs from backend/frontend containers in Explore → Loki

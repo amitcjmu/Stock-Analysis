@@ -135,8 +135,8 @@
   ```
   - Set `GRAFANA_ADMIN_PASSWORD`
   - Set `POSTGRES_GRAFANA_PASSWORD`
-  - For HTTPS (native): Set `GF_SERVER_PROTOCOL=https`, `GF_SERVER_ROOT_URL=https://aiforceasses.cloudsmarthcl.com:9999`
-  - For HTTPS (external TLS): Set `GF_SERVER_PROTOCOL=http`, `GF_SERVER_ROOT_URL=https://aiforceasses.cloudsmarthcl.com:9999`
+  - For Azure: Set `GF_SERVER_ROOT_URL=https://aiforceassessgrafana.cloudsmarthcl.com/`
+  - For Azure (external TLS): Set `GF_SERVER_PROTOCOL=http`, `GF_SERVER_ROOT_URL=https://aiforceassessgrafana.cloudsmarthcl.com/`
 
 - [ ] Create PostgreSQL read-only user
   ```bash
@@ -156,14 +156,14 @@
 
 ### Post-Deployment Verification
 
-- [ ] Grafana accessible at https://aiforceasses.cloudsmarthcl.com:9999
+- [ ] Grafana accessible at https://aiforceassessgrafana.cloudsmarthcl.com/
   ```bash
-  curl -k -s https://aiforceasses.cloudsmarthcl.com:9999/api/health | jq .
+  curl -k -s https://aiforceassessgrafana.cloudsmarthcl.com/api/health | jq .
   ```
 
-- [ ] SSL certificate valid (if using native HTTPS)
+- [ ] SSL certificate valid
   ```bash
-  openssl s_client -connect aiforceasses.cloudsmarthcl.com:9999 -showcerts
+  openssl s_client -connect aiforceassessgrafana.cloudsmarthcl.com:443 -showcerts
   ```
 
 - [ ] Login works with admin credentials
@@ -184,7 +184,7 @@
 - [ ] NSG rule enforced (test from non-allowlisted IP if restricted)
   ```bash
   # From external IP - should fail if IP-restricted
-  curl --connect-timeout 5 https://aiforceasses.cloudsmarthcl.com:9999/api/health
+  curl --connect-timeout 5 https://aiforceassessgrafana.cloudsmarthcl.com/api/health
   ```
 
 - [ ] HTTPS enforced (HTTP redirects or blocked)

@@ -17,7 +17,7 @@ The AI Modernize Migration Platform operates in an **enterprise-isolated Azure e
    - Browser-based Bastion host (Azure Portal SSH)
    - CLI-only log access (`docker logs` via Bastion SSH)
    - Multiple containers (backend, frontend, postgres, redis)
-   - DNS: `aiforceasses.cloudsmarthcl.com` (with port-based services)
+   - DNS: `aiforceassessgrafana.cloudsmarthcl.com` (dedicated Grafana subdomain)
    - **Enterprise firewall**: Blocks outbound to github.com, public OAuth providers
    - **Manual deployment**: Code copied via Bastion, no GitHub Actions
    - **Need**: Web UI for log aggregation, metrics, and traces accessible via DNS
@@ -51,7 +51,7 @@ The AI Modernize Migration Platform operates in an **enterprise-isolated Azure e
    - Enterprise firewall blocks GitHub OAuth, external SaaS services
    - Manual deployment only (no CI/CD from GitHub Actions)
    - Browser-based Bastion access (SSH via Azure Portal)
-   - DNS + port-based access pattern (`:9999` for Grafana)
+   - DNS subdomain access pattern (dedicated Grafana subdomain)
 
 2. **Existing monitoring infrastructure must be integrated**:
    - LLM usage tracking: `migration.llm_usage_logs` table (MANDATORY - CLAUDE.md)
@@ -76,9 +76,9 @@ Stack: Grafana + Loki + Tempo + Prometheus + Alloy (5 containers - Tier B)
 Purpose: Full observability (logs, metrics, traces) with web UI
 Deployment: Docker Compose on Azure Ubuntu VM (manual deployment)
 Access:
-  - DNS: https://aiforceasses.cloudsmarthcl.com:9999
+  - DNS: https://aiforceassessgrafana.cloudsmarthcl.com/
   - Bastion: Browser-based SSH via Azure Portal
-  - NSG Rule: Port 9999 inbound (IP-restricted recommended)
+  - NSG Rule: Via Azure Front Door/App Gateway (HTTPS/443)
 Authentication:
   - Local admin auth (GitHub OAuth blocked by enterprise firewall)
   - Strong password (20+ chars, rotated every 90 days)
@@ -379,7 +379,7 @@ Cost: $0 (local resources)
 - [ ] Copy observability configs to VM
 - [ ] Deploy: `docker-compose -f docker-compose.yml -f docker-compose.observability.yml up -d`
 - [ ] Verify all 5 containers running
-- [ ] Test access: `https://aiforceasses.cloudsmarthcl.com:9999`
+- [ ] Test access: `https://aiforceassessgrafana.cloudsmarthcl.com/`
 
 **Security**:
 - [ ] Generate strong Grafana admin password (20+ chars)
@@ -508,7 +508,7 @@ Railway Prod (if deployed): $40-300/month (self-hosted) OR $5-70/month (Grafana 
 ## Success Criteria
 
 ### Azure Dev
-- [ ] Developers access logs via Grafana web UI at `https://aiforceasses.cloudsmarthcl.com:9999`
+- [ ] Developers access logs via Grafana web UI at `https://aiforceassessgrafana.cloudsmarthcl.com/`
 - [ ] All 4 containers (backend, frontend, postgres, redis) visible in Loki dashboard
 - [ ] Error log filtering works (`ERROR|CRITICAL|Exception` regex)
 - [ ] LLM usage dashboard shows cost by model/provider/tenant
@@ -540,14 +540,13 @@ Railway Prod (if deployed): $40-300/month (self-hosted) OR $5-70/month (Grafana 
   - Secret delivery: Pull from Azure Key Vault (if available) OR secure password manager
   - Future: Azure AD integration (if accessible within firewall)
 - **Network**:
-  - Azure NSG rule: Port 9999 inbound
-  - Recommended: IP allowlist (office public IP only)
-  - Alternative: Allow from Any (requires stronger password policy)
-  - DNS: `https://aiforceasses.cloudsmarthcl.com:9999`
+  - Azure Front Door/App Gateway handles routing
+  - Grafana accessible via dedicated subdomain: `https://aiforceassessgrafana.cloudsmarthcl.com/`
+  - IP restrictions can be applied at Azure Front Door level
 - **TLS**:
   - **HTTPS MANDATORY** (not optional)
   - Terminate TLS at nginx/Traefik reverse proxy OR Azure App Gateway
-  - Use existing SSL certificate for `aiforceasses.cloudsmarthcl.com`
+  - Use existing SSL certificate for `aiforceassessgrafana.cloudsmarthcl.com`
   - Do NOT run Grafana over plain HTTP in production
 - **RBAC**:
   - Initial: Single admin account for SRE/engineering only
@@ -686,7 +685,7 @@ After comprehensive analysis considering enterprise constraints:
 
 1. **Enterprise firewall requires local auth** - GitHub OAuth blocked, manual deployment only
 2. **Tier B provides comprehensive value** - Not just logs, but metrics/traces for LLM costs, agent performance, MFO flows
-3. **Azure dev is primary use case** - CLI-only access is poor DX, DNS + port access (`:9999`) is standard pattern
+3. **Azure dev is primary use case** - CLI-only access is poor DX, dedicated subdomain access is standard pattern
 4. **Integration with existing tracking is critical** - LLM usage logs (MANDATORY per CLAUDE.md), MFO flows (ADR-006), TenantMemoryManager (ADR-024)
 5. **Grafana stack over OpenLIT** - Modern (Tempo not Jaeger, Alloy not Promtail+OTel), integrated, fewer containers (5 vs 7+)
 6. **Railway deployment is optional but valuable** - Built-in logs sufficient for troubleshooting, but dashboards add value for analytics
