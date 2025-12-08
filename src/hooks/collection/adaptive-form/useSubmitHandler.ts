@@ -367,59 +367,37 @@ export function useSubmitHandler({
               }
             }
           } else {
-            // No more questionnaires returned - collection is complete
+            // No more questionnaires returned - questionnaire phase is complete
+            // FIX: Don't auto-transition to assessment - stay in collection flow
+            // The collection flow has more phases (summary, finalization) before assessment
             console.log(
-              "✅ No more questionnaires - collection flow is complete",
+              "✅ No more questionnaires - questionnaire responses complete",
             );
 
-            // CRITICAL FIX: Automatically transition to assessment flow after collection completes
-            // This ensures the collection flow properly triggers the assessment phase
-            try {
-              console.log("🔄 Triggering automatic transition to assessment flow...");
-              const transitionResult = await collectionFlowApi.transitionToAssessment(actualFlowId);
+            setState((prev) => ({ ...prev, isCompleted: true }));
 
-              console.log("✅ Transition successful:", transitionResult);
-
-              setState((prev) => ({ ...prev, isCompleted: true }));
-
+            // Check if this was a bootstrap form completion
+            if (isBootstrapForm) {
               toast({
-                title: "Collection Complete - Assessment Ready",
-                description: `Your data has been collected successfully. Transitioning to assessment flow...`,
+                title: "Application Details Saved",
+                description:
+                  "Application information has been saved successfully!",
+                variant: "default",
               });
-
-              // Redirect to assessment flow 6R review page (default entry point)
-              setTimeout(() => {
-                window.location.href = `/assessment/${transitionResult.assessment_flow_id}/sixr-review`;
-              }, 2000);
-
-            } catch (transitionError) {
-              console.error("❌ Failed to transition to assessment:", transitionError);
-
-              // Fallback to collection complete state if transition fails
-              setState((prev) => ({ ...prev, isCompleted: true }));
-
-              // Check if this was a bootstrap form completion
-              if (isBootstrapForm) {
-                toast({
-                  title: "Application Details Saved",
-                  description:
-                    "Application information has been saved successfully! You can manually start the assessment phase.",
-                  variant: "default",
-                });
-              } else {
-                toast({
-                  title: "Collection Complete",
-                  description:
-                    "All required information has been collected. You can manually start the assessment phase.",
-                  variant: "default",
-                });
-              }
-
-              // Fallback: Redirect to collection progress page
-              setTimeout(() => {
-                window.location.href = `/collection/progress/${actualFlowId}`;
-              }, 2000);
+            } else {
+              toast({
+                title: "Questionnaire Complete",
+                description:
+                  "All responses have been collected. Redirecting to collection progress...",
+                variant: "default",
+              });
             }
+
+            // Redirect to collection progress page to continue with remaining phases
+            // The user can manually trigger assessment when ready
+            setTimeout(() => {
+              window.location.href = `/collection/progress?flowId=${actualFlowId}`;
+            }, 2000);
           }
         } catch (refreshError) {
           console.error("Failed to refresh questionnaires:", refreshError);
