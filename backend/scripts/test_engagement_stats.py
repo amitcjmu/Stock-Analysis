@@ -35,7 +35,7 @@ async def test_mfo_engagement_stats():
 
         from app.core.database import AsyncSessionLocal
         from app.models import Engagement
-        from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensionss
+        from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
         from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 
         # Create MFO context for metrics collection
@@ -68,9 +68,9 @@ async def test_mfo_engagement_stats():
             print("\n=== MFO Master Flow Statistics ===")
             master_flows_query = (
                 select(func.count())
-                .select_from(CrewAIFlowStateExtensionss)
+                .select_from(CrewAIFlowStateExtensions)
                 .where(
-                    CrewAIFlowStateExtensionss.client_account_id
+                    CrewAIFlowStateExtensions.client_account_id
                     == mfo_context.client_account_id
                 )
             )

@@ -51,12 +51,15 @@ const CreateUser: React.FC = () => {
   const { toast } = useToast();
   const { getAuthHeaders } = useAuth();
 
-  // Fetch clients
+  // Fetch clients - use explicit auth headers for admin endpoints
   const clientsQuery = useQuery<Client[]>({
     queryKey: ['admin-clients'],
     queryFn: async () => {
       try {
-        const result = await apiCall('/admin/clients/');
+        const result = await apiCall('/admin/clients/', {
+          method: 'GET',
+          headers: getAuthHeaders()
+        }, false); // Don't include tenant context for admin endpoints
         return result.items || [];
       } catch (error) {
         console.error('Error fetching clients:', error);
@@ -66,12 +69,15 @@ const CreateUser: React.FC = () => {
     initialData: [],
   });
 
-  // Fetch engagements
+  // Fetch engagements - use explicit auth headers for admin endpoints
   const engagementsQuery = useQuery<Engagement[]>({
     queryKey: ['admin-engagements'],
     queryFn: async () => {
       try {
-        const result = await apiCall('/admin/engagements/');
+        const result = await apiCall('/admin/engagements/', {
+          method: 'GET',
+          headers: getAuthHeaders()
+        }, false); // Don't include tenant context for admin endpoints
         return result.items || [];
       } catch (error) {
         console.error('Error fetching engagements:', error);
@@ -419,9 +425,17 @@ const CreateUser: React.FC = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="default_client_id">Default Client Account *</Label>
-                  <Select value={formData.default_client_id} onValueChange={(value) => handleFormChange('default_client_id', value)}>
+                  <Select
+                    value={formData.default_client_id}
+                    onValueChange={(value) => handleFormChange('default_client_id', value)}
+                    disabled={clientsQuery.isLoading}
+                  >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select default client (required)" />
+                      <SelectValue placeholder={
+                        clientsQuery.isLoading ? "Loading clients..." :
+                        clientsQuery.data?.length === 0 ? "No clients available" :
+                        "Select default client (required)"
+                      } />
                     </SelectTrigger>
                     <SelectContent>
                       {clientsQuery.data?.map(client => (
@@ -431,6 +445,12 @@ const CreateUser: React.FC = () => {
                       ))}
                     </SelectContent>
                   </Select>
+                  {clientsQuery.data?.length === 0 && !clientsQuery.isLoading && (
+                    <p className="text-sm text-amber-600 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      No clients found. Check admin console or contact support.
+                    </p>
+                  )}
                   {errors.default_client_id && (
                     <p className="text-sm text-red-600 flex items-center gap-1">
                       <AlertCircle className="w-3 h-3" />
@@ -444,10 +464,15 @@ const CreateUser: React.FC = () => {
                   <Select
                     value={formData.default_engagement_id}
                     onValueChange={(value) => handleFormChange('default_engagement_id', value)}
-                    disabled={!formData.default_client_id}
+                    disabled={!formData.default_client_id || engagementsQuery.isLoading}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder={formData.default_client_id ? "Select default engagement (required)" : "Select client first"} />
+                      <SelectValue placeholder={
+                        !formData.default_client_id ? "Select client first" :
+                        engagementsQuery.isLoading ? "Loading engagements..." :
+                        filteredEngagements.length === 0 ? "No engagements for this client" :
+                        "Select default engagement (required)"
+                      } />
                     </SelectTrigger>
                     <SelectContent>
                       {filteredEngagements.map(engagement => (

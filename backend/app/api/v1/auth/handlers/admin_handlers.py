@@ -51,16 +51,21 @@ async def get_admin_dashboard_stats(
 async def get_active_users(
     page: int = Query(1, ge=1),
     page_size: int = Query(100, ge=1, le=500),
+    include_inactive: bool = Query(
+        False, description="Include inactive users (for reactivation purposes)"
+    ),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Get active users for admin management."""
+    """Get users for admin management. Optionally include inactive users."""
     try:
         # Use authenticated user from dependency injection
         user_id_str = str(current_user.id)
 
         admin_service = AdminOperationsService(db)
-        return await admin_service.get_active_users(user_id_str, page, page_size)
+        return await admin_service.get_active_users(
+            user_id_str, page, page_size, include_inactive=include_inactive
+        )
 
     except HTTPException:
         raise

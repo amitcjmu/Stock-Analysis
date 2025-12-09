@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -62,6 +63,7 @@ export const UserSearchAndEdit: React.FC = () => {
   const [engagements, setEngagements] = useState<Engagement[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [includeInactive, setIncludeInactive] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [editForm, setEditForm] = useState<UserEditForm>({
@@ -77,7 +79,10 @@ export const UserSearchAndEdit: React.FC = () => {
   const loadUsers = useCallback(async (): Promise<void> => {
     try {
       setLoading(true);
-      const response = await apiCall('/auth/active-users');
+      const endpoint = includeInactive
+        ? '/auth/active-users?include_inactive=true'
+        : '/auth/active-users';
+      const response = await apiCall(endpoint);
 
       if (response.status === 'success') {
         setUsers(response.active_users || []);
@@ -94,7 +99,7 @@ export const UserSearchAndEdit: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [toast]); // Include toast dependency
+  }, [toast, includeInactive]); // Include toast and includeInactive dependencies
 
   const loadClients = useCallback(async (): Promise<void> => {
     try {
@@ -283,14 +288,26 @@ export const UserSearchAndEdit: React.FC = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-            <Input
-              placeholder="Search users by name, email, or organization..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
+          <div className="space-y-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Search users by name, email, or organization..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="include-inactive"
+                checked={includeInactive}
+                onCheckedChange={setIncludeInactive}
+              />
+              <Label htmlFor="include-inactive" className="text-sm text-gray-600">
+                Show inactive users (for reactivation)
+              </Label>
+            </div>
           </div>
         </CardContent>
       </Card>

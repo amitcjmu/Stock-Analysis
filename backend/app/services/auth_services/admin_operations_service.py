@@ -72,9 +72,13 @@ class AdminOperationsService:
             )
 
     async def get_active_users(
-        self, user_id_str: str, page: int, page_size: int
+        self,
+        user_id_str: str,
+        page: int,
+        page_size: int,
+        include_inactive: bool = False,
     ) -> Dict[str, Any]:
-        """Get active users for admin management."""
+        """Get users for admin management. Optionally includes inactive users for reactivation."""
         try:
             rbac_service = create_rbac_service(self.db)
 
@@ -88,19 +92,27 @@ class AdminOperationsService:
                     status_code=403, detail="Access denied: Admin privileges required"
                 )
 
-            # Try to get real active users from database
+            # Try to get real users from database
             try:
-                # Query active users with profiles
+                # Build query conditions based on include_inactive flag
+                if include_inactive:
+                    # Include all users (active and inactive) for reactivation purposes
+                    query_conditions = and_(
+                        User.is_verified == True,  # noqa: E712
+                    )
+                else:
+                    # Only active users (default behavior)
+                    query_conditions = and_(
+                        User.is_active == True,  # noqa: E712
+                        User.is_verified == True,  # noqa: E712
+                        UserProfile.status == "active",
+                    )
+
+                # Query users with profiles
                 active_users_query = (
                     select(User, UserProfile)
                     .join(UserProfile, User.id == UserProfile.user_id)
-                    .where(
-                        and_(
-                            User.is_active == True,  # noqa: E712
-                            User.is_verified == True,  # noqa: E712
-                            UserProfile.status == "active",
-                        )
-                    )
+                    .where(query_conditions)
                     .order_by(desc(UserProfile.last_login_at))
                 )
 
