@@ -116,30 +116,14 @@ class PasswordResetService:
             minutes=settings.PASSWORD_RESET_TOKEN_EXPIRE_MINUTES
         )
 
-        # Store hashed token in database
-        user.password_reset_token = hashed_token
-        user.password_reset_token_expires_at = expires_at
-
-        try:
-            await self.db.commit()
-        except Exception as e:
-            await self.db.rollback()
-            logger.error(
-                f"Failed to save reset token for {self._mask_email(email)}: {e}"
-            )
-            return False, "An error occurred. Please try again later."
-
         # Determine reset URL base
         url_base = reset_url_base or settings.FRONTEND_URL
 
         # Get user's name for email personalization
-        user_name = None
-        if user.first_name:
-            user_name = user.first_name
-        elif user.username:
-            user_name = user.username
+        user_name = user.first_name or user.username
 
-        # Send email with plain token
+        # Send email FIRST (before committing to DB) for atomicity
+        # This ensures we don't store tokens for emails that were never sent
         email_sent = await self.email_service.send_password_reset_email(
             to_email=email,
             reset_token=plain_token,
@@ -148,16 +132,26 @@ class PasswordResetService:
         )
 
         if not email_sent:
-            # Clear token if email failed
-            user.password_reset_token = None
-            user.password_reset_token_expires_at = None
-            await self.db.commit()
             logger.error(
                 f"Failed to send password reset email to {self._mask_email(email)}"
             )
             return False, "Failed to send reset email. Please try again later."
 
-        logger.info(f"Password reset email sent to {self._mask_email(email)}")
+        # Only store token in database AFTER email is successfully sent
+        user.password_reset_token = hashed_token
+        user.password_reset_token_expires_at = expires_at
+
+        try:
+            await self.db.commit()
+            logger.info(f"Password reset email sent to {self._mask_email(email)}")
+        except Exception as e:
+            await self.db.rollback()
+            # Email was sent but DB commit failed - user has a link that won't work
+            # Log as error but return success to prevent enumeration
+            logger.error(
+                f"Failed to save reset token for {self._mask_email(email)} "
+                f"after email sent: {e}"
+            )
         return True, (
             "If an account exists with this email, "
             "you will receive a password reset link shortly."

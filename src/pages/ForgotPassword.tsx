@@ -43,16 +43,19 @@ const ForgotPassword: React.FC = () => {
 
       await authApi.forgotPassword(email, resetUrlBase);
 
+      // Only transition to success screen on successful API call
       setSubmitted(true);
       toast({
-        title: "Reset Link Sent",
+        title: "Request Processed",
         description: "If an account exists with this email, you will receive a password reset link shortly.",
       });
     } catch (err) {
-      // Even on error, show generic message to prevent email enumeration
-      setSubmitted(true);
+      // On actual API failure (network error, server error), allow retry
+      // Don't transition UI - keep form visible so user can try again
+      // Still show generic message to prevent email enumeration
+      console.error("Forgot password API call failed:", err);
       toast({
-        title: "Reset Link Sent",
+        title: "Request Processed",
         description: "If an account exists with this email, you will receive a password reset link shortly.",
       });
     } finally {
