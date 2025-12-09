@@ -171,7 +171,7 @@ export const useApplicationData = ({
     allAssets.forEach((asset) => {
       const rawType = asset.asset_type?.toUpperCase() || "UNKNOWN";
       // Bug #971 Fix: Normalize asset type using the mapping, fallback to raw type
-      const normalizedType = ASSET_TYPE_NORMALIZATION[rawType] || rawType;
+      const normalizedType = ASSET_TYPE_NORMALIZATION[rawType] ?? rawType;
 
       if (normalizedType in grouped && normalizedType !== "ALL") {
         const assetArray = grouped[normalizedType as keyof AssetsByType];
