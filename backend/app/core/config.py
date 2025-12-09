@@ -86,6 +86,23 @@ class Settings(BaseSettings):
     COOKIE_SAMESITE: str = Field(default="lax", env="COOKIE_SAMESITE")
     COOKIE_HTTPONLY: bool = Field(default=True, env="COOKIE_HTTPONLY")
 
+    # Email service settings (Brevo SMTP)
+    BREVO_SMTP_SERVER: str = Field(
+        default="smtp-relay.brevo.com", env="BREVO_SMTP_SERVER"
+    )
+    BREVO_SMTP_PORT: int = Field(default=587, env="BREVO_SMTP_PORT")
+    BREVO_SMTP_LOGIN: str = Field(default="", env="BREVO_SMTP_LOGIN")
+    BREVO_SMTP_KEY: str = Field(default="", env="BREVO_SMTP_KEY")
+    EMAIL_FROM_ADDRESS: str = Field(
+        default="noreply@aimodernize.com", env="EMAIL_FROM_ADDRESS"
+    )
+    EMAIL_FROM_NAME: str = Field(
+        default="AIForce Assess Modernize Platform", env="EMAIL_FROM_NAME"
+    )
+    PASSWORD_RESET_TOKEN_EXPIRE_MINUTES: int = Field(
+        default=15, env="PASSWORD_RESET_TOKEN_EXPIRE_MINUTES"
+    )
+
     @field_validator("DEEPINFRA_API_KEY")
     @classmethod
     def validate_api_key(cls, v):

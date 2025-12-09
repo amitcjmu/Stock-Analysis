@@ -35,7 +35,7 @@ class UserApprovalHandler:
 
         # Store in database if audit table exists
         try:
-            from app.models.audit import SecurityAuditLog
+            from app.models.security_audit import SecurityAuditLog
 
             audit_log = SecurityAuditLog(**audit_entry)
             self.db.add(audit_log)

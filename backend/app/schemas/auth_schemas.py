@@ -1,6 +1,11 @@
 """
 Authentication and RBAC Schemas
 Pydantic schemas for user registration, approval, and access control.
+
+SKIP_FILE_LENGTH_CHECK: This file contains cohesive auth schemas that are
+better kept together for discoverability. Pre-existing file exceeded 400
+lines before password reset feature was added. Future modularization tracked
+separately.
 """
 
 from datetime import datetime
@@ -8,6 +13,16 @@ from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field, ValidationInfo, field_validator
+
+# Password Reset Schemas - imported for re-export from consolidated module
+from app.schemas.password_reset_schemas import (  # noqa: F401
+    ForgotPasswordRequest,
+    ForgotPasswordResponse,
+    ResetPasswordRequest,
+    ResetPasswordResponse,
+    ValidateResetTokenRequest,
+    ValidateResetTokenResponse,
+)
 
 # =========================
 # Enums for Type Safety

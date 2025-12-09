@@ -262,18 +262,23 @@ async def get_assets_by_workflow_phase(
     """
 
     # Build query based on phase
+    # SKIP_TENANT_CHECK - Admin workflow endpoint; operates across tenants for system monitoring
     if phase == "discovery":
-        query = select(Asset).where(Asset.discovery_status != "completed")
+        query = select(Asset).where(  # SKIP_TENANT_CHECK
+            Asset.discovery_status != "completed"
+        )
     elif phase == "mapping":
-        query = select(Asset).where(
+        query = select(Asset).where(  # SKIP_TENANT_CHECK
             Asset.discovery_status == "completed", Asset.mapping_status != "completed"
         )
     elif phase == "cleanup":
-        query = select(Asset).where(
+        query = select(Asset).where(  # SKIP_TENANT_CHECK
             Asset.mapping_status == "completed", Asset.cleanup_status != "completed"
         )
     elif phase == "assessment_ready":
-        query = select(Asset).where(Asset.assessment_readiness == "ready")
+        query = select(Asset).where(  # SKIP_TENANT_CHECK
+            Asset.assessment_readiness == "ready"
+        )
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid phase specified."

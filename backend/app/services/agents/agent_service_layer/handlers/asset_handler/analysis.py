@@ -47,6 +47,7 @@ class AssetAnalysis:
                     and_(
                         Asset.discovery_flow_id == flow.id,
                         Asset.client_account_id == self.context.client_account_id,
+                        Asset.engagement_id == self.context.engagement_id,
                     )
                 )
                 result = await db.execute(asset_query)
@@ -151,6 +152,7 @@ class AssetAnalysis:
                     and_(
                         Asset.discovery_flow_id == flow.id,
                         Asset.client_account_id == self.context.client_account_id,
+                        Asset.engagement_id == self.context.engagement_id,
                     )
                 )
                 result = await db.execute(asset_query)

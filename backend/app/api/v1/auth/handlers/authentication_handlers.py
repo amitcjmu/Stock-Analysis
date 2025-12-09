@@ -1,6 +1,6 @@
 """
 Authentication Handlers
-Handles login, password change, and token-related endpoints.
+Handles login, password change, password reset, and token-related endpoints.
 """
 
 import logging
@@ -12,14 +12,21 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.schemas.admin_schemas import UserDashboardStats
 from app.schemas.auth_schemas import (
+    ForgotPasswordRequest,
+    ForgotPasswordResponse,
     LoginRequest,
     LoginResponse,
     PasswordChangeRequest,
     PasswordChangeResponse,
     RefreshTokenRequest,
     RefreshTokenResponse,
+    ResetPasswordRequest,
+    ResetPasswordResponse,
+    ValidateResetTokenRequest,
+    ValidateResetTokenResponse,
 )
 from app.services.auth_services.authentication_service import AuthenticationService
+from app.services.auth_services.password_reset_service import PasswordResetService
 
 logger = logging.getLogger(__name__)
 
@@ -112,6 +119,107 @@ async def get_user_dashboard_stats(
         logger.error(f"Error getting user dashboard stats: {e}")
         raise HTTPException(
             status_code=500, detail=f"Failed to get user dashboard stats: {str(e)}"
+        )
+
+
+@authentication_router.post("/forgot-password", response_model=ForgotPasswordResponse)
+async def forgot_password(
+    request: ForgotPasswordRequest, db: AsyncSession = Depends(get_db)
+):
+    """
+    Initiate password reset flow.
+    Sends a reset link to the user's email if account exists.
+
+    NOTE: Always returns success to prevent email enumeration attacks.
+    """
+    try:
+        reset_service = PasswordResetService(db)
+        success, message = await reset_service.initiate_password_reset(
+            email=request.email,
+            reset_url_base=request.reset_url_base,
+        )
+
+        return ForgotPasswordResponse(
+            status="success" if success else "error",
+            message=message,
+            email_sent=success,
+        )
+
+    except Exception as e:
+        logger.error(f"Error in forgot_password: {e}")
+        # Return generic success message even on error to prevent enumeration
+        return ForgotPasswordResponse(
+            status="success",
+            message=(
+                "If an account exists with this email, "
+                "you will receive a password reset link shortly."
+            ),
+            email_sent=False,
+        )
+
+
+@authentication_router.post(
+    "/validate-reset-token", response_model=ValidateResetTokenResponse
+)
+async def validate_reset_token(
+    request: ValidateResetTokenRequest, db: AsyncSession = Depends(get_db)
+):
+    """
+    Validate a password reset token.
+    Called when user clicks reset link to verify token before showing form.
+    """
+    try:
+        reset_service = PasswordResetService(db)
+        valid, message, masked_email = await reset_service.validate_reset_token(
+            token=request.token
+        )
+
+        return ValidateResetTokenResponse(
+            status="success" if valid else "error",
+            valid=valid,
+            message=message,
+            email=masked_email,
+        )
+
+    except Exception as e:
+        logger.error(f"Error in validate_reset_token: {e}")
+        return ValidateResetTokenResponse(
+            status="error",
+            valid=False,
+            message="An error occurred. Please try again.",
+            email=None,
+        )
+
+
+@authentication_router.post("/reset-password", response_model=ResetPasswordResponse)
+async def reset_password(
+    request: ResetPasswordRequest, db: AsyncSession = Depends(get_db)
+):
+    """
+    Reset user's password using valid token.
+    Called when user submits new password from reset form.
+    """
+    try:
+        reset_service = PasswordResetService(db)
+        success, message = await reset_service.reset_password(
+            token=request.token,
+            new_password=request.new_password,
+        )
+
+        if not success:
+            raise HTTPException(status_code=400, detail=message)
+
+        return ResetPasswordResponse(
+            status="success",
+            message=message,
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in reset_password: {e}")
+        raise HTTPException(
+            status_code=500, detail="An error occurred. Please try again."
         )
 
 

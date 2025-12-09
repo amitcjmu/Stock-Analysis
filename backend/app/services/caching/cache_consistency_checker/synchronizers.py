@@ -180,7 +180,7 @@ class EntityDataExtractor:
                 from app.models.crewai_flow_state_extensions import (
                     CrewAIFlowStateExtensions,
                 )
-                from app.models.discovery_flows import DiscoveryFlows
+                from app.models.discovery_flow import DiscoveryFlow
 
                 session = await self.session_manager.get_session()
 
@@ -199,8 +199,8 @@ class EntityDataExtractor:
 
                 if flow_state:
                     # Get detailed flow data
-                    detail_stmt = select(DiscoveryFlows).where(
-                        DiscoveryFlows.flow_id == flow_id
+                    detail_stmt = select(DiscoveryFlow).where(
+                        DiscoveryFlow.flow_id == flow_id
                     )
                     detail_result = await session.execute(detail_stmt)
                     flow_detail = detail_result.scalar_one_or_none()

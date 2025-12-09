@@ -35,7 +35,7 @@ async def test_mfo_engagement_stats():
 
         from app.core.database import AsyncSessionLocal
         from app.models import Engagement
-        from app.models.crewai_flow_state_extension import CrewAIFlowStateExtension
+        from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensionss
         from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 
         # Create MFO context for metrics collection
@@ -68,9 +68,9 @@ async def test_mfo_engagement_stats():
             print("\n=== MFO Master Flow Statistics ===")
             master_flows_query = (
                 select(func.count())
-                .select_from(CrewAIFlowStateExtension)
+                .select_from(CrewAIFlowStateExtensionss)
                 .where(
-                    CrewAIFlowStateExtension.client_account_id
+                    CrewAIFlowStateExtensionss.client_account_id
                     == mfo_context.client_account_id
                 )
             )
@@ -88,14 +88,14 @@ async def test_mfo_engagement_stats():
             # Flows by type for tenant
             flows_by_type_query = (
                 select(
-                    CrewAIFlowStateExtension.flow_type,
-                    func.count(CrewAIFlowStateExtension.flow_id),
+                    CrewAIFlowStateExtensions.flow_type,
+                    func.count(CrewAIFlowStateExtensions.flow_id),
                 )
                 .where(
-                    CrewAIFlowStateExtension.client_account_id
+                    CrewAIFlowStateExtensions.client_account_id
                     == mfo_context.client_account_id
                 )
-                .group_by(CrewAIFlowStateExtension.flow_type)
+                .group_by(CrewAIFlowStateExtensions.flow_type)
             )
 
             result = await db.execute(flows_by_type_query)
@@ -106,14 +106,14 @@ async def test_mfo_engagement_stats():
             # Flows by status for tenant
             flows_by_status_query = (
                 select(
-                    CrewAIFlowStateExtension.flow_status,
-                    func.count(CrewAIFlowStateExtension.flow_id),
+                    CrewAIFlowStateExtensions.flow_status,
+                    func.count(CrewAIFlowStateExtensions.flow_id),
                 )
                 .where(
-                    CrewAIFlowStateExtension.client_account_id
+                    CrewAIFlowStateExtensions.client_account_id
                     == mfo_context.client_account_id
                 )
-                .group_by(CrewAIFlowStateExtension.flow_status)
+                .group_by(CrewAIFlowStateExtensions.flow_status)
             )
 
             result = await db.execute(flows_by_status_query)
@@ -140,10 +140,10 @@ async def test_mfo_engagement_stats():
                 # For each engagement, check if it has master flows
                 master_flows_result = await db.execute(
                     select(func.count())
-                    .select_from(CrewAIFlowStateExtension)
+                    .select_from(CrewAIFlowStateExtensions)
                     .where(
-                        CrewAIFlowStateExtension.engagement_id == str(row[0]),
-                        CrewAIFlowStateExtension.client_account_id
+                        CrewAIFlowStateExtensions.engagement_id == str(row[0]),
+                        CrewAIFlowStateExtensions.client_account_id
                         == mfo_context.client_account_id,
                     )
                 )

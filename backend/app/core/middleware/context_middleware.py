@@ -68,6 +68,10 @@ class ContextMiddleware(BaseHTTPMiddleware):
             "/api/v1/auth/demo/health",
             "/api/v1/auth/system/info",
             "/api/v1/auth/refresh",  # Token refresh - should not require context
+            # Password reset endpoints - public, no tenant context needed
+            "/api/v1/auth/forgot-password",
+            "/api/v1/auth/validate-reset-token",
+            "/api/v1/auth/reset-password",
             # /me endpoint for context initialization
             "/api/v1/me",
             # Feedback view endpoint - admin feature, no tenant context needed
