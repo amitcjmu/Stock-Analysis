@@ -134,8 +134,10 @@ async def audit_asset(
             completeness_pct=completeness,
         )
 
-    # Get enrichment data
-    enrichment_data = await get_enrichment_data(db, UUID(asset_id))
+    # Get enrichment data with tenant scoping
+    enrichment_data = await get_enrichment_data(
+        db, UUID(asset_id), client_account_id, engagement_id
+    )
 
     # Calculate enrichment stats
     enrichment_total = 0
@@ -303,8 +305,10 @@ async def audit_asset_summary(
                 {"category": cat_name, "completeness_pct": completeness}
             )
 
-    # Use efficient COUNT queries for enrichment stats
-    enrichment_stats = await get_enrichment_summary_stats(db, UUID(asset_id))
+    # Use efficient COUNT queries for enrichment stats with tenant scoping
+    enrichment_stats = await get_enrichment_summary_stats(
+        db, UUID(asset_id), client_account_id, engagement_id
+    )
 
     # Calculate enrichment summary (estimate based on existence)
     enrichment_existing = sum(1 for v in enrichment_stats.values() if v["exists"])
