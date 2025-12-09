@@ -23,7 +23,7 @@ from app.models.client_account import User
 from app.models.asset import Asset
 
 from .schemas import AssetDataAuditResponse, AssetListResponse, AssetListItem
-from .service import audit_asset
+from .service import audit_asset, audit_asset_summary  # noqa: F401
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -61,9 +61,15 @@ async def list_assets_for_audit(
             Asset.deleted_at.is_(None),
         )
 
-        # Apply search filter
+        # Apply search filter with wildcard escaping to prevent injection
         if search:
-            base_query = base_query.where(Asset.name.ilike(f"%{search}%"))
+            # Escape special LIKE characters
+            search_term = (
+                search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            )
+            base_query = base_query.where(
+                Asset.name.ilike(f"%{search_term}%", escape="\\")
+            )
 
         # Apply phase filter
         if phase:
@@ -163,36 +169,18 @@ async def get_asset_audit_summary(
     """
     Get quick summary of asset data completeness.
 
-    Lighter-weight endpoint that returns only summary statistics,
-    useful for dashboards or quick checks.
+    Uses optimized COUNT queries for better performance.
+    Useful for dashboards or quick checks where full data isn't needed.
     """
     try:
-        result = await audit_asset(
+        # Use the optimized summary function with COUNT queries
+        result = await audit_asset_summary(
             asset_id=str(asset_id),
             db=db,
             client_account_id=context.client_account_id,
             engagement_id=context.engagement_id,
         )
-
-        # Return only summary data
-        return {
-            "asset_id": result.asset_id,
-            "asset_name": result.asset_name,
-            "summary": result.summary.model_dump(),
-            "data_gaps": result.data_gaps.model_dump(),
-            "category_summaries": {
-                cat: {
-                    "populated": data.populated,
-                    "total": data.total,
-                    "completeness_pct": data.completeness_pct,
-                }
-                for cat, data in result.categories.items()
-            },
-            "enrichment_status": {
-                key: {"exists": data.exists, "record_count": data.record_count}
-                for key, data in result.enrichments.items()
-            },
-        }
+        return result
 
     except ValueError as e:
         raise HTTPException(

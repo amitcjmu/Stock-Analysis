@@ -157,11 +157,16 @@ const CategorySection: React.FC<{
                 <TableCell className="max-w-[300px]">
                   {field.value !== null && field.value !== undefined ? (
                     <span className="text-sm break-all">
-                      {typeof field.value === 'object'
-                        ? JSON.stringify(field.value).slice(0, 100) +
-                          (JSON.stringify(field.value).length > 100 ? '...' : '')
-                        : String(field.value).slice(0, 100) +
-                          (String(field.value).length > 100 ? '...' : '')}
+                      {(() => {
+                        const valueStr =
+                          typeof field.value === 'object'
+                            ? JSON.stringify(field.value)
+                            : String(field.value);
+                        return (
+                          valueStr.slice(0, 100) +
+                          (valueStr.length > 100 ? '...' : '')
+                        );
+                      })()}
                     </span>
                   ) : (
                     <span className="text-muted-foreground italic">null</span>
