@@ -91,14 +91,18 @@ class PasswordResetService:
 
         if not user:
             # Don't reveal if email exists - always return generic message
-            logger.info(f"Password reset requested for non-existent email: {email}")
+            logger.info(
+                f"Password reset requested for non-existent email: {self._mask_email(email)}"
+            )
             return True, (
                 "If an account exists with this email, "
                 "you will receive a password reset link shortly."
             )
 
         if not user.is_active:
-            logger.info(f"Password reset requested for inactive user: {email}")
+            logger.info(
+                f"Password reset requested for inactive user: {self._mask_email(email)}"
+            )
             return True, (
                 "If an account exists with this email, "
                 "you will receive a password reset link shortly."
@@ -120,7 +124,9 @@ class PasswordResetService:
             await self.db.commit()
         except Exception as e:
             await self.db.rollback()
-            logger.error(f"Failed to save reset token for {email}: {e}")
+            logger.error(
+                f"Failed to save reset token for {self._mask_email(email)}: {e}"
+            )
             return False, "An error occurred. Please try again later."
 
         # Determine reset URL base
@@ -146,10 +152,12 @@ class PasswordResetService:
             user.password_reset_token = None
             user.password_reset_token_expires_at = None
             await self.db.commit()
-            logger.error(f"Failed to send password reset email to {email}")
+            logger.error(
+                f"Failed to send password reset email to {self._mask_email(email)}"
+            )
             return False, "Failed to send reset email. Please try again later."
 
-        logger.info(f"Password reset email sent to {email}")
+        logger.info(f"Password reset email sent to {self._mask_email(email)}")
         return True, (
             "If an account exists with this email, "
             "you will receive a password reset link shortly."
@@ -185,7 +193,7 @@ class PasswordResetService:
             user.password_reset_token = None
             user.password_reset_token_expires_at = None
             await self.db.commit()
-            logger.info(f"Expired reset token used for {user.email}")
+            logger.info(f"Expired reset token used for {self._mask_email(user.email)}")
             return False, "This reset link has expired. Please request a new one.", None
 
         masked_email = self._mask_email(user.email)
@@ -213,6 +221,13 @@ class PasswordResetService:
             logger.warning("Invalid password reset token used for password reset")
             return False, "Invalid or expired reset link."
 
+        # Prevent password reset for inactive users
+        if not user.is_active:
+            logger.warning(
+                f"Password reset attempted for inactive user: {self._mask_email(user.email)}"
+            )
+            return False, "Invalid or expired reset link."
+
         # Check expiration
         if not user.password_reset_token_expires_at:
             return False, "Invalid or expired reset link."
@@ -233,12 +248,16 @@ class PasswordResetService:
 
         try:
             await self.db.commit()
-            logger.info(f"Password successfully reset for {user.email}")
+            logger.info(
+                f"Password successfully reset for {self._mask_email(user.email)}"
+            )
             return (
                 True,
                 "Your password has been reset successfully. You can now log in.",
             )
         except Exception as e:
             await self.db.rollback()
-            logger.error(f"Failed to reset password for {user.email}: {e}")
+            logger.error(
+                f"Failed to reset password for {self._mask_email(user.email)}: {e}"
+            )
             return False, "An error occurred. Please try again later."

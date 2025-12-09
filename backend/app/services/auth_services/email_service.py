@@ -10,6 +10,7 @@ password reset and email verification.
 
 import logging
 import smtplib
+import ssl
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from typing import Optional
@@ -59,11 +60,14 @@ class EmailService:
             msg.attach(part1)
             msg.attach(part2)
 
-            # Connect to Brevo SMTP server
+            # Connect to Brevo SMTP server with secure TLS
+            # Create SSL context for certificate verification
+            ssl_context = ssl.create_default_context()
+
             with smtplib.SMTP(
                 settings.BREVO_SMTP_SERVER, settings.BREVO_SMTP_PORT
             ) as server:
-                server.starttls()
+                server.starttls(context=ssl_context)
                 server.login(settings.BREVO_SMTP_LOGIN, settings.BREVO_SMTP_KEY)
                 server.sendmail(settings.EMAIL_FROM_ADDRESS, to_email, msg.as_string())
 
