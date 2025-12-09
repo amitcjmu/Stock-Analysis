@@ -1,5 +1,5 @@
 """
-Email Service using Resend API.
+Email Service using Brevo SMTP.
 
 Handles transactional emails for authentication flows including
 password reset and email verification.
@@ -9,9 +9,10 @@ password reset and email verification.
 # HTML email templates contain inline CSS which requires long lines for readability
 
 import logging
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from typing import Optional
-
-import resend
 
 from app.core.config import settings
 
@@ -19,20 +20,65 @@ logger = logging.getLogger(__name__)
 
 
 class EmailService:
-    """Service for sending transactional emails via Resend."""
+    """Service for sending transactional emails via Brevo SMTP."""
 
     def __init__(self):
-        """Initialize Resend with API key."""
-        if settings.RESEND_API_KEY:
-            resend.api_key = settings.RESEND_API_KEY
+        """Initialize email service with Brevo SMTP settings."""
+        self._initialized = False
+
+        if settings.BREVO_SMTP_KEY:
+            self._initialized = True
+            logger.info("Brevo SMTP email service initialized")
         else:
             logger.warning(
-                "RESEND_API_KEY not configured. Email sending will be disabled."
+                "BREVO_SMTP_KEY not configured. Email sending will be disabled."
             )
 
     def _is_configured(self) -> bool:
         """Check if email service is properly configured."""
-        return bool(settings.RESEND_API_KEY)
+        return self._initialized
+
+    async def _send_via_brevo(
+        self,
+        to_email: str,
+        subject: str,
+        html_content: str,
+        text_content: str,
+    ) -> bool:
+        """Send email via Brevo SMTP."""
+        try:
+            # Create message
+            msg = MIMEMultipart("alternative")
+            msg["Subject"] = subject
+            msg["From"] = f"{settings.EMAIL_FROM_NAME} <{settings.EMAIL_FROM_ADDRESS}>"
+            msg["To"] = to_email
+
+            # Attach both plain text and HTML versions
+            part1 = MIMEText(text_content, "plain")
+            part2 = MIMEText(html_content, "html")
+            msg.attach(part1)
+            msg.attach(part2)
+
+            # Connect to Brevo SMTP server
+            with smtplib.SMTP(
+                settings.BREVO_SMTP_SERVER, settings.BREVO_SMTP_PORT
+            ) as server:
+                server.starttls()
+                server.login(settings.BREVO_SMTP_LOGIN, settings.BREVO_SMTP_KEY)
+                server.sendmail(settings.EMAIL_FROM_ADDRESS, to_email, msg.as_string())
+
+            logger.info(f"Email sent successfully via Brevo SMTP to {to_email}")
+            return True
+
+        except smtplib.SMTPAuthenticationError as e:
+            logger.error(f"Brevo SMTP authentication failed: {e}")
+            return False
+        except smtplib.SMTPException as e:
+            logger.error(f"Brevo SMTP error sending to {to_email}: {e}")
+            return False
+        except Exception as e:
+            logger.error(f"Error sending email via Brevo to {to_email}: {str(e)}")
+            return False
 
     async def send_password_reset_email(
         self,
@@ -54,9 +100,7 @@ class EmailService:
             True if email sent successfully, False otherwise
         """
         if not self._is_configured():
-            logger.error(
-                "Cannot send password reset email: RESEND_API_KEY not configured"
-            )
+            logger.error("Cannot send password reset email: Brevo SMTP not configured")
             return False
 
         reset_url = f"{reset_url_base}/reset-password?token={reset_token}"
@@ -79,7 +123,7 @@ class EmailService:
         <p style="font-size: 16px; margin-bottom: 20px;">{greeting}</p>
 
         <p style="font-size: 16px; margin-bottom: 20px;">
-            We received a request to reset your password for your AI Modernize Platform account.
+            We received a request to reset your password for your AIForce Assess Modernize Platform account.
             Click the button below to create a new password:
         </p>
 
@@ -109,7 +153,7 @@ class EmailService:
     </div>
 
     <div style="text-align: center; padding: 20px; color: #9ca3af; font-size: 12px;">
-        <p style="margin: 0;">AI Modernize Platform</p>
+        <p style="margin: 0;">AIForce Assess Modernize Platform</p>
         <p style="margin: 5px 0 0 0;">This is an automated message. Please do not reply.</p>
     </div>
 </body>
@@ -119,7 +163,7 @@ class EmailService:
         text_content = f"""
 {greeting}
 
-We received a request to reset your password for your AI Modernize Platform account.
+We received a request to reset your password for your AIForce Assess Modernize Platform account.
 
 Click the link below to create a new password:
 {reset_url}
@@ -130,46 +174,13 @@ If you didn't request a password reset, you can safely ignore this email.
 Your password will remain unchanged.
 
 ---
-AI Modernize Platform
+AIForce Assess Modernize Platform
 This is an automated message. Please do not reply.
 """
 
-        try:
-            params = {
-                "from": f"{settings.EMAIL_FROM_NAME} <{settings.EMAIL_FROM_ADDRESS}>",
-                "to": [to_email],
-                "subject": "Reset Your Password - AI Modernize Platform",
-                "html": html_content,
-                "text": text_content,
-            }
+        subject = "Reset Your Password - AIForce Assess Modernize Platform"
 
-            response = resend.Emails.send(params)
-
-            # Resend SDK may return different response types depending on version
-            # Handle both object with 'id' attribute and dict with 'id' key
-            email_id = None
-            if response:
-                if hasattr(response, "id"):
-                    email_id = response.id
-                elif isinstance(response, dict) and "id" in response:
-                    email_id = response["id"]
-
-            if email_id:
-                logger.info(
-                    f"Password reset email sent successfully to {to_email}, "
-                    f"email_id={email_id}"
-                )
-                return True
-            else:
-                logger.error(
-                    f"Failed to send password reset email to {to_email}. "
-                    f"Response type: {type(response)}, Response: {response}"
-                )
-                return False
-
-        except Exception as e:
-            logger.error(f"Error sending password reset email to {to_email}: {str(e)}")
-            return False
+        return await self._send_via_brevo(to_email, subject, html_content, text_content)
 
 
 # Singleton instance

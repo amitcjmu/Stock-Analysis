@@ -1,25 +1,21 @@
 """
-Discovery Flow Cleanup Service
+Discovery Flow Cleanup Service - Cleanup Operations Module
 ⚠️ LEGACY COMPATIBILITY LAYER - MIGRATING TO V2 ARCHITECTURE
 
-Handles comprehensive cleanup of discovery flows including CrewAI Flow state,
-agent memory, database records, and associated data with proper audit trail.
-
-Migrating from WorkflowState to DiscoveryFlow V2 architecture.
+Handles the main deletion and cleanup operations for discovery flows.
 """
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
-from sqlalchemy import and_, func, select
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal
 
 # Legacy imports for backward compatibility
 from app.models.asset import Asset
-from app.models.asset import Asset as DiscoveryAsset
 from app.models.data_import.core import DataImport as DataImportSession
 
 # V2 Discovery Flow imports (target architecture)
@@ -28,7 +24,7 @@ from app.services.discovery_flow_service import DiscoveryFlowService
 
 # Optional dependency model import
 try:
-    from app.models.dependency import Dependency
+    from app.models.asset import AssetDependency as Dependency
 
     DEPENDENCY_MODEL_AVAILABLE = True
 except ImportError:
@@ -46,23 +42,11 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
-class DiscoveryFlowCleanupService:
+class CleanupOperationsMixin:
     """
-    ⚠️ LEGACY COMPATIBILITY LAYER - Use DiscoveryFlowService.delete_flow() for new development
-
-    Comprehensive cleanup service for discovery flows
-    Handles deletion of all associated data with proper audit trail
+    Mixin for cleanup operations
+    Handles deletion of flows and all associated data
     """
-
-    def __init__(
-        self,
-        db_session: Optional[AsyncSession] = None,
-        client_account_id: Optional[str] = None,
-        engagement_id: Optional[str] = None,
-    ):
-        self.db = db_session
-        self.client_account_id = client_account_id
-        self.engagement_id = engagement_id
 
     async def delete_flow_with_cleanup(
         self,
@@ -362,171 +346,3 @@ class DiscoveryFlowCleanupService:
         except Exception as e:
             logger.error(f"❌ Failed to create audit record: {e}")
             return None
-
-    async def get_cleanup_impact_analysis(self, flow_id: str) -> Dict[str, Any]:
-        """Analyze the impact of deleting a specific flow"""
-        try:
-            async with AsyncSessionLocal() as db_session:
-                # Get flow
-                flow_stmt = select(DiscoveryFlow).where(
-                    and_(
-                        DiscoveryFlow.flow_id == flow_id,
-                        DiscoveryFlow.client_account_id == self.client_account_id,
-                        DiscoveryFlow.engagement_id == self.engagement_id,
-                    )
-                )
-                result = await db_session.execute(flow_stmt)
-                flow = result.scalar_one_or_none()
-
-                if not flow:
-                    return {"error": "Flow not found"}
-
-                # Count associated data
-                assets_count = await self._count_associated_assets(db_session, flow_id)
-                sessions_count = await self._count_import_sessions(db_session, flow_id)
-                deps_count = await self._count_dependencies(db_session, flow_id)
-
-                # Calculate estimated cleanup time
-                total_records = assets_count + sessions_count + deps_count
-                estimated_time = self._calculate_cleanup_time(total_records)
-
-                return {
-                    "flow_id": flow_id,
-                    "flow_phase": flow.current_phase,
-                    "progress_percentage": flow.progress_percentage,
-                    "status": flow.status,
-                    "data_to_delete": {
-                        "flow_state": 1,
-                        "assets": assets_count,
-                        "import_sessions": sessions_count,
-                        "dependencies": deps_count,
-                        "total_records": total_records,
-                    },
-                    "estimated_cleanup_time": estimated_time,
-                    "data_recovery_possible": False,
-                    "warnings": self._get_deletion_warnings(flow, total_records),
-                    "recommendations": self._get_deletion_recommendations(flow),
-                }
-
-        except Exception as e:
-            logger.error(f"❌ Cleanup impact analysis failed: {e}")
-            return {"error": f"Analysis failed: {str(e)}"}
-
-    async def _count_associated_assets(
-        self, db_session: AsyncSession, flow_id: str
-    ) -> int:
-        """Count assets associated with the flow"""
-        try:
-            # Use count() for better performance instead of len(all())
-            stmt = select(func.count(DiscoveryAsset.id)).where(
-                and_(
-                    DiscoveryAsset.flow_id == flow_id,
-                    DiscoveryAsset.client_account_id == self.client_account_id,
-                    DiscoveryAsset.engagement_id == self.engagement_id,
-                )
-            )
-            result = await db_session.execute(stmt)
-            count_val = result.scalar_one()
-            return int(count_val)
-        except Exception:
-            return 0
-
-    async def _count_import_sessions(
-        self, db_session: AsyncSession, flow_id: str
-    ) -> int:
-        """Count import sessions associated with the flow"""
-        try:
-            # Use count() for better performance instead of len(all())
-            stmt = select(func.count(DataImportSession.id)).where(
-                and_(
-                    DataImportSession.flow_id == flow_id,
-                    DataImportSession.client_account_id == self.client_account_id,
-                    DataImportSession.engagement_id == self.engagement_id,
-                )
-            )
-            result = await db_session.execute(stmt)
-            count_val = result.scalar_one()
-            return int(count_val)
-        except Exception:
-            return 0
-
-    async def _count_dependencies(self, db_session: AsyncSession, flow_id: str) -> int:
-        """Count dependencies associated with the flow"""
-        if not DEPENDENCY_MODEL_AVAILABLE:
-            return 0
-
-        try:
-            # Use count() for better performance instead of len(all())
-            stmt = select(func.count(Dependency.id)).where(
-                and_(
-                    Dependency.session_id == flow_id,
-                    Dependency.client_account_id == self.client_account_id,
-                    Dependency.engagement_id == self.engagement_id,
-                )
-            )
-            result = await db_session.execute(stmt)
-            count_val = result.scalar_one()
-            return int(count_val)
-        except Exception:
-            return 0
-
-    def _calculate_cleanup_time(self, total_records: int) -> str:
-        """Calculate estimated cleanup time based on record count"""
-        if total_records > 10000:
-            return "30-60 seconds"
-        elif total_records > 5000:
-            return "15-30 seconds"
-        elif total_records > 1000:
-            return "10-15 seconds"
-        elif total_records > 100:
-            return "5-10 seconds"
-        else:
-            return "< 5 seconds"
-
-    def _get_deletion_warnings(
-        self, flow: DiscoveryFlow, total_records: int
-    ) -> List[str]:
-        """Get warnings about flow deletion"""
-        warnings = []
-
-        if flow.status == "active":
-            warnings.append("Flow is currently active - force delete required")
-
-        if flow.progress_percentage > 80:
-            warnings.append(
-                "Flow is nearly complete - consider completing instead of deleting"
-            )
-
-        if total_records > 1000:
-            warnings.append(
-                f"Large amount of data will be deleted ({total_records} records)"
-            )
-
-        if flow.shared_memory_id:
-            warnings.append(
-                "Agent memory will be cleared - learning progress may be lost"
-            )
-
-        return warnings
-
-    def _get_deletion_recommendations(self, flow: DiscoveryFlow) -> List[str]:
-        """Get recommendations for flow deletion"""
-        recommendations = []
-
-        if flow.status == "paused":
-            recommendations.append("Consider resuming flow instead of deleting")
-
-        if flow.progress_percentage > 50:
-            recommendations.append(
-                "Flow has significant progress - export data before deletion"
-            )
-
-        if flow.errors:
-            recommendations.append(
-                "Review errors before deletion to prevent similar issues"
-            )
-
-        recommendations.append("Ensure all stakeholders are aware of the deletion")
-        recommendations.append("Consider creating a backup of important data")
-
-        return recommendations

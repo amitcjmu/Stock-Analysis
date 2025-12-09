@@ -86,7 +86,9 @@ class SimpleFlowRouter:
 
         try:
             # Try master flow orchestration table first
-            from app.models.master_flow_orchestration import MasterFlowOrchestration
+            from app.models.crewai_flow_state_extensions import (
+                CrewAIFlowStateExtensions as MasterFlowOrchestration,
+            )
 
             result = await self.db.execute(
                 select(MasterFlowOrchestration).where(
@@ -113,7 +115,7 @@ class SimpleFlowRouter:
                 }
 
             # Try collection flows table as fallback
-            from app.models.collection_flows import CollectionFlow
+            from app.models.collection_flow import CollectionFlow
 
             result = await self.db.execute(
                 select(CollectionFlow).where(CollectionFlow.flow_id == flow_id)
@@ -139,7 +141,7 @@ class SimpleFlowRouter:
 
         if flow_type == "discovery":
             # Check discovery flow state
-            from app.models.discovery_flows import DiscoveryFlow
+            from app.models.discovery_flow import DiscoveryFlow
 
             result = await self.db.execute(
                 select(DiscoveryFlow).where(DiscoveryFlow.flow_id == flow_id)
@@ -371,7 +373,9 @@ class SimpleFlowRouter:
 
     async def _check_questionnaires_complete(self, flow_id: str) -> bool:
         """Check if questionnaires are complete"""
-        from app.models.questionnaire_response import QuestionnaireResponse
+        from app.models.collection_questionnaire_response import (
+            CollectionQuestionnaireResponse as QuestionnaireResponse,
+        )
 
         result = await self.db.execute(
             select(QuestionnaireResponse)

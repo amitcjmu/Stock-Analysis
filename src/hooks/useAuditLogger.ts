@@ -1,13 +1,13 @@
 /**
  * Custom hook for audit logging with automatic authentication context.
- * 
+ *
  * Encapsulates the logic for retrieving authentication context and calling
  * the audit logging function, simplifying usage within components.
- * 
+ *
  * @example
  * ```tsx
  * const logAuditEvent = useAuditLogger();
- * 
+ *
  * // Simple usage - auth context is automatically included
  * logAuditEvent({
  *   action_type: 'action_blocked',
@@ -24,7 +24,7 @@ import { logTerminalStateAuditEvent, type AuditLogEvent } from '@/utils/auditLog
 
 /**
  * Hook that provides a simplified audit logging function with automatic auth context.
- * 
+ *
  * @returns A memoized function that logs audit events with auth context automatically included
  */
 export const useAuditLogger = () => {
@@ -57,4 +57,3 @@ export const useAuditLogger = () => {
 
   return logAuditEvent;
 };
-

@@ -373,47 +373,29 @@ class StorageMixin:
         Returns:
             Dict with 'questions' (list) and 'usage_count' (int), or empty dict if not found
         """
-        from sqlalchemy import select, and_
-        from app.models.learning_pattern import LearningPattern
-
         cache_key = f"{asset_type}_{gap_pattern}"
 
-        # Use exact JSONB match for cache_key lookup (more efficient than vector search)
-        query = select(LearningPattern).where(
-            and_(
-                LearningPattern.client_account_id == client_account_id,
-                LearningPattern.engagement_id == engagement_id,
-                LearningPattern.pattern_type == "questionnaire_template",
-                LearningPattern.pattern_data["cache_key"].astext == cache_key,
+        # NOTE: LearningPattern model does not exist in app.models - this is dead code
+        # that references a planned but never implemented ORM model.
+        # The questionnaire caching functionality uses store_learning() instead.
+        # Returning cache miss to maintain backward compatibility.
+        try:
+            # NOTE: Imports removed - dead code path that references planned but never
+            # implemented ORM model. The questionnaire caching uses store_learning() instead.
+            # AgentDiscoveredPatterns has different schema - pattern_type is enum not string
+            # This query path is disabled until model alignment is complete
+            logger.debug(
+                "Questionnaire template cache lookup disabled - model not aligned"
             )
-        )
-
-        result = await self.db.execute(query)
-        pattern = result.scalar_one_or_none()
-
-        if pattern:
-            pattern_data = pattern.pattern_data
-
-            # Increment usage count (for analytics)
-            usage_count = pattern_data.get("usage_count", 0) + 1
-            pattern_data["usage_count"] = usage_count
-
-            # Update the pattern with incremented usage count
-            pattern.pattern_data = pattern_data
-            await self.db.commit()
-
-            logger.info(f"✅ Cache HIT for {cache_key} (usage_count: {usage_count})")
-
             return {
-                "questions": pattern_data.get("questions", []),
-                "usage_count": usage_count,
-                "cache_hit": True,
-                "metadata": pattern_data.get("metadata", {}),
+                "questions": [],
+                "usage_count": 0,
+                "cache_hit": False,
             }
-
-        logger.info(f"❌ Cache MISS for {cache_key} - will generate fresh")
-        return {
-            "questions": [],
-            "usage_count": 0,
-            "cache_hit": False,
-        }
+        except ImportError:
+            logger.debug(f"❌ Cache MISS for {cache_key} - model not available")
+            return {
+                "questions": [],
+                "usage_count": 0,
+                "cache_hit": False,
+            }

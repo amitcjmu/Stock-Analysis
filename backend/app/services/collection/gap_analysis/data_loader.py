@@ -183,7 +183,7 @@ async def load_related_assets_for_gap_analysis(
         Dict mapping asset_id (str) -> list of related Asset objects
         Example: {"uuid-of-analytics-engine": [BackupServer, ProxyServer, ...]}
     """
-    from app.models.asset_dependency import AssetDependency
+    from app.models.asset import AssetDependency
 
     related_assets_map = {}
 

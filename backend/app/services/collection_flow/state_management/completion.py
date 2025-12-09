@@ -142,7 +142,9 @@ class CollectionFlowCompletionService:
             final_confidence_score: Final confidence score
         """
         try:
-            from app.models.master_flow import CrewAIFlowStateExtensions
+            from app.models.crewai_flow_state_extensions import (
+                CrewAIFlowStateExtensions,
+            )
 
             master_flow_result = await self.db.execute(
                 select(CrewAIFlowStateExtensions).where(

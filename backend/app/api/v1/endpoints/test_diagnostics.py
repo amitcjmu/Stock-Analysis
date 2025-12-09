@@ -13,9 +13,9 @@ from typing import Dict, Any
 from app.core.database import get_async_db
 from app.core.dependencies import get_current_context, RequestContext
 from app.models.discovery_flow import DiscoveryFlow
-from app.models.assets import Asset
-from app.models.crewai_flow_state_extension import CrewAIFlowStateExtension
-from app.models.raw_import_record import RawImportRecord
+from app.models.asset import Asset
+from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+from app.models import RawImportRecord
 
 router = APIRouter()
 
@@ -66,10 +66,10 @@ else:
             master_flow = None
             if discovery_flow.master_flow_id:
                 master_flow_result = await db.execute(
-                    select(CrewAIFlowStateExtension).filter(
-                        CrewAIFlowStateExtension.id == discovery_flow.master_flow_id,
-                        CrewAIFlowStateExtension.client_account_id == client_account_id,
-                        CrewAIFlowStateExtension.engagement_id == engagement_id,
+                    select(CrewAIFlowStateExtensions).filter(
+                        CrewAIFlowStateExtensions.id == discovery_flow.master_flow_id,
+                        CrewAIFlowStateExtensions.client_account_id == client_account_id,
+                        CrewAIFlowStateExtensions.engagement_id == engagement_id,
                     )
                 )
                 master_flow = master_flow_result.scalar_one_or_none()
