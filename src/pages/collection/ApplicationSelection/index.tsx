@@ -48,6 +48,7 @@ import { ApplicationGrid } from "./components/ApplicationGrid";
 import { SelectionControls } from "./components/SelectionControls";
 import { SearchFilters } from "./components/SearchFilters";
 import { LoadingState, ErrorState } from "./components/LoadingStates";
+import { ASSET_TYPE_NORMALIZATION } from "./types";
 
 const ApplicationSelection: React.FC = () => {
   const navigate = useNavigate();
@@ -128,11 +129,14 @@ const ApplicationSelection: React.FC = () => {
   const filteredAssets = useMemo(() => {
     let filtered = allAssets;
 
-    // Apply asset type filter
+    // Apply asset type filter with normalization (same logic as useApplicationData)
     if (!selectedAssetTypes.has("ALL")) {
-      filtered = allAssets.filter((asset) =>
-        selectedAssetTypes.has(asset.asset_type?.toUpperCase() || "UNKNOWN"),
-      );
+      filtered = allAssets.filter((asset) => {
+        const rawType = asset.asset_type?.toUpperCase() || "UNKNOWN";
+        // Use same normalization as in useApplicationData to ensure consistency
+        const normalizedType = ASSET_TYPE_NORMALIZATION[rawType] || rawType;
+        return selectedAssetTypes.has(normalizedType);
+      });
     }
 
     // Sort: selected applications first, then unselected
