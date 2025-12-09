@@ -24,19 +24,41 @@ class AssessmentFieldsMixin:
         default=DEFAULT_ASSESSMENT_READINESS,
         server_default=_sql_text(f"'{DEFAULT_ASSESSMENT_READINESS}'"),
         comment="Assessment readiness status for this asset (e.g., 'ready', 'not_ready').",
+        info={
+            "display_name": "Assessment Readiness",
+            "short_hint": "Ready / Not Ready / Pending",
+            "category": "assessment",
+        },
     )
 
     assessment_readiness_score = Column(
         Float,
         comment="Optional readiness score (0-100 or 0-1 depending on configuration).",
+        info={
+            "display_name": "Assessment Readiness Score",
+            "short_hint": "0-100 scale",
+            "category": "assessment",
+        },
     )
 
     assessment_blockers = Column(
-        JSON, comment="List of identified blockers preventing assessment readiness."
+        JSON,
+        comment="List of identified blockers preventing assessment readiness.",
+        info={
+            "display_name": "Assessment Blockers",
+            "short_hint": "Issues preventing readiness",
+            "category": "assessment",
+        },
     )
 
     assessment_recommendations = Column(
-        JSON, comment="List of recommendations to achieve assessment readiness."
+        JSON,
+        comment="List of recommendations to achieve assessment readiness.",
+        info={
+            "display_name": "Assessment Recommendations",
+            "short_hint": "Suggested improvements",
+            "category": "assessment",
+        },
     )
 
     # Complexity and architecture assessment fields
@@ -55,9 +77,19 @@ class AssessmentFieldsMixin:
         DateTime(timezone=True),
         server_default=func.now(),
         comment="Timestamp when the asset was first discovered.",
+        info={
+            "display_name": "Discovered At",
+            "short_hint": "Initial discovery timestamp",
+            "category": "identification",
+        },
     )
 
     discovery_completed_at = Column(
         DateTime(timezone=True),
         comment="Timestamp when discovery completed for this asset.",
+        info={
+            "display_name": "Discovery Completed At",
+            "short_hint": "Discovery completion timestamp",
+            "category": "identification",
+        },
     )

@@ -24,25 +24,51 @@ class ImportFieldsMixin:
         ForeignKey("migration.users.id"),
         nullable=True,
         comment="The user who imported the data that created this asset.",
+        info={
+            "display_name": "Imported By",
+            "short_hint": "User who imported data",
+            "category": "import",
+        },
     )
 
     imported_at = Column(
-        DateTime(timezone=True), comment="Timestamp of when the asset was imported."
+        DateTime(timezone=True),
+        comment="Timestamp of when the asset was imported.",
+        info={
+            "display_name": "Imported At",
+            "short_hint": "Import timestamp",
+            "category": "import",
+        },
     )
 
     source_filename = Column(
         String(LARGE_STRING_LENGTH),
         comment="The original filename from which this asset was imported.",
+        info={
+            "display_name": "Source Filename",
+            "short_hint": "Original import filename",
+            "category": "import",
+        },
     )
 
     raw_data = Column(
         JSON,
         comment="A JSON blob of the original, raw data for this asset from the import source.",
+        info={
+            "display_name": "Raw Import Data",
+            "short_hint": "Original unprocessed data",
+            "category": "import",
+        },
     )
 
     field_mappings_used = Column(
         JSON,
         comment="The specific field mappings that were applied to create this asset record.",
+        info={
+            "display_name": "Field Mappings Used",
+            "short_hint": "Applied field mappings",
+            "category": "import",
+        },
     )
 
     raw_import_records_id = Column(
@@ -50,6 +76,11 @@ class ImportFieldsMixin:
         ForeignKey("migration.raw_import_records.id"),
         nullable=True,
         comment="The raw import record this asset was created from.",
+        info={
+            "display_name": "Raw Import Record ID",
+            "short_hint": "Link to raw import record",
+            "category": "import",
+        },
     )
 
     # Discovery status field
@@ -57,4 +88,9 @@ class ImportFieldsMixin:
         String(SMALL_STRING_LENGTH),
         index=True,
         comment="Discovery lifecycle status for this asset (e.g., 'completed').",
+        info={
+            "display_name": "Discovery Status",
+            "short_hint": "Pending / In Progress / Completed",
+            "category": "import",
+        },
     )
