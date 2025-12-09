@@ -305,7 +305,7 @@ export const UserSearchAndEdit: React.FC = () => {
                 onCheckedChange={setIncludeInactive}
               />
               <Label htmlFor="include-inactive" className="text-sm text-gray-600">
-                Show inactive users (for reactivation)
+                Show only inactive users (for reactivation)
               </Label>
             </div>
           </div>

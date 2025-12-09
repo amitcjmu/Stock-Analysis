@@ -96,8 +96,9 @@ class AdminOperationsService:
             try:
                 # Build query conditions based on include_inactive flag
                 if include_inactive:
-                    # Include all users (active and inactive) for reactivation purposes
+                    # Show ONLY inactive users for reactivation purposes
                     query_conditions = and_(
+                        User.is_active == False,  # noqa: E712
                         User.is_verified == True,  # noqa: E712
                     )
                 else:
