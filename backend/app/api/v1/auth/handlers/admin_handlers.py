@@ -52,12 +52,12 @@ async def get_active_users(
     page: int = Query(1, ge=1),
     page_size: int = Query(100, ge=1, le=500),
     include_inactive: bool = Query(
-        False, description="Include inactive users (for reactivation purposes)"
+        False, description="Show only inactive users (for reactivation purposes)"
     ),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Get users for admin management. Optionally include inactive users."""
+    """Get users for admin management. When include_inactive=True, shows only inactive users."""
     try:
         # Use authenticated user from dependency injection
         user_id_str = str(current_user.id)
