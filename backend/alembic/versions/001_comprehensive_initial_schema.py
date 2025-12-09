@@ -1509,11 +1509,14 @@ def upgrade() -> None:
         unique=True,
         postgresql_where=sa.text("hostname IS NOT NULL AND hostname != ''"),
     )
+    # NOTE: Name is NOT unique - same name can exist for different asset_types
+    # (e.g., Server "IPM" and Application "IPM") or same app in different
+    # environments (Prod, Staging, Dev). Non-unique index for query performance.
     create_index_if_not_exists(
-        "ix_assets_unique_name_per_context",
+        "ix_assets_name_per_context",
         "assets",
         ["client_account_id", "engagement_id", "name"],
-        unique=True,
+        unique=False,
         postgresql_where=sa.text("name IS NOT NULL AND name != ''"),
     )
     create_index_if_not_exists(
@@ -1868,7 +1871,7 @@ def downgrade() -> None:
     # Drop asset constraints and indexes
     op.drop_constraint("ck_assets_has_identifier", "assets")
     op.drop_index("ix_assets_unique_ip_per_context", table_name="assets")
-    op.drop_index("ix_assets_unique_name_per_context", table_name="assets")
+    op.drop_index("ix_assets_name_per_context", table_name="assets")
     op.drop_index("ix_assets_unique_hostname_per_context", table_name="assets")
     op.drop_index("idx_assets_client_engagement_created", table_name="assets")
     op.drop_index("idx_assets_status", table_name="assets")

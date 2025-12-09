@@ -321,6 +321,12 @@ export const LazyAssessmentTechDebtAssessment = createLazyRoute(
   "Assessment Tech Debt Assessment",
 );
 
+// Asset Data Audit - Comprehensive asset data review
+export const LazyAssetDataAudit = createLazyRoute(
+  () => import("@/pages/assessment/AssetDataAudit"),
+  "Asset Data Audit",
+);
+
 // Plan Sub-routes
 export const LazyPlanIndex = createLazyRoute(
   () => import("@/pages/plan/Index"),

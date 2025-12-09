@@ -100,6 +100,7 @@ class APITags:
 
     # Asset Management
     ASSETS = "Assets"
+    ASSET_DATA_AUDIT = "Asset Data Audit"
 
     @classmethod
     def get_all_tags(cls) -> list[str]:

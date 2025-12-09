@@ -26,6 +26,7 @@ def register_core_routers(api_router: APIRouter):
         asset_conflicts_router,
         asset_preview_router,
         asset_editing_router,
+        asset_data_audit_router,
         chat_router,
         context_router,
         data_import_router,
@@ -68,6 +69,11 @@ def register_core_routers(api_router: APIRouter):
     api_router.include_router(
         asset_editing_router, prefix="/unified-discovery/assets", tags=[APITags.ASSETS]
     )  # Issues #911, #912 - Align with frontend routing
+    api_router.include_router(
+        asset_data_audit_router,
+        prefix="/asset-data-audit",
+        tags=[APITags.ASSET_DATA_AUDIT],
+    )
     logger.info("✅ Asset management routers registered")
 
     # Communication and Context
