@@ -84,8 +84,9 @@ class AutoCompleteMonitor:
         Returns:
             List of discovery flows that need completion
         """
-        # SKIP_TENANT_CHECK - Service-level/monitoring query
-        query = select(DiscoveryFlow).where(
+        query = select(
+            DiscoveryFlow
+        ).where(  # SKIP_TENANT_CHECK - Service-level monitoring; context applied below if available
             and_(
                 # Status is not already completed
                 DiscoveryFlow.status.notin_(["completed", "failed", "cancelled"]),
@@ -117,8 +118,9 @@ class AutoCompleteMonitor:
         Returns:
             List of master flow records that need completion
         """
-        # SKIP_TENANT_CHECK - Service-level/monitoring query
-        query = select(CrewAIFlowStateExtensions).where(
+        query = select(
+            CrewAIFlowStateExtensions
+        ).where(  # SKIP_TENANT_CHECK - Service-level monitoring query
             and_(
                 CrewAIFlowStateExtensions.flow_status.notin_(
                     ["completed", "failed", "cancelled"]
@@ -144,10 +146,10 @@ class AutoCompleteMonitor:
         # Check each master flow to see if its child is completed
         completable_flows = []
         for master_flow in master_flows:
-            # SKIP_TENANT_CHECK - Service-level/monitoring query
             # Check corresponding discovery flow
-            # SKIP_TENANT_CHECK - Service-level/monitoring query
-            discovery_query = select(DiscoveryFlow).where(
+            discovery_query = select(
+                DiscoveryFlow
+            ).where(  # SKIP_TENANT_CHECK - Correlating with master flow by flow_id
                 DiscoveryFlow.flow_id == master_flow.flow_id
             )
             discovery_result = await self.db.execute(discovery_query)
@@ -235,11 +237,11 @@ class AutoCompleteMonitor:
         Returns:
             True if the flow is genuinely incomplete, False if it should be completed
         """
-        # SKIP_TENANT_CHECK - Service-level/monitoring query
         try:
             # Check discovery flow
-            # SKIP_TENANT_CHECK - Service-level/monitoring query
-            discovery_query = select(DiscoveryFlow).where(
+            discovery_query = select(
+                DiscoveryFlow
+            ).where(  # SKIP_TENANT_CHECK - Service-level flow check by specific flow_id
                 DiscoveryFlow.flow_id == flow_id
             )
             discovery_result = await self.db.execute(discovery_query)

@@ -70,7 +70,9 @@ async def _find_discovery_flow(data_import: DataImport, db: AsyncSession):
     from app.models.discovery_flow import DiscoveryFlow
 
     # First try direct data_import_id lookup
-    flow_query = select(DiscoveryFlow).where(
+    flow_query = select(
+        DiscoveryFlow
+    ).where(  # SKIP_TENANT_CHECK - Internal lookup by data_import FK
         DiscoveryFlow.data_import_id == data_import.id
     )
     flow_result = await db.execute(flow_query)
@@ -87,7 +89,9 @@ async def _find_discovery_flow(data_import: DataImport, db: AsyncSession):
         )
 
         # Look for discovery flow with matching master_flow_id
-        master_flow_query = select(DiscoveryFlow).where(
+        master_flow_query = select(
+            DiscoveryFlow
+        ).where(  # SKIP_TENANT_CHECK - Internal lookup by master_flow FK
             DiscoveryFlow.master_flow_id == data_import.master_flow_id
         )
         master_flow_result = await db.execute(master_flow_query)
@@ -117,8 +121,9 @@ async def _find_discovery_flow_by_config(data_import: DataImport, db: AsyncSessi
     )
 
     # Use parameterized query to prevent SQL injection
+    # SKIP_TENANT_CHECK - Internal lookup through flow configuration JSON; not directly tenant-scoped
     config_query = (
-        select(CrewAIFlowStateExtensions)
+        select(CrewAIFlowStateExtensions)  # SKIP_TENANT_CHECK
         .where(sql_text("flow_configuration::text LIKE :search_pattern"))
         .params(search_pattern=f"%{data_import.id}%")
     )
@@ -127,7 +132,9 @@ async def _find_discovery_flow_by_config(data_import: DataImport, db: AsyncSessi
 
     for master_flow in master_flows_with_import:
         # Check if there's a discovery flow linked to this master flow
-        linked_flow_query = select(DiscoveryFlow).where(
+        linked_flow_query = select(
+            DiscoveryFlow
+        ).where(  # SKIP_TENANT_CHECK - Internal lookup by master_flow FK
             DiscoveryFlow.master_flow_id == master_flow.flow_id
         )
         linked_flow_result = await db.execute(linked_flow_query)

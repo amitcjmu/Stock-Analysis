@@ -54,8 +54,9 @@ async def debug_flow_context(
     flow_id: str, db: AsyncSession, context: RequestContext
 ) -> None:
     """Debug flow context when flow is not found"""
-    # SKIP_TENANT_CHECK - Service-level/monitoring query
-    debug_stmt = select(DiscoveryFlow).where(DiscoveryFlow.flow_id == flow_id)
+    debug_stmt = select(DiscoveryFlow).where(
+        DiscoveryFlow.flow_id == flow_id
+    )  # SKIP_TENANT_CHECK - Debug lookup to identify tenant mismatch
     debug_result = await db.execute(debug_stmt)
     debug_flow = debug_result.scalar_one_or_none()
 
