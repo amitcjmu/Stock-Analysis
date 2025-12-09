@@ -134,7 +134,7 @@ const ApplicationSelection: React.FC = () => {
       filtered = allAssets.filter((asset) => {
         const rawType = asset.asset_type?.toUpperCase() || "UNKNOWN";
         // Use same normalization as in useApplicationData to ensure consistency
-        const normalizedType = ASSET_TYPE_NORMALIZATION[rawType] || rawType;
+        const normalizedType = ASSET_TYPE_NORMALIZATION[rawType] ?? rawType;
         return selectedAssetTypes.has(normalizedType);
       });
     }
