@@ -333,14 +333,14 @@ class AdminOperationsHandler(BaseRBACHandler):
 
             # Count total client accesses
             access_query = select(func.count(ClientAccess.id)).where(
-                ClientAccess.is_active is True
+                ClientAccess.is_active == True  # noqa: E712
             )
             access_result = await self.db.execute(access_query)
             total_accesses = access_result.scalar() or 0
 
             # Count total roles
             role_query = select(func.count(UserRole.id)).where(
-                UserRole.is_active is True
+                UserRole.is_active == True  # noqa: E712
             )
             role_result = await self.db.execute(role_query)
             total_roles = role_result.scalar() or 0

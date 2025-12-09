@@ -202,7 +202,7 @@ async def get_model_pricing(
         if provider:
             conditions.append(LLMModelPricing.provider == provider)
         if active_only:
-            conditions.append(LLMModelPricing.is_active is True)
+            conditions.append(LLMModelPricing.is_active == True)  # noqa: E712
             conditions.append(LLMModelPricing.effective_from <= datetime.utcnow())
             conditions.append(
                 or_(
@@ -324,10 +324,10 @@ async def get_real_time_usage(
         query = select(
             func.count(LLMUsageLog.id).label("total_requests"),
             func.count(LLMUsageLog.id)
-            .filter(LLMUsageLog.success is True)
+            .filter(LLMUsageLog.success == True)  # noqa: E712
             .label("successful_requests"),
             func.count(LLMUsageLog.id)
-            .filter(LLMUsageLog.success is False)
+            .filter(LLMUsageLog.success == False)  # noqa: E712
             .label("failed_requests"),
             func.coalesce(func.sum(LLMUsageLog.total_tokens), 0).label("total_tokens"),
             func.coalesce(func.sum(LLMUsageLog.total_cost), 0).label("total_cost"),

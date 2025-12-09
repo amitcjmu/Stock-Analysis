@@ -46,7 +46,10 @@ class ClientService:
 
         try:
             roles_query = select(UserRole).where(
-                and_(UserRole.user_id == user_id, UserRole.is_active is True)
+                and_(
+                    UserRole.user_id == user_id,
+                    UserRole.is_active == True,  # noqa: E712
+                )
             )
             roles_result = await self.db.execute(roles_query)
             user_roles = roles_result.scalars().all()
@@ -125,8 +128,8 @@ class ClientService:
                 .where(
                     and_(
                         ClientAccess.user_profile_id == str(user.id),
-                        ClientAccess.is_active is True,
-                        ClientAccount.is_active is True,
+                        ClientAccess.is_active == True,  # noqa: E712
+                        ClientAccount.is_active == True,  # noqa: E712
                     )
                 )
                 .limit(1)
@@ -144,7 +147,7 @@ class ClientService:
                     .where(
                         and_(
                             Engagement.client_account_id == client.id,
-                            Engagement.is_active is True,
+                            Engagement.is_active == True,  # noqa: E712
                         )
                     )
                     .limit(1)
@@ -169,7 +172,9 @@ class ClientService:
         try:
             # Get first client for admin context
             client_query = (
-                select(ClientAccount).where(ClientAccount.is_active is True).limit(1)
+                select(ClientAccount)
+                .where(ClientAccount.is_active == True)  # noqa: E712
+                .limit(1)
             )
 
             client_result = await self.db.execute(client_query)
@@ -182,7 +187,7 @@ class ClientService:
                     .where(
                         and_(
                             Engagement.client_account_id == first_client.id,
-                            Engagement.is_active is True,
+                            Engagement.is_active == True,  # noqa: E712
                         )
                     )
                     .limit(1)
@@ -265,7 +270,9 @@ class ClientService:
         try:
             if is_platform_admin:
                 # Platform admins can see all clients
-                query = select(ClientAccount).where(ClientAccount.is_active is True)
+                query = select(ClientAccount).where(
+                    ClientAccount.is_active == True  # noqa: E712
+                )
                 result = await self.db.execute(query)
                 client_accounts = result.scalars().all()
 
@@ -289,8 +296,8 @@ class ClientService:
                     .where(
                         and_(
                             ClientAccess.user_profile_id == str(user_id),
-                            ClientAccess.is_active is True,
-                            ClientAccount.is_active is True,
+                            ClientAccess.is_active == True,  # noqa: E712
+                            ClientAccount.is_active == True,  # noqa: E712
                         )
                     )
                 )

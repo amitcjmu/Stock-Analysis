@@ -45,7 +45,7 @@ class DemoRepository(ContextAwareRepository):
         filters: Optional[Dict[str, Any]] = None,
     ) -> List[Asset]:
         """Get demo assets with optional filtering."""
-        stmt = select(Asset).where(Asset.is_mock is True)
+        stmt = select(Asset).where(Asset.is_mock == True)  # noqa: E712
 
         # Apply context filtering
         stmt = self._apply_context_filter_stmt(stmt, Asset)
@@ -64,7 +64,12 @@ class DemoRepository(ContextAwareRepository):
 
     async def get_demo_asset_by_id(self, asset_id: str) -> Optional[Asset]:
         """Get a specific demo asset by ID."""
-        stmt = select(Asset).where(and_(Asset.id == asset_id, Asset.is_mock is True))
+        stmt = select(Asset).where(
+            and_(
+                Asset.id == asset_id,
+                Asset.is_mock == True,  # noqa: E712
+            )
+        )
 
         # Apply context filtering
         stmt = self._apply_context_filter_stmt(stmt, Asset)
@@ -127,7 +132,9 @@ class DemoRepository(ContextAwareRepository):
     async def get_demo_assets_summary(self) -> Dict[str, Any]:
         """Get summary statistics for demo assets."""
         # Total assets count
-        count_stmt = select(func.count(Asset.id)).where(Asset.is_mock is True)
+        count_stmt = select(func.count(Asset.id)).where(
+            Asset.is_mock == True  # noqa: E712
+        )
         count_stmt = self._apply_context_filter_stmt(count_stmt, Asset)
 
         result = await self.db.execute(count_stmt)
@@ -136,7 +143,7 @@ class DemoRepository(ContextAwareRepository):
         # Asset type distribution
         type_stmt = (
             select(Asset.asset_type, func.count(Asset.id).label("count"))
-            .where(Asset.is_mock is True)
+            .where(Asset.is_mock == True)  # noqa: E712
             .group_by(Asset.asset_type)
         )
 
@@ -148,7 +155,7 @@ class DemoRepository(ContextAwareRepository):
         # Environment distribution
         env_stmt = (
             select(Asset.environment, func.count(Asset.id).label("count"))
-            .where(Asset.is_mock is True)
+            .where(Asset.is_mock == True)  # noqa: E712
             .group_by(Asset.environment)
         )
 
@@ -160,7 +167,7 @@ class DemoRepository(ContextAwareRepository):
         # Business criticality distribution
         criticality_stmt = (
             select(Asset.criticality, func.count(Asset.id).label("count"))
-            .where(Asset.is_mock is True)
+            .where(Asset.is_mock == True)  # noqa: E712
             .group_by(Asset.criticality)
         )
 
@@ -174,7 +181,9 @@ class DemoRepository(ContextAwareRepository):
             func.sum(Asset.cpu_cores).label("total_cpu"),
             func.sum(Asset.memory_gb).label("total_memory"),
             func.sum(Asset.storage_gb).label("total_storage"),
-        ).where(Asset.is_mock is True)
+        ).where(
+            Asset.is_mock == True  # noqa: E712
+        )
 
         resource_stmt = self._apply_context_filter_stmt(resource_stmt, Asset)
 
@@ -205,7 +214,7 @@ class DemoRepository(ContextAwareRepository):
 
     async def get_demo_waves(self) -> List[MigrationWave]:
         """Get demo migration waves."""
-        stmt = select(MigrationWave).where(MigrationWave.is_mock is True)
+        stmt = select(MigrationWave).where(MigrationWave.is_mock == True)  # noqa: E712
 
         # Apply context filtering
         stmt = self._apply_context_filter_stmt(stmt, MigrationWave)
@@ -269,7 +278,8 @@ class DemoRepository(ContextAwareRepository):
         # Get asset count
         count_stmt = select(func.count(Asset.id)).where(
             and_(
-                Asset.client_account_id == self.client_account_id, Asset.is_mock is True
+                Asset.client_account_id == self.client_account_id,
+                Asset.is_mock == True,  # noqa: E712
             )
         )
 

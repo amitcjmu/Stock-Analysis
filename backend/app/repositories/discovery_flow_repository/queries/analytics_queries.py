@@ -81,7 +81,7 @@ class AnalyticsQueries:
                 and_(
                     DiscoveryFlow.client_account_id == self.client_account_id,
                     DiscoveryFlow.engagement_id == self.engagement_id,
-                    DiscoveryFlow.assessment_ready is True,
+                    DiscoveryFlow.assessment_ready == True,  # noqa: E712
                 )
             )
             assessment_ready_result = await self.db.execute(assessment_ready_stmt)

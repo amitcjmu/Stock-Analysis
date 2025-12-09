@@ -99,7 +99,7 @@ class MultiTenantHelper:
             # Show universal mock data for users without specific context
             filters.append(
                 and_(
-                    model_class.is_mock is True,
+                    model_class.is_mock == True,  # noqa: E712
                     (
                         model_class.client_account_id.is_(None)
                         if hasattr(model_class, "client_account_id")
@@ -208,8 +208,8 @@ class MultiTenantHelper:
             query = select(UserRole).where(
                 and_(
                     UserRole.user_id == user_id,
-                    UserRole.role_type == RoleType.ADMIN,
-                    UserRole.is_active is True,
+                    UserRole.role_type == RoleType.PLATFORM_ADMIN,
+                    UserRole.is_active == True,  # noqa: E712
                 )
             )
 

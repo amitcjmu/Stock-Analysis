@@ -54,7 +54,10 @@ class UserApprovalHandler:
 
         # Get actor's current roles
         actor_roles_query = select(UserRole).where(
-            and_(UserRole.user_id == actor_user_id, UserRole.is_active is True)
+            and_(
+                UserRole.user_id == actor_user_id,
+                UserRole.is_active == True,  # noqa: E712
+            )
         )
         actor_roles_result = await self.db.execute(actor_roles_query)
         actor_roles = actor_roles_result.scalars().all()
