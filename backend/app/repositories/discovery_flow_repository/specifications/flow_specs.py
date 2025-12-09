@@ -48,17 +48,17 @@ class FlowSpecifications:
         retained for backward compatibility but not checked for completion.
         """
         return ~and_(
-            DiscoveryFlow.data_import_completed is True,
-            DiscoveryFlow.data_validation_completed is True,
-            DiscoveryFlow.field_mapping_completed is True,
-            DiscoveryFlow.data_cleansing_completed is True,
-            DiscoveryFlow.asset_inventory_completed is True,
+            DiscoveryFlow.data_import_completed == True,  # noqa: E712
+            DiscoveryFlow.data_validation_completed == True,  # noqa: E712
+            DiscoveryFlow.field_mapping_completed == True,  # noqa: E712
+            DiscoveryFlow.data_cleansing_completed == True,  # noqa: E712
+            DiscoveryFlow.asset_inventory_completed == True,  # noqa: E712
         )
 
     @staticmethod
     def assessment_ready_spec() -> ColumnElement:
         """Specification for assessment-ready flows"""
-        return DiscoveryFlow.assessment_ready is True
+        return DiscoveryFlow.assessment_ready == True  # noqa: E712
 
     @staticmethod
     def by_flow_type_spec(flow_type: str) -> ColumnElement:
@@ -99,7 +99,7 @@ class FlowSpecifications:
         }
 
         if phase in phase_map:
-            return phase_map[phase] is True
+            return phase_map[phase] == True  # noqa: E712
 
         raise ValueError(f"Unknown phase: {phase}")
 

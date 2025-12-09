@@ -9,7 +9,7 @@ import type { FeatureFlags } from './types';
 export const DEFAULT_FEATURE_FLAGS: FeatureFlags = {
   useRedisCache: process.env.NODE_ENV === 'production',
   enablePerformanceMonitoring: process.env.NODE_ENV === 'development',
-  useWebSocketSync: true,
+  useWebSocketSync: false, // HTTP polling only per ADR constraints (Railway/Vercel)
   enableContextDebugging: process.env.NODE_ENV === 'development',
   useProgressiveHydration: true,
 };

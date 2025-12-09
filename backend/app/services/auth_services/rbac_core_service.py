@@ -193,7 +193,7 @@ class RBACCoreService:
         try:
             # Get all active roles for the user
             user_roles_query = select(UserRole).where(
-                UserRole.user_id == user_id, UserRole.is_active is True
+                UserRole.user_id == user_id, UserRole.is_active == True  # noqa: E712
             )
             result = await self.db.execute(user_roles_query)
             user_roles = result.scalars().all()
@@ -240,7 +240,7 @@ class RBACCoreService:
         try:
             # Query role distribution
             role_stats_query = select(UserRole.role_type).where(
-                UserRole.is_active is True
+                UserRole.is_active == True  # noqa: E712
             )
             result = await self.db.execute(role_stats_query)
             role_types = result.scalars().all()

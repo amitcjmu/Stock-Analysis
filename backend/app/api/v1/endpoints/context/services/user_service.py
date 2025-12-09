@@ -265,8 +265,8 @@ class UserService:
             .where(
                 and_(
                     ClientAccess.user_profile_id == str(current_user.id),
-                    ClientAccess.is_active is True,
-                    ClientAccount.is_active is True,
+                    ClientAccess.is_active == True,  # noqa: E712
+                    ClientAccount.is_active == True,  # noqa: E712
                 )
             )
             .limit(1)
@@ -292,7 +292,10 @@ class UserService:
     async def _get_client_by_id(self, client_id: UUID) -> Optional[ClientAccount]:
         """Get active client by ID"""
         query = select(ClientAccount).where(
-            and_(ClientAccount.id == client_id, ClientAccount.is_active is True)
+            and_(
+                ClientAccount.id == client_id,
+                ClientAccount.is_active == True,  # noqa: E712
+            )
         )
         result = await self.db.execute(query)
         return result.scalar_one_or_none()
@@ -301,7 +304,7 @@ class UserService:
         """Get first active client"""
         query = (
             select(ClientAccount)
-            .where(ClientAccount.is_active is True)
+            .where(ClientAccount.is_active == True)  # noqa: E712
             .order_by(ClientAccount.name)
             .limit(1)
         )
@@ -317,7 +320,7 @@ class UserService:
             and_(
                 Engagement.id == engagement_id,
                 Engagement.client_account_id == client_id,
-                Engagement.is_active is True,
+                Engagement.is_active == True,  # noqa: E712
             )
         )
         result = await self.db.execute(query)
@@ -332,7 +335,7 @@ class UserService:
             .where(
                 and_(
                     Engagement.client_account_id == client_id,
-                    Engagement.is_active is True,
+                    Engagement.is_active == True,  # noqa: E712
                 )
             )
             .order_by(Engagement.name)

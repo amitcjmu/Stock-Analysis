@@ -107,7 +107,7 @@ class UserActiveFlow(Base):
             .filter(
                 cls.user_id == user_id,
                 cls.engagement_id == engagement_id,
-                cls.is_current is True,
+                cls.is_current == True,  # noqa: E712
             )
             .first()
         )
@@ -133,7 +133,7 @@ class UserActiveFlow(Base):
         db.query(cls).filter(
             cls.user_id == user_id,
             cls.engagement_id == engagement_id,
-            cls.is_current is True,
+            cls.is_current == True,  # noqa: E712
         ).update({"is_current": False})
 
         # Set the specified flow as current
@@ -204,7 +204,7 @@ class UserActiveFlow(Base):
             db.query(cls).filter(
                 cls.user_id == user_id,
                 cls.engagement_id == engagement_id,
-                cls.is_current is True,
+                cls.is_current == True,  # noqa: E712
             ).update({"is_current": False})
 
         db.add(active_flow)

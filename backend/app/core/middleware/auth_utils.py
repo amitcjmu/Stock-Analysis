@@ -114,7 +114,7 @@ async def check_platform_admin(user_id: str) -> bool:
                 and_(
                     UserRole.user_id == user_uuid,
                     UserRole.role_type == "platform_admin",
-                    UserRole.is_active is True,
+                    UserRole.is_active == True,  # noqa: E712
                 )
             )
             result = await db.execute(query)

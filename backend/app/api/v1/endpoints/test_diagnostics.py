@@ -68,7 +68,8 @@ else:
                 master_flow_result = await db.execute(
                     select(CrewAIFlowStateExtensions).filter(
                         CrewAIFlowStateExtensions.id == discovery_flow.master_flow_id,
-                        CrewAIFlowStateExtensions.client_account_id == client_account_id,
+                        CrewAIFlowStateExtensions.client_account_id
+                        == client_account_id,
                         CrewAIFlowStateExtensions.engagement_id == engagement_id,
                     )
                 )

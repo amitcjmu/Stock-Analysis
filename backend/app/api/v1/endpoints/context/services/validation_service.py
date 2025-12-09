@@ -77,7 +77,10 @@ class ValidationService:
             client_uuid = UUID(client_id)
 
             query = select(ClientAccount).where(
-                and_(ClientAccount.id == client_uuid, ClientAccount.is_active is True)
+                and_(
+                    ClientAccount.id == client_uuid,
+                    ClientAccount.is_active == True,  # noqa: E712
+                )
             )
             result = await self.db.execute(query)
             client = result.scalar_one_or_none()
@@ -105,7 +108,7 @@ class ValidationService:
                 and_(
                     Engagement.id == engagement_uuid,
                     Engagement.client_account_id == client_uuid,
-                    Engagement.is_active is True,
+                    Engagement.is_active == True,  # noqa: E712
                 )
             )
             result = await self.db.execute(query)
@@ -137,7 +140,7 @@ class ValidationService:
                 and_(
                     ClientAccess.user_profile_id == user_id,
                     ClientAccess.client_account_id == client_uuid,
-                    ClientAccess.is_active is True,
+                    ClientAccess.is_active == True,  # noqa: E712
                 )
             )
             result = await self.db.execute(query)
