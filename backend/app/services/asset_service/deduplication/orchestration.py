@@ -21,6 +21,53 @@ from .merge_strategies import enrich_asset, overwrite_asset
 
 logger = logging.getLogger(__name__)
 
+# Fields with CHECK constraints that only allow specific values OR NULL (not empty string)
+# See: backend/alembic/versions/149_add_cmdb_assessment_fields_issue_798.py
+# See: backend/alembic/versions/150_security_and_data_integrity.py
+# NOTE: 'environment' allows empty string explicitly, so NOT included here
+CHECK_CONSTRAINT_FIELDS = [
+    # From migration 149
+    "virtualization_type",
+    "business_logic_complexity",
+    "configuration_complexity",
+    "change_tolerance",
+    # From migration 150 (ASSET_CATEGORICAL_FIELDS)
+    "application_type",
+    "lifecycle",
+    "hosting_model",
+    "server_role",
+    "security_zone",
+    "application_data_classification",
+    "risk_level",
+    "tshirt_size",
+    "six_r_strategy",
+    "migration_complexity",
+    "sixr_ready",
+    "status",
+    "migration_status",
+    "criticality",
+    "asset_type",
+]
+
+
+def sanitize_check_constraint_fields(data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Sanitize fields with CHECK constraints by converting empty strings to None.
+
+    Database CHECK constraints only allow specific values OR NULL, but NOT empty strings.
+    This prevents CheckViolationError during asset creation.
+
+    Args:
+        data: Asset data dictionary
+
+    Returns:
+        Sanitized data with empty strings converted to None for CHECK constraint fields
+    """
+    for field in CHECK_CONSTRAINT_FIELDS:
+        if field in data and data[field] == "":
+            data[field] = None
+    return data
+
 
 async def create_or_update_asset(
     service_instance,
@@ -173,6 +220,10 @@ async def create_new_asset(
     Raises:
         IntegrityError: If database constraint violation occurs
     """
+    # CRITICAL FIX: Sanitize CHECK constraint fields before asset creation
+    # Empty strings violate CHECK constraints (e.g., chk_assets_application_type)
+    asset_data = sanitize_check_constraint_fields(asset_data)
+
     # Generate smart asset name
     smart_name = get_smart_asset_name(asset_data)
     client_id, engagement_id = await service_instance._extract_context_ids(asset_data)

@@ -258,6 +258,39 @@ def transform_raw_record_to_asset(
         # Empty lists are truthy and will be kept (e.g., asset_tags=[])
         cleaned_data = {k: v for k, v in asset_data.items() if v is not None}
 
+        # CRITICAL FIX: Sanitize CHECK constraint fields - convert empty strings to None
+        # Database CHECK constraints (e.g., chk_assets_application_type, chk_assets_business_logic_complexity)
+        # only allow specific values OR NULL, but NOT empty strings ''
+        # See: backend/alembic/versions/149_add_cmdb_assessment_fields_issue_798.py
+        # See: backend/alembic/versions/150_security_and_data_integrity.py
+        # NOTE: 'environment' allows empty string explicitly, so NOT included here
+        check_constraint_fields = [
+            # From migration 149
+            "virtualization_type",
+            "business_logic_complexity",
+            "configuration_complexity",
+            "change_tolerance",
+            # From migration 150 (ASSET_CATEGORICAL_FIELDS)
+            "application_type",
+            "lifecycle",
+            "hosting_model",
+            "server_role",
+            "security_zone",
+            "application_data_classification",
+            "risk_level",
+            "tshirt_size",
+            "six_r_strategy",
+            "migration_complexity",
+            "sixr_ready",
+            "status",
+            "migration_status",
+            "criticality",
+            "asset_type",
+        ]
+        for field in check_constraint_fields:
+            if field in cleaned_data and cleaned_data[field] == "":
+                del cleaned_data[field]  # Remove empty string, will default to NULL
+
         logger.debug(
             f"🔄 Transformed record {record.row_number} to asset '{name}' (type: {asset_type})"
         )

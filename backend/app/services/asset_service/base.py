@@ -213,8 +213,15 @@ class AssetService:
             create_child_records_if_needed,
         )
         from datetime import datetime
+        from app.services.asset_service.deduplication.orchestration import (
+            sanitize_check_constraint_fields,
+        )
 
         try:
+            # CRITICAL FIX: Sanitize CHECK constraint fields before asset creation
+            # Empty strings violate CHECK constraints (e.g., chk_assets_application_type)
+            asset_data = sanitize_check_constraint_fields(asset_data)
+
             # Extract context IDs
             client_id, engagement_id = await extract_context_ids(
                 asset_data, self.context_info
