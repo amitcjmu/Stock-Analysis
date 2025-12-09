@@ -34,6 +34,11 @@ from app.api.v1.endpoints.asset_preview import (  # noqa: F401
 # Asset editing router (Issues #911, #912)
 from app.api.v1.endpoints.asset_editing import router as asset_editing_router
 
+# Asset data audit router (Asset Data Review feature)
+from app.api.v1.endpoints.asset_data_audit import (
+    router as asset_data_audit_router,
+)  # noqa: F401
+
 from app.api.v1.endpoints.execute import router as execute_router
 
 from app.api.v1.endpoints.context_establishment import (
@@ -481,6 +486,7 @@ __all__ = [
     "asset_inventory_router",
     "asset_conflicts_router",
     "asset_editing_router",
+    "asset_data_audit_router",
     "chat_router",
     "context_router",
     "data_import_router",

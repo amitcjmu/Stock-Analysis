@@ -77,6 +77,7 @@ import {
   LazyAssessmentRisk,
   LazyAssessmentDependencyAnalysis,
   LazyAssessmentTechDebtAssessment,
+  LazyAssetDataAudit,
   LazyPlanIndex,
   LazySixRAnalysis,
   LazyTimeline,
@@ -425,6 +426,11 @@ const AuthenticatedApp = (): JSX.Element => {
       <Route
         path="/assessment/tech-debt"
         element={<LazyAssessmentTechDebtAssessment />}
+      />
+      {/* Asset Data Audit - Comprehensive asset data review */}
+      <Route
+        path="/assessment/asset-data-audit"
+        element={<LazyAssetDataAudit />}
       />
 
       {/* Assessment routes without flowId - redirect to overview (Issue #673) */}
