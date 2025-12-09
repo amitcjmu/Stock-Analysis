@@ -208,7 +208,7 @@ class MultiTenantHelper:
             query = select(UserRole).where(
                 and_(
                     UserRole.user_id == user_id,
-                    UserRole.role_type == RoleType.ADMIN,
+                    UserRole.role_type == RoleType.PLATFORM_ADMIN,
                     UserRole.is_active == True,  # noqa: E712
                 )
             )

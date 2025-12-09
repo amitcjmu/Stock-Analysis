@@ -62,7 +62,7 @@ class ContextAwareRepository:
                 query = select(UserRole).where(
                     and_(
                         UserRole.user_id == self.user_id,
-                        UserRole.role_type == RoleType.ADMIN,
+                        UserRole.role_type == RoleType.PLATFORM_ADMIN,
                         UserRole.is_active == True,  # noqa: E712
                     )
                 )

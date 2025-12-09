@@ -140,15 +140,13 @@ class FlowQueries:
                     DiscoveryFlow.engagement_id == self.engagement_id,
                     DiscoveryFlow.status != "completed",
                     # Check if any phase is not completed
+                    # Note: dependency_analysis and tech_debt_assessment removed per ADR-027
+                    # (these phases moved to Assessment flow)
                     ~and_(
                         DiscoveryFlow.data_import_completed == True,  # noqa: E712
                         DiscoveryFlow.field_mapping_completed == True,  # noqa: E712
                         DiscoveryFlow.data_cleansing_completed == True,  # noqa: E712
                         DiscoveryFlow.asset_inventory_completed == True,  # noqa: E712
-                        DiscoveryFlow.dependency_analysis_completed
-                        == True,  # noqa: E712
-                        DiscoveryFlow.tech_debt_assessment_completed
-                        == True,  # noqa: E712
                     ),
                 )
             )
