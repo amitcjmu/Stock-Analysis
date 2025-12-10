@@ -1,1161 +1,138 @@
 {
-  "annotations": {
-    "list": [
-      {
-        "builtIn": 1,
-        "datasource": {
-          "type": "grafana",
-          "uid": "-- Grafana --"
-        },
-        "enable": true,
-        "hide": true,
-        "iconColor": "rgba(0, 211, 255, 1)",
-        "name": "Annotations & Alerts",
-        "type": "dashboard"
-      }
-    ]
-  },
-  "description": "Railway-style operations dashboard for deployment monitoring, bulk log viewing, and easy copy/paste. Optimized for debugging production issues.",
+  "annotations": { "list": [] },
+  "description": "Railway-style operations dashboard - bulk log viewing with easy copy/paste",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
   "id": null,
-  "links": [
-    {
-      "asDropdown": true,
-      "icon": "external link",
-      "includeVars": true,
-      "keepTime": true,
-      "tags": ["observability"],
-      "targetBlank": true,
-      "title": "Other Dashboards",
-      "type": "dashboards"
-    }
-  ],
+  "links": [],
   "liveNow": false,
   "panels": [
     {
       "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 0
-      },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
       "id": 100,
       "panels": [],
-      "title": "Service Status & Deployment Overview",
+      "title": "Service Status",
       "type": "row"
     },
     {
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
-      },
+      "datasource": { "type": "loki", "uid": "loki" },
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
+          "color": { "mode": "thresholds" },
           "mappings": [
-            {
-              "options": {
-                "0": {
-                  "color": "red",
-                  "index": 1,
-                  "text": "OFFLINE"
-                }
-              },
-              "type": "value"
-            },
-            {
-              "options": {
-                "from": 1,
-                "result": {
-                  "color": "green",
-                  "index": 0,
-                  "text": "ONLINE"
-                },
-                "to": 999999
-              },
-              "type": "range"
-            }
+            { "options": { "0": { "color": "red", "index": 1, "text": "OFFLINE" } }, "type": "value" },
+            { "options": { "from": 1, "result": { "color": "green", "index": 0, "text": "ONLINE" }, "to": 999999 }, "type": "range" }
           ],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "green",
-                "value": 1
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 0,
-        "y": 1
-      },
-      "id": 1,
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": ["lastNotNull"],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "pluginVersion": "10.2.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "editorMode": "code",
-          "expr": "count_over_time({container=\"migration_backend\"}[5m])",
-          "queryType": "instant",
-          "refId": "A"
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
         }
-      ],
+      },
+      "gridPos": { "h": 3, "w": 4, "x": 0, "y": 1 },
+      "id": 1,
+      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "datasource": { "type": "loki", "uid": "loki" }, "expr": "count_over_time({container=\"$backend_container\"}[5m])", "queryType": "instant", "refId": "A" }],
       "title": "Backend",
       "type": "stat"
     },
     {
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
-      },
+      "datasource": { "type": "loki", "uid": "loki" },
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
+          "color": { "mode": "thresholds" },
           "mappings": [
-            {
-              "options": {
-                "0": {
-                  "color": "red",
-                  "index": 1,
-                  "text": "OFFLINE"
-                }
-              },
-              "type": "value"
-            },
-            {
-              "options": {
-                "from": 1,
-                "result": {
-                  "color": "green",
-                  "index": 0,
-                  "text": "ONLINE"
-                },
-                "to": 999999
-              },
-              "type": "range"
-            }
+            { "options": { "0": { "color": "red", "index": 1, "text": "OFFLINE" } }, "type": "value" },
+            { "options": { "from": 1, "result": { "color": "green", "index": 0, "text": "ONLINE" }, "to": 999999 }, "type": "range" }
           ],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "green",
-                "value": 1
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 4,
-        "y": 1
-      },
-      "id": 2,
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": ["lastNotNull"],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "pluginVersion": "10.2.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "editorMode": "code",
-          "expr": "count_over_time({container=\"migration_frontend\"}[5m])",
-          "queryType": "instant",
-          "refId": "A"
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
         }
-      ],
+      },
+      "gridPos": { "h": 3, "w": 4, "x": 4, "y": 1 },
+      "id": 2,
+      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "datasource": { "type": "loki", "uid": "loki" }, "expr": "count_over_time({container=\"$frontend_container\"}[5m])", "queryType": "instant", "refId": "A" }],
       "title": "Frontend",
       "type": "stat"
     },
     {
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
-      },
+      "datasource": { "type": "loki", "uid": "loki" },
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
+          "color": { "mode": "thresholds" },
           "mappings": [
-            {
-              "options": {
-                "0": {
-                  "color": "red",
-                  "index": 1,
-                  "text": "OFFLINE"
-                }
-              },
-              "type": "value"
-            },
-            {
-              "options": {
-                "from": 1,
-                "result": {
-                  "color": "green",
-                  "index": 0,
-                  "text": "ONLINE"
-                },
-                "to": 999999
-              },
-              "type": "range"
-            }
+            { "options": { "0": { "color": "red", "index": 1, "text": "OFFLINE" } }, "type": "value" },
+            { "options": { "from": 1, "result": { "color": "green", "index": 0, "text": "ONLINE" }, "to": 999999 }, "type": "range" }
           ],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "green",
-                "value": 1
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 8,
-        "y": 1
-      },
-      "id": 3,
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": ["lastNotNull"],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "pluginVersion": "10.2.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "editorMode": "code",
-          "expr": "count_over_time({container=\"migration_postgres\"}[5m])",
-          "queryType": "instant",
-          "refId": "A"
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
         }
-      ],
+      },
+      "gridPos": { "h": 3, "w": 4, "x": 8, "y": 1 },
+      "id": 3,
+      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "datasource": { "type": "loki", "uid": "loki" }, "expr": "count_over_time({container=\"$db_container\"}[5m])", "queryType": "instant", "refId": "A" }],
       "title": "PostgreSQL",
       "type": "stat"
     },
     {
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
-      },
+      "datasource": { "type": "loki", "uid": "loki" },
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "blue",
-                "value": null
-              }
-            ]
-          },
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 10 }, { "color": "red", "value": 50 }] },
           "unit": "short"
-        },
-        "overrides": []
+        }
       },
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 12,
-        "y": 1
-      },
+      "gridPos": { "h": 3, "w": 4, "x": 12, "y": 1 },
       "id": 4,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": ["sum"],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "pluginVersion": "10.2.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "editorMode": "code",
-          "expr": "count_over_time({container=\"migration_backend\"} |~ \"(?i)error|exception|critical|fatal\" [$__range])",
-          "queryType": "instant",
-          "refId": "A"
-        }
-      ],
-      "title": "Errors (Period)",
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "datasource": { "type": "loki", "uid": "loki" }, "expr": "count_over_time({container=~\"$container\"} |~ \"(?i)error|exception|critical|fatal\" [$__range])", "queryType": "instant", "refId": "A" }],
+      "title": "Errors",
       "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 16,
-        "y": 1
-      },
-      "id": 5,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": ["sum"],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "pluginVersion": "10.2.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "editorMode": "code",
-          "expr": "count_over_time({container=\"migration_backend\"} [$__range])",
-          "queryType": "instant",
-          "refId": "A"
-        }
-      ],
-      "title": "Total Logs (Period)",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "postgres",
-        "uid": "postgres"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "custom": {
-            "align": "auto",
-            "cellOptions": {
-              "type": "auto"
-            },
-            "inspect": false
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "status"
-            },
-            "properties": [
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "mode": "basic",
-                  "type": "color-background"
-                }
-              },
-              {
-                "id": "mappings",
-                "value": [
-                  {
-                    "options": {
-                      "completed": {
-                        "color": "green",
-                        "index": 0
-                      },
-                      "running": {
-                        "color": "blue",
-                        "index": 1
-                      },
-                      "failed": {
-                        "color": "red",
-                        "index": 2
-                      },
-                      "paused": {
-                        "color": "yellow",
-                        "index": 3
-                      }
-                    },
-                    "type": "value"
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "created_at"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 180
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "flow_type"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 120
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 5
-      },
-      "id": 6,
-      "options": {
-        "cellHeight": "sm",
-        "footer": {
-          "countRows": false,
-          "fields": "",
-          "reducer": ["sum"],
-          "show": false
-        },
-        "showHeader": true,
-        "sortBy": [
-          {
-            "desc": true,
-            "displayName": "created_at"
-          }
-        ]
-      },
-      "pluginVersion": "10.2.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "postgres",
-            "uid": "postgres"
-          },
-          "editorMode": "code",
-          "format": "table",
-          "rawQuery": true,
-          "rawSql": "SELECT \n  flow_id,\n  flow_type,\n  status,\n  current_phase,\n  created_at,\n  updated_at\nFROM migration.crewai_flow_state_extensions\nWHERE created_at >= $__timeFrom() AND created_at <= $__timeTo()\nORDER BY created_at DESC\nLIMIT 20;",
-          "refId": "A",
-          "sql": {
-            "columns": [
-              {
-                "parameters": [],
-                "type": "function"
-              }
-            ],
-            "groupBy": [
-              {
-                "property": {
-                  "type": "string"
-                },
-                "type": "groupBy"
-              }
-            ],
-            "limit": 50
-          }
-        }
-      ],
-      "title": "Recent Flow Deployments",
-      "description": "Shows recent MFO flow executions (similar to Railway deployment history). Click row to filter logs.",
-      "type": "table"
-    },
-    {
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "bars",
-            "fillOpacity": 80,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "normal"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "short"
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "ERROR"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "red",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "WARNING"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "orange",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "INFO"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "blue",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "DEBUG"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "purple",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 5
-      },
-      "id": 7,
-      "options": {
-        "legend": {
-          "calcs": ["sum"],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "pluginVersion": "10.2.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "editorMode": "code",
-          "expr": "sum by (level) (count_over_time({container=~\"$container\"} | regexp \"(?P<level>INFO|WARNING|ERROR|DEBUG|CRITICAL)\" [$__interval]))",
-          "legendFormat": "{{level}}",
-          "queryType": "range",
-          "refId": "A"
-        }
-      ],
-      "title": "Log Volume by Level",
-      "type": "timeseries"
     },
     {
       "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 13
-      },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 4 },
       "id": 101,
       "panels": [],
-      "title": "Runtime Logs - Table View (BEST FOR BULK COPY)",
+      "title": "Deploy Logs - Click any row to expand and copy full text",
       "type": "row"
     },
     {
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
-      },
-      "description": "Table view of logs - supports standard text selection (Ctrl+A, Ctrl+C). Use panel menu > Inspect > Data > Download for CSV export.",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "custom": {
-            "align": "auto",
-            "cellOptions": {
-              "type": "auto"
-            },
-            "filterable": true,
-            "inspect": true
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Time"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 200
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "level"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 80
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "mode": "basic",
-                  "type": "color-background"
-                }
-              },
-              {
-                "id": "mappings",
-                "value": [
-                  {
-                    "options": {
-                      "ERROR": {
-                        "color": "red",
-                        "index": 0
-                      },
-                      "WARNING": {
-                        "color": "orange",
-                        "index": 1
-                      },
-                      "INFO": {
-                        "color": "blue",
-                        "index": 2
-                      },
-                      "DEBUG": {
-                        "color": "purple",
-                        "index": 3
-                      },
-                      "CRITICAL": {
-                        "color": "dark-red",
-                        "index": 4
-                      }
-                    },
-                    "type": "value"
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "logger"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 250
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Line"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 1000
-              },
-              {
-                "id": "custom.inspect",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "container"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 150
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": {
-        "h": 18,
-        "w": 24,
-        "x": 0,
-        "y": 14
-      },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "description": "Click any log line to see full details and copy. Use panel menu > Inspect > Data > Download for bulk export.",
+      "gridPos": { "h": 28, "w": 24, "x": 0, "y": 5 },
       "id": 10,
-      "options": {
-        "cellHeight": "sm",
-        "footer": {
-          "countRows": true,
-          "fields": "",
-          "reducer": ["count"],
-          "show": true
-        },
-        "showHeader": true,
-        "sortBy": [
-          {
-            "desc": true,
-            "displayName": "Time"
-          }
-        ]
-      },
-      "pluginVersion": "10.2.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "editorMode": "code",
-          "expr": "{container=~\"$container\"} |~ \"$search\" | logfmt | line_format \"{{.message}}\"",
-          "queryType": "range",
-          "refId": "A"
-        }
-      ],
-      "title": "Application Logs (Table - Copyable)",
-      "transformations": [
-        {
-          "id": "extractFields",
-          "options": {
-            "format": "auto",
-            "keepTime": true,
-            "replace": false,
-            "source": "Line"
-          }
-        }
-      ],
-      "type": "table"
-    },
-    {
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 32
-      },
-      "id": 102,
-      "panels": [],
-      "title": "Runtime Logs - Stream View (Live Tail)",
-      "type": "row"
-    },
-    {
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
-      },
-      "description": "Streaming log view - click any log line to expand and copy the full message. Use the search box above to filter.",
-      "gridPos": {
-        "h": 20,
-        "w": 24,
-        "x": 0,
-        "y": 33
-      },
-      "id": 11,
       "options": {
         "dedupStrategy": "none",
         "enableLogDetails": true,
-        "prettifyLogMessage": true,
+        "prettifyLogMessage": false,
         "showCommonLabels": false,
         "showLabels": true,
         "showTime": true,
         "sortOrder": "Descending",
-        "wrapLogMessage": false
+        "wrapLogMessage": true
       },
-      "pluginVersion": "10.2.0",
       "targets": [
         {
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
+          "datasource": { "type": "loki", "uid": "loki" },
           "editorMode": "code",
           "expr": "{container=~\"$container\"} |~ \"$search\"",
           "queryType": "range",
           "refId": "A"
         }
       ],
-      "title": "Application Logs (Stream View)",
+      "title": "Application Logs",
       "type": "logs"
     },
     {
       "collapsed": true,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 53
-      },
-      "id": 103,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 33 },
+      "id": 102,
       "panels": [
         {
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "description": "All ERROR, CRITICAL, EXCEPTION, and FATAL logs. Click to expand and copy.",
-          "gridPos": {
-            "h": 16,
-            "w": 24,
-            "x": 0,
-            "y": 54
-          },
+          "datasource": { "type": "loki", "uid": "loki" },
+          "gridPos": { "h": 20, "w": 24, "x": 0, "y": 34 },
           "id": 20,
-          "options": {
-            "dedupStrategy": "none",
-            "enableLogDetails": true,
-            "prettifyLogMessage": true,
-            "showCommonLabels": false,
-            "showLabels": true,
-            "showTime": true,
-            "sortOrder": "Descending",
-            "wrapLogMessage": false
-          },
-          "pluginVersion": "10.2.0",
-          "targets": [
-            {
-              "datasource": {
-                "type": "loki",
-                "uid": "loki"
-              },
-              "editorMode": "code",
-              "expr": "{container=~\"$container\"} |~ \"(?i)(error|exception|critical|fatal|traceback)\" !~ \"(?i)(error_handler.*initialized|handler.*initialized|registered.*handler)\" |~ \"$search\"",
-              "queryType": "range",
-              "refId": "A"
-            }
-          ],
-          "title": "Error & Exception Logs Only",
-          "type": "logs"
-        }
-      ],
-      "title": "Error Logs Only (Collapsed)",
-      "type": "row"
-    },
-    {
-      "collapsed": true,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 54
-      },
-      "id": 104,
-      "panels": [
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "description": "CrewAI agent decisions including phase transitions, proceed/retry/abort decisions",
-          "gridPos": {
-            "h": 14,
-            "w": 24,
-            "x": 0,
-            "y": 55
-          },
-          "id": 30,
-          "options": {
-            "dedupStrategy": "none",
-            "enableLogDetails": true,
-            "prettifyLogMessage": true,
-            "showCommonLabels": false,
-            "showLabels": true,
-            "showTime": true,
-            "sortOrder": "Descending",
-            "wrapLogMessage": false
-          },
-          "pluginVersion": "10.2.0",
-          "targets": [
-            {
-              "datasource": {
-                "type": "loki",
-                "uid": "loki"
-              },
-              "editorMode": "code",
-              "expr": "{container=\"migration_backend\"} |~ \"(?i)(agent.*decision|PhaseTransitionAgent|decision.*proceed|decision.*retry|decision.*abort|crew.*start|task.*execut)\" |~ \"$search\"",
-              "queryType": "range",
-              "refId": "A"
-            }
-          ],
-          "title": "CrewAI Agent Decisions",
-          "type": "logs"
-        }
-      ],
-      "title": "Agent Activity (Collapsed)",
-      "type": "row"
-    },
-    {
-      "collapsed": true,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 55
-      },
-      "id": 105,
-      "panels": [
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "description": "Flow phase lifecycle events (started, completed, transitions)",
-          "gridPos": {
-            "h": 14,
-            "w": 24,
-            "x": 0,
-            "y": 56
-          },
-          "id": 31,
-          "options": {
-            "dedupStrategy": "none",
-            "enableLogDetails": true,
-            "prettifyLogMessage": true,
-            "showCommonLabels": false,
-            "showLabels": true,
-            "showTime": true,
-            "sortOrder": "Descending",
-            "wrapLogMessage": false
-          },
-          "pluginVersion": "10.2.0",
-          "targets": [
-            {
-              "datasource": {
-                "type": "loki",
-                "uid": "loki"
-              },
-              "editorMode": "code",
-              "expr": "{container=\"migration_backend\"} |~ \"(?i)(phase.*completed|phase.*started|Phase.*transition|flow.*created|flow.*completed)\" |~ \"$search\"",
-              "queryType": "range",
-              "refId": "A"
-            }
-          ],
-          "title": "Flow Phase Transitions",
-          "type": "logs"
-        }
-      ],
-      "title": "Phase Transitions (Collapsed)",
-      "type": "row"
-    },
-    {
-      "collapsed": true,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 56
-      },
-      "id": 106,
-      "panels": [
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "description": "HTTP request/response logs from FastAPI",
-          "gridPos": {
-            "h": 14,
-            "w": 24,
-            "x": 0,
-            "y": 57
-          },
-          "id": 32,
           "options": {
             "dedupStrategy": "none",
             "enableLogDetails": true,
@@ -1164,264 +141,55 @@
             "showLabels": true,
             "showTime": true,
             "sortOrder": "Descending",
-            "wrapLogMessage": false
+            "wrapLogMessage": true
           },
-          "pluginVersion": "10.2.0",
-          "targets": [
-            {
-              "datasource": {
-                "type": "loki",
-                "uid": "loki"
-              },
-              "editorMode": "code",
-              "expr": "{container=\"migration_backend\"} |~ \"(?i)(GET|POST|PUT|DELETE|PATCH).*(/api/|HTTP/)\" |~ \"$search\"",
-              "queryType": "range",
-              "refId": "A"
-            }
-          ],
-          "title": "HTTP Requests",
+          "targets": [{ "datasource": { "type": "loki", "uid": "loki" }, "expr": "{container=~\"$container\"} |~ \"(?i)(error|exception|critical|fatal)\" |~ \"$search\"", "queryType": "range", "refId": "A" }],
+          "title": "Error Logs Only",
           "type": "logs"
         }
       ],
-      "title": "HTTP Logs (Collapsed)",
+      "title": "Error Logs (Click to expand)",
       "type": "row"
     },
     {
       "collapsed": true,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 57
-      },
-      "id": 107,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 34 },
+      "id": 103,
       "panels": [
         {
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
+          "datasource": { "type": "loki", "uid": "loki" },
+          "description": "Table view for bulk copy - use Ctrl+A, Ctrl+C or Inspect > Data > Download CSV",
           "fieldConfig": {
             "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "line",
-                "fillOpacity": 20,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "lineInterpolation": "smooth",
-                "lineWidth": 2,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "never",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  }
-                ]
-              },
-              "unit": "short"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 58
-          },
-          "id": 40,
-          "options": {
-            "legend": {
-              "calcs": ["sum", "mean"],
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "desc"
-            }
-          },
-          "pluginVersion": "10.2.0",
-          "targets": [
-            {
-              "datasource": {
-                "type": "loki",
-                "uid": "loki"
-              },
-              "editorMode": "code",
-              "expr": "sum by (container) (rate({container=~\"$container\"}[$__interval]))",
-              "legendFormat": "{{container}}",
-              "queryType": "range",
-              "refId": "A"
-            }
-          ],
-          "title": "Log Rate by Container",
-          "type": "timeseries"
-        },
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                }
-              },
-              "mappings": []
+              "custom": { "align": "auto", "cellOptions": { "type": "auto" }, "filterable": true, "inspect": true }
             },
             "overrides": [
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "ERROR"
-                },
-                "properties": [
-                  {
-                    "id": "color",
-                    "value": {
-                      "fixedColor": "red",
-                      "mode": "fixed"
-                    }
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "WARNING"
-                },
-                "properties": [
-                  {
-                    "id": "color",
-                    "value": {
-                      "fixedColor": "orange",
-                      "mode": "fixed"
-                    }
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "INFO"
-                },
-                "properties": [
-                  {
-                    "id": "color",
-                    "value": {
-                      "fixedColor": "blue",
-                      "mode": "fixed"
-                    }
-                  }
-                ]
-              }
+              { "matcher": { "id": "byName", "options": "Time" }, "properties": [{ "id": "custom.width", "value": 200 }] },
+              { "matcher": { "id": "byName", "options": "Line" }, "properties": [{ "id": "custom.width", "value": 1000 }] }
             ]
           },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 58
-          },
-          "id": 41,
-          "options": {
-            "legend": {
-              "displayMode": "list",
-              "placement": "right",
-              "showLegend": true,
-              "values": ["percent"]
-            },
-            "pieType": "donut",
-            "reduceOptions": {
-              "calcs": ["sum"],
-              "fields": "",
-              "values": false
-            },
-            "tooltip": {
-              "mode": "single",
-              "sort": "none"
-            }
-          },
-          "pluginVersion": "10.2.0",
-          "targets": [
-            {
-              "datasource": {
-                "type": "loki",
-                "uid": "loki"
-              },
-              "editorMode": "code",
-              "expr": "sum by (level) (count_over_time({container=~\"$container\"} | regexp \"(?P<level>INFO|WARNING|ERROR|DEBUG|CRITICAL)\" [$__range]))",
-              "legendFormat": "{{level}}",
-              "queryType": "instant",
-              "refId": "A"
-            }
-          ],
-          "title": "Log Level Distribution",
-          "type": "piechart"
+          "gridPos": { "h": 20, "w": 24, "x": 0, "y": 35 },
+          "id": 30,
+          "options": { "cellHeight": "sm", "footer": { "countRows": true, "reducer": ["count"], "show": true }, "showHeader": true, "sortBy": [{ "desc": true, "displayName": "Time" }] },
+          "targets": [{ "datasource": { "type": "loki", "uid": "loki" }, "expr": "{container=~\"$container\"} |~ \"$search\" | logfmt", "queryType": "range", "refId": "A" }],
+          "title": "Logs Table (Bulk Copy)",
+          "transformations": [{ "id": "extractFields", "options": { "format": "auto", "keepTime": true, "replace": false, "source": "Line" } }],
+          "type": "table"
         }
       ],
-      "title": "Log Statistics (Collapsed)",
+      "title": "Table View for Bulk Copy (Click to expand)",
       "type": "row"
     }
   ],
   "refresh": "10s",
   "schemaVersion": 38,
   "style": "dark",
-  "tags": [
-    "observability",
-    "operations",
-    "logs",
-    "railway-style",
-    "deployment"
-  ],
+  "tags": ["observability", "operations", "logs"],
   "templating": {
     "list": [
       {
-        "current": {
-          "selected": true,
-          "text": ["migration_backend"],
-          "value": ["migration_backend"]
-        },
-        "datasource": {
-          "type": "loki",
-          "uid": "loki"
-        },
+        "current": { "selected": true, "text": ["All"], "value": ["$__all"] },
+        "datasource": { "type": "loki", "uid": "loki" },
         "definition": "label_values(container)",
         "hide": 0,
         "includeAll": true,
@@ -1431,94 +199,51 @@
         "options": [],
         "query": "label_values(container)",
         "refresh": 1,
-        "regex": "",
-        "skipUrlSync": false,
         "sort": 1,
         "type": "query"
       },
       {
-        "current": {
-          "selected": false,
-          "text": "",
-          "value": ""
-        },
-        "hide": 0,
-        "label": "Search (regex)",
-        "name": "search",
-        "options": [
-          {
-            "selected": true,
-            "text": "",
-            "value": ""
-          }
-        ],
-        "query": "",
-        "skipUrlSync": false,
-        "type": "textbox"
+        "current": { "selected": false, "text": "migration_backend", "value": "migration_backend" },
+        "hide": 2,
+        "label": "Backend Container",
+        "name": "backend_container",
+        "options": [{ "selected": true, "text": "migration_backend", "value": "migration_backend" }],
+        "query": "migration_backend",
+        "type": "constant"
       },
       {
-        "current": {
-          "selected": false,
-          "text": "All",
-          "value": "$__all"
-        },
+        "current": { "selected": false, "text": "migration_frontend", "value": "migration_frontend" },
+        "hide": 2,
+        "label": "Frontend Container",
+        "name": "frontend_container",
+        "options": [{ "selected": true, "text": "migration_frontend", "value": "migration_frontend" }],
+        "query": "migration_frontend",
+        "type": "constant"
+      },
+      {
+        "current": { "selected": false, "text": "migration_postgres", "value": "migration_postgres" },
+        "hide": 2,
+        "label": "DB Container",
+        "name": "db_container",
+        "options": [{ "selected": true, "text": "migration_postgres", "value": "migration_postgres" }],
+        "query": "migration_postgres",
+        "type": "constant"
+      },
+      {
+        "current": { "selected": false, "text": "", "value": "" },
         "hide": 0,
-        "includeAll": true,
-        "label": "Log Level",
-        "multi": false,
-        "name": "level",
-        "options": [
-          {
-            "selected": true,
-            "text": "All",
-            "value": "$__all"
-          },
-          {
-            "selected": false,
-            "text": "ERROR",
-            "value": "ERROR"
-          },
-          {
-            "selected": false,
-            "text": "WARNING",
-            "value": "WARNING"
-          },
-          {
-            "selected": false,
-            "text": "INFO",
-            "value": "INFO"
-          },
-          {
-            "selected": false,
-            "text": "DEBUG",
-            "value": "DEBUG"
-          }
-        ],
-        "query": "ERROR,WARNING,INFO,DEBUG",
-        "skipUrlSync": false,
-        "type": "custom"
+        "label": "Search",
+        "name": "search",
+        "options": [{ "selected": true, "text": "", "value": "" }],
+        "query": "",
+        "type": "textbox"
       }
     ]
   },
-  "time": {
-    "from": "now-1h",
-    "to": "now"
-  },
-  "timepicker": {
-    "refresh_intervals": [
-      "5s",
-      "10s",
-      "30s",
-      "1m",
-      "5m",
-      "15m",
-      "30m",
-      "1h"
-    ]
-  },
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": { "refresh_intervals": ["5s", "10s", "30s", "1m", "5m"] },
   "timezone": "browser",
   "title": "Railway-Style Operations",
-  "uid": "railway-style-ops",
-  "version": 1,
-  "weekStart": ""
+  "uid": "railway-ops",
+  "version": 1
 }
