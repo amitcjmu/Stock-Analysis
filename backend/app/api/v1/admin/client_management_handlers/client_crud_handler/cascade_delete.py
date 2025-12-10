@@ -7,7 +7,7 @@ Tables are deleted in order of dependency (children first, then parents).
 
 import logging
 
-from sqlalchemy import text
+from sqlalchemy import bindparam, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
@@ -136,12 +136,15 @@ async def cascade_delete_client_data(db: AsyncSession, client_id: str) -> None:
     for table in CHILD_TABLES_OF_CHILD_TABLES:
         try:
             # First try with engagement_id for engagement-scoped tables
+            # Fix: Use bindparam with expanding=True for proper IN clause expansion
             if engagement_ids:
                 await db.execute(
                     text(
                         f"DELETE FROM {table} WHERE engagement_id IN :engagement_ids"
+                    ).bindparams(
+                        bindparam("engagement_ids", expanding=True)
                     ),  # noqa: S608
-                    {"engagement_ids": tuple(engagement_ids)},
+                    {"engagement_ids": engagement_ids},
                 )
             # Then try with client_account_id
             await db.execute(

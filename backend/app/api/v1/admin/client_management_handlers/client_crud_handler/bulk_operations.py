@@ -47,6 +47,7 @@ async def bulk_delete_clients(
                 # This ensures failures don't cascade to other deletions
                 async with db.begin_nested():
                     result = await _delete_client_internal(client_id, db, admin_user)
+                    await db.flush()  # Surface errors early within savepoint
                     if result.get("success"):
                         deleted_count += 1
                     else:
@@ -58,13 +59,18 @@ async def bulk_delete_clients(
                 try:
                     async with db.begin_nested():
                         await _soft_delete_client(client_id, db, admin_user)
+                        await db.flush()  # Surface errors early within savepoint
                         deleted_count += 1
                         logger.info(f"Client {client_id} soft-deleted as fallback")
-                except Exception:
+                except Exception as soft_err:
                     failed_count += 1
-                    error_msg = str(e.detail) if hasattr(e, "detail") else str(e)
+                    # Use getattr for safer attribute access
+                    error_msg = str(getattr(e, "detail", None) or e)
                     errors.append(f"Client {client_id}: {error_msg}")
-                    logger.warning(f"Failed to delete client {client_id}: {error_msg}")
+                    logger.warning(
+                        f"Failed to delete client {client_id}: {error_msg}, "
+                        f"soft delete also failed: {soft_err}"
+                    )
 
         # Commit the overall transaction with all successful deletions
         await db.commit()
