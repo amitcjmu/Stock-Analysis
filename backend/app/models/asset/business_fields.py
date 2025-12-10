@@ -75,8 +75,18 @@ class BusinessFieldsMixin:
     custom_attributes = Column(
         JSON,
         comment="A JSON blob for storing any custom fields or attributes not in the standard schema.",
+        info={
+            "display_name": "Custom Attributes",
+            "short_hint": "Custom fields and attributes",
+            "category": "other",
+        },
     )
     technical_details = Column(
         JSON,
         comment="A JSON blob containing technical details and enrichments for the asset.",
+        info={
+            "display_name": "Technical Details",
+            "short_hint": "Technical enrichments data",
+            "category": "technical",
+        },
     )

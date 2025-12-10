@@ -27,6 +27,11 @@ class MigrationFieldsMixin:
         String(20),
         index=True,
         comment="The status of the asset's field mapping during import.",
+        info={
+            "display_name": "Mapping Status",
+            "short_hint": "Field mapping status",
+            "category": "import",
+        },
     )
     migration_priority = Column(
         Integer,
