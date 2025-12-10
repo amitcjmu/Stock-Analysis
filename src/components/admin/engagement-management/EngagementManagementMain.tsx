@@ -1,8 +1,5 @@
-import React from 'react';
-import { useState } from 'react';
-import { useCallback } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { useQueryClient } from '@tanstack/react-query';
+import { useState, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   Dialog,
   DialogContent,
@@ -12,7 +9,6 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
 import { useDialog } from '@/hooks/useDialog';
 import { apiCall } from '@/config/api';
 
@@ -23,11 +19,9 @@ import { EngagementForm } from './EngagementForm';
 import type { EngagementFormData } from './types';
 import type { Engagement, Client } from './types';
 
-const EngagementManagementMain: React.FC = () => {
+const EngagementManagementMain = () => {
   const { toast } = useToast();
-  const { user } = useAuth();
   const dialog = useDialog();
-  const queryClient = useQueryClient();
 
   // UI state must be declared before useQuery hooks
   const [searchTerm, setSearchTerm] = useState('');
@@ -36,96 +30,51 @@ const EngagementManagementMain: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [editingEngagement, setEditingEngagement] = useState<Engagement | null>(null);
+  const [selectedEngagements, setSelectedEngagements] = useState<string[]>([]);
+  const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
 
   // Server state: useQuery for API data
   const engagementsQuery = useQuery<Engagement[]>({
-    queryKey: ['engagements', filterClient, filterPhase, currentPage], // Removed searchTerm from key
+    queryKey: ['engagements', filterClient, filterPhase, currentPage],
     queryFn: async () => {
-      // Build query parameters
       const params = new URLSearchParams();
-      // Don't include search in API call - handle it client-side
       if (filterClient !== 'all') params.append('client_account_id', filterClient);
       if (filterPhase !== 'all') params.append('phase', filterPhase);
       params.append('page', currentPage.toString());
       params.append('page_size', '20');
 
       const queryString = params.toString();
-      console.log('🔍 Fetching engagements with query:', queryString);
-
       const result = await apiCall(
         `/api/v1/admin/engagements/${queryString ? '?' + queryString : ''}`
       );
-      console.log('🔍 Engagements API raw result:', result);
 
       // Handle paginated response
       if (result && typeof result === 'object' && 'items' in result) {
-        console.log('✅ Found items in result, count:', result.items?.length || 0);
-        console.log('🔍 Items content:', result.items);
-
-        // Update pagination
         if (result.total_pages) {
           setTotalPages(result.total_pages);
         }
-
-        // Return the items array directly
         return result.items || [];
       }
 
       // Handle direct array response
       if (Array.isArray(result)) {
-        console.log('✅ Direct array result, count:', result.length);
         return result;
       }
 
-      console.warn('⚠️ Unexpected response format:', result);
       return [];
     },
-    // Simplified configuration
     refetchOnWindowFocus: false,
   });
   const engagements = engagementsQuery.data || [];
   const engagementsLoading = engagementsQuery.isLoading;
-  const engagementsError = engagementsQuery.isError;
-
-  // Additional debug logging
-  console.log('🔍 Query data directly:', engagementsQuery.data);
-  console.log('🔍 Engagements array:', engagements);
-  console.log('🔍 Is Array?:', Array.isArray(engagements));
-  console.log('🔍 Length:', engagements.length);
-
-  // Debug logging to understand component state
-  React.useEffect(() => {
-    console.log('🔍 EngagementManagementMain component state:', {
-      engagementsLoading,
-      engagementsError,
-      engagementsCount: engagements.length,
-      queryStatus: engagementsQuery.status,
-      queryFetchStatus: engagementsQuery.fetchStatus,
-      queryIsStale: engagementsQuery.isStale,
-      queryIsEnabled: engagementsQuery.isEnabled,
-      queryKey: engagementsQuery.queryKey,
-    });
-  }, [
-    engagementsLoading,
-    engagementsError,
-    engagements.length,
-    engagementsQuery.status,
-    engagementsQuery.fetchStatus,
-    engagementsQuery.isStale,
-    engagementsQuery.isEnabled,
-    engagementsQuery.queryKey,
-  ]);
 
   const clientsQuery = useQuery<Client[]>({
     queryKey: ['clients'],
     queryFn: async () => {
-      console.log('🔍 Fetching clients...');
       const result = await apiCall('/api/v1/admin/clients/?page_size=100');
-      console.log('🔍 Clients API result:', result);
 
       // Handle paginated response
       if (result && typeof result === 'object' && 'items' in result) {
-        console.log('✅ Found items in clients result, count:', result.items?.length || 0);
         return result.items || [];
       }
 
@@ -140,7 +89,6 @@ const EngagementManagementMain: React.FC = () => {
   });
   const clients = clientsQuery.data || [];
   const clientsLoading = clientsQuery.isLoading;
-  const clientsError = clientsQuery.isError;
 
   // Form data state
   const [formData, setFormData] = useState<EngagementFormData>({
@@ -276,6 +224,100 @@ const EngagementManagementMain: React.FC = () => {
     }
   };
 
+  // Filter engagements based on search term (already filtered by query, but keep for UI search)
+  // NOTE: This must be defined BEFORE handleSelectAll which depends on it
+  const filteredEngagements = Array.isArray(engagements)
+    ? engagements.filter((engagement) => {
+        // Handle case where engagement might be null or have missing properties
+        if (!engagement) {
+          return false;
+        }
+
+        // If no search term, include all valid engagements
+        if (!searchTerm) {
+          return true;
+        }
+
+        // Safe property access with optional chaining
+        const name = engagement.engagement_name || engagement.name || '';
+        const clientName = engagement.client_account_name || '';
+        const manager = engagement.engagement_manager || '';
+
+        const matchesSearch =
+          name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          manager.toLowerCase().includes(searchTerm.toLowerCase());
+
+        return matchesSearch;
+      })
+    : [];
+
+  // Handle toggle selection for a single engagement
+  const handleToggleSelection = useCallback((engagementId: string) => {
+    setSelectedEngagements((prev) =>
+      prev.includes(engagementId)
+        ? prev.filter((id) => id !== engagementId)
+        : [...prev, engagementId]
+    );
+  }, []);
+
+  // Handle select all engagements
+  const handleSelectAll = useCallback(
+    (selected: boolean) => {
+      setSelectedEngagements(
+        selected ? filteredEngagements.map((engagement) => engagement.id) : []
+      );
+    },
+    [filteredEngagements]
+  );
+
+  // Handle bulk delete engagements
+  const handleBulkDelete = async (): Promise<void> => {
+    if (selectedEngagements.length === 0) return;
+
+    const confirmed = await dialog.confirm({
+      title: 'Bulk Delete Engagements',
+      description: `Delete ${selectedEngagements.length} selected engagements? This action cannot be undone.`,
+      confirmText: 'Delete All',
+      cancelText: 'Cancel',
+      variant: 'destructive',
+      icon: 'warning',
+    });
+
+    if (!confirmed) return;
+
+    try {
+      setBulkDeleteLoading(true);
+
+      const result = await apiCall('/api/v1/admin/engagements/bulk-delete', {
+        method: 'POST',
+        body: JSON.stringify(selectedEngagements),
+      });
+
+      if (result && (result.status === 'success' || result.message)) {
+        toast({
+          title: 'Success',
+          description: `Deleted ${result.data?.deleted_count || selectedEngagements.length} engagements`,
+        });
+        // Refetch engagements and clear selection
+        engagementsQuery.refetch();
+        setSelectedEngagements([]);
+      } else {
+        throw new Error(result?.message || 'Failed to bulk delete engagements');
+      }
+    } catch (error) {
+      console.error('Error bulk deleting engagements:', error);
+      const errorObj = error as { message?: string };
+      toast({
+        title: 'Error',
+        description: errorObj.message || 'Failed to bulk delete engagements',
+        variant: 'destructive',
+      });
+    } finally {
+      setBulkDeleteLoading(false);
+    }
+  };
+
   // Reset form data
   const resetForm = useCallback(() => {
     setFormData({
@@ -365,83 +407,8 @@ const EngagementManagementMain: React.FC = () => {
     }
   }, []);
 
-  // Filter engagements based on search term (already filtered by query, but keep for UI search)
-  const filteredEngagements = Array.isArray(engagements)
-    ? engagements.filter((engagement) => {
-        // Debug each engagement
-        console.log('🔍 Filtering engagement:', engagement);
-
-        // Handle case where engagement might be null or have missing properties
-        if (!engagement) {
-          console.warn('⚠️ Null engagement in filter');
-          return false;
-        }
-
-        // If no search term, include all valid engagements
-        if (!searchTerm) {
-          return true;
-        }
-
-        // Safe property access with optional chaining
-        const name = engagement.engagement_name || engagement.name || '';
-        const clientName = engagement.client_account_name || '';
-        const manager = engagement.engagement_manager || '';
-
-        const matchesSearch =
-          name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          manager.toLowerCase().includes(searchTerm.toLowerCase());
-
-        return matchesSearch;
-      })
-    : [];
-
-  console.log('🔍 Filtered engagements:', filteredEngagements);
-  console.log('🔍 Filtered count:', filteredEngagements.length);
-
   return (
     <div className="container mx-auto p-6 space-y-6">
-      {/* Debug Panel */}
-      <div className="bg-gray-100 p-4 rounded-lg border">
-        <h3 className="font-semibold mb-2">Debug Information</h3>
-        <div className="text-sm space-y-1">
-          <p>Loading: {engagementsLoading ? 'true' : 'false'}</p>
-          <p>Error: {engagementsError ? 'true' : 'false'}</p>
-          <p>Engagements Count: {engagements.length}</p>
-          <p>Query Status: {engagementsQuery.status}</p>
-          <p>Fetch Status: {engagementsQuery.fetchStatus}</p>
-          <p>Clients Loading: {clientsLoading ? 'true' : 'false'}</p>
-          <p>Clients Error: {clientsError ? 'true' : 'false'}</p>
-          <p>Clients Count: {clients.length}</p>
-          <p>
-            Clients: {clients.length > 0 ? clients.map((c) => c.account_name).join(', ') : 'None'}
-          </p>
-        </div>
-        <div className="flex gap-2 mt-2">
-          <Button onClick={() => engagementsQuery.refetch()} disabled={engagementsQuery.isFetching}>
-            {engagementsQuery.isFetching ? 'Fetching...' : 'Manual Refetch'}
-          </Button>
-          <Button
-            onClick={() => {
-              queryClient.invalidateQueries({ queryKey: ['engagements'] });
-              queryClient.refetchQueries({ queryKey: ['engagements'] });
-            }}
-            variant="outline"
-          >
-            Clear Cache & Refetch
-          </Button>
-          <Button
-            onClick={() => {
-              queryClient.invalidateQueries({ queryKey: ['clients'] });
-              queryClient.refetchQueries({ queryKey: ['clients'] });
-            }}
-            variant="outline"
-          >
-            Refetch Clients
-          </Button>
-        </div>
-      </div>
-
       <EngagementFilters
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
@@ -464,6 +431,11 @@ const EngagementManagementMain: React.FC = () => {
         onPageChange={setCurrentPage}
         getPhaseColor={getPhaseColor}
         formatCurrency={formatCurrency}
+        selectedEngagements={selectedEngagements}
+        onToggleSelection={handleToggleSelection}
+        onSelectAll={handleSelectAll}
+        onBulkDelete={handleBulkDelete}
+        bulkDeleteLoading={bulkDeleteLoading}
       />
 
       {/* Edit Engagement Dialog */}

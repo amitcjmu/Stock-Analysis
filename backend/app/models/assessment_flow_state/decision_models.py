@@ -69,6 +69,16 @@ class SixRDecision(BaseModel):
     ready_for_planning: bool = Field(
         default=False, description="Ready for planning flow"
     )
+    # Issue #719: Accepted treatment persistence - finalized treatments skip re-assessment
+    is_accepted: bool = Field(
+        default=False, description="User accepted this treatment (finalized)"
+    )
+    accepted_at: Optional[datetime] = Field(
+        default=None, description="When the treatment was accepted"
+    )
+    accepted_by: Optional[str] = Field(
+        default=None, description="User who accepted the treatment"
+    )
 
     @computed_field
     @property

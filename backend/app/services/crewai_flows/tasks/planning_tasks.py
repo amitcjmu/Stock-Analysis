@@ -75,7 +75,7 @@ def create_wave_planning_task(
         >>> dependencies = [
         ...     {"source": "app1", "target": "app2", "type": "api_call"}
         ... ]
-        >>> config = {"max_apps_per_wave": 50, "wave_duration_days": 90}
+        >>> config = {"max_apps_per_wave": 50, "wave_duration_limit_days": 90}
         >>> task = create_wave_planning_task(agent, applications, dependencies, config)
     """
     logger.info(
@@ -85,7 +85,8 @@ def create_wave_planning_task(
 
     # Extract configuration parameters
     max_apps_per_wave = config.get("max_apps_per_wave", 50)
-    wave_duration_days = config.get("wave_duration_days", 90)
+    # Fix: Use wave_duration_limit_days (matches frontend/API) not wave_duration_days
+    wave_duration_days = config.get("wave_duration_limit_days", 90)
     prioritize_parallel = config.get("prioritize_parallel_migration", True)
     business_criticality = config.get("consider_business_criticality", True)
     migration_start_date = config.get("migration_start_date")

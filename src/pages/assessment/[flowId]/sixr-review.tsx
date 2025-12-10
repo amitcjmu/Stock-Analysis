@@ -89,6 +89,24 @@ const SixRStrategyReview: React.FC = () => {
     }
   }, [state.selectedApplications, selectedApp]);
 
+  // Issue #719: Initialize acceptedRecommendations from loaded is_accepted flags
+  // This ensures previously accepted treatments are reflected in the UI
+  useEffect(() => {
+    const alreadyAccepted = new Set<string>();
+    for (const [appId, decision] of Object.entries(state.sixrDecisions)) {
+      if (decision.is_accepted) {
+        alreadyAccepted.add(appId);
+      }
+    }
+    if (alreadyAccepted.size > 0) {
+      setAcceptedRecommendations(prev => {
+        // Merge with any new acceptances from this session
+        const merged = new Set([...prev, ...alreadyAccepted]);
+        return merged;
+      });
+    }
+  }, [state.sixrDecisions]);
+
   // Get current application data - MUST be at top level before any early returns
   const currentAppDecision = selectedApp ? state.sixrDecisions[selectedApp] : null;
   const currentAppComponents = selectedApp ? state.applicationComponents[selectedApp] || [] : [];
@@ -189,8 +207,11 @@ const SixRStrategyReview: React.FC = () => {
     if (!decision) return;
 
     try {
+      // Issue #719: Pass is_accepted=true to finalize the treatment
+      // This persists the accepted treatment so it can be reused in future assessments
       await updateSixRDecision(appId, {
         ...decision,
+        is_accepted: true,  // Issue #719: Mark as finalized
         user_modifications: {
           accepted: true,
           accepted_at: new Date().toISOString()

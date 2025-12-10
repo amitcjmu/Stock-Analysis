@@ -13,6 +13,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Table,
   TableBody,
@@ -39,6 +40,11 @@ interface EngagementListProps {
   onPageChange: (page: number) => void;
   getPhaseColor: (phase: string) => string;
   formatCurrency: (amount: number, currency: string) => string;
+  selectedEngagements: string[];
+  onToggleSelection: (engagementId: string) => void;
+  onSelectAll: (selected: boolean) => void;
+  onBulkDelete: () => void;
+  bulkDeleteLoading: boolean;
 }
 
 export const EngagementList: React.FC<EngagementListProps> = ({
@@ -51,16 +57,41 @@ export const EngagementList: React.FC<EngagementListProps> = ({
   onPageChange,
   getPhaseColor,
   formatCurrency,
+  selectedEngagements,
+  onToggleSelection,
+  onSelectAll,
+  onBulkDelete,
+  bulkDeleteLoading,
 }) => {
+  const allSelected = engagements.length > 0 && selectedEngagements.length === engagements.length;
+  const someSelected =
+    selectedEngagements.length > 0 && selectedEngagements.length < engagements.length;
+
   return (
     <>
       {/* Engagements Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Active Engagements</CardTitle>
-          <CardDescription>
-            {engagements.length} engagement{engagements.length !== 1 ? 's' : ''} found
-          </CardDescription>
+          <div className="flex justify-between items-center">
+            <div>
+              <CardTitle>Active Engagements</CardTitle>
+              <CardDescription>
+                {engagements.length} engagement{engagements.length !== 1 ? 's' : ''} found
+              </CardDescription>
+            </div>
+            {selectedEngagements.length > 0 && (
+              <Button
+                variant="destructive"
+                onClick={onBulkDelete}
+                disabled={bulkDeleteLoading}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                {bulkDeleteLoading
+                  ? 'Deleting...'
+                  : `Delete (${selectedEngagements.length})`}
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -71,6 +102,14 @@ export const EngagementList: React.FC<EngagementListProps> = ({
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-12">
+                    <Checkbox
+                      checked={allSelected}
+                      onCheckedChange={onSelectAll}
+                      aria-label="Select all"
+                      className={someSelected ? 'data-[state=checked]:bg-primary/50' : ''}
+                    />
+                  </TableHead>
                   <TableHead>Engagement</TableHead>
                   <TableHead>Client</TableHead>
                   <TableHead>Team</TableHead>
@@ -82,14 +121,38 @@ export const EngagementList: React.FC<EngagementListProps> = ({
               </TableHeader>
               <TableBody>
                 {engagements.map((engagement) => (
-                  <TableRow key={engagement.id}>
+                  <TableRow
+                    key={engagement.id}
+                    className={selectedEngagements.includes(engagement.id) ? 'bg-muted/50' : ''}
+                  >
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedEngagements.includes(engagement.id)}
+                        onCheckedChange={() => onToggleSelection(engagement.id)}
+                        aria-label={`Select ${engagement.engagement_name || engagement.name}`}
+                      />
+                    </TableCell>
                     <TableCell>
                       <div>
-                        <div className="font-medium">{engagement.engagement_name || engagement.name || 'Unnamed Engagement'}</div>
+                        <div className="font-medium">
+                          {engagement.engagement_name || engagement.name || 'Unnamed Engagement'}
+                        </div>
                         <div className="text-sm text-muted-foreground flex items-center gap-2">
-                          {(engagement.migration_phase || engagement.current_phase || engagement.status) && (
-                            <Badge className={getPhaseColor(engagement.migration_phase || engagement.current_phase || engagement.status || '')}>
-                              {engagement.migration_phase || engagement.current_phase || engagement.status || 'Planning'}
+                          {(engagement.migration_phase ||
+                            engagement.current_phase ||
+                            engagement.status) && (
+                            <Badge
+                              className={getPhaseColor(
+                                engagement.migration_phase ||
+                                  engagement.current_phase ||
+                                  engagement.status ||
+                                  ''
+                              )}
+                            >
+                              {engagement.migration_phase ||
+                                engagement.current_phase ||
+                                engagement.status ||
+                                'Planning'}
                             </Badge>
                           )}
                           <span>

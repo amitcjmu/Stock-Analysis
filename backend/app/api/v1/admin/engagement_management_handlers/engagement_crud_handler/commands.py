@@ -268,3 +268,48 @@ class EngagementCommands:
             raise HTTPException(
                 status_code=500, detail=f"Failed to delete engagement: {str(e)}"
             )
+
+    @staticmethod
+    async def bulk_delete_engagements(
+        engagement_ids: list, db: AsyncSession, admin_user: str
+    ) -> Dict[str, Any]:
+        """Bulk delete multiple engagements."""
+        from app.schemas.admin_schemas import AdminSuccessResponse
+
+        deleted_count = 0
+        failed_count = 0
+        errors = []
+
+        for engagement_id in engagement_ids:
+            try:
+                result = await EngagementCommands.delete_engagement(
+                    engagement_id, db, admin_user
+                )
+                if "deleted successfully" in result.message:
+                    deleted_count += 1
+                else:
+                    # Soft deleted
+                    deleted_count += 1
+            except HTTPException as e:
+                failed_count += 1
+                errors.append(f"Engagement {engagement_id}: {e.detail}")
+            except Exception as e:
+                failed_count += 1
+                errors.append(f"Engagement {engagement_id}: {str(e)}")
+
+        message = (
+            f"Bulk delete completed: {deleted_count} deleted, {failed_count} failed"
+        )
+        if errors:
+            message += f". Errors: {'; '.join(errors[:5])}"
+            if len(errors) > 5:
+                message += f" (+{len(errors) - 5} more)"
+
+        return AdminSuccessResponse(
+            message=message,
+            data={
+                "deleted_count": deleted_count,
+                "failed_count": failed_count,
+                "errors": errors,
+            },
+        )

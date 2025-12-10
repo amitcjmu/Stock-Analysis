@@ -221,3 +221,20 @@ async def bulk_import_clients(
         raise HTTPException(
             status_code=500, detail=f"Failed to bulk import clients: {str(e)}"
         )
+
+
+@router.post("/bulk-delete", response_model=AdminSuccessResponse)
+async def bulk_delete_clients(
+    client_ids: list[str],
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    admin_user: str = Depends(require_admin_access),
+):
+    """Bulk delete multiple client accounts."""
+    if not HANDLERS_AVAILABLE:
+        raise HTTPException(status_code=503, detail="Client handlers not available")
+
+    if not client_ids:
+        raise HTTPException(status_code=400, detail="No client IDs provided")
+
+    return await ClientCRUDHandler.bulk_delete_clients(client_ids, db, admin_user)

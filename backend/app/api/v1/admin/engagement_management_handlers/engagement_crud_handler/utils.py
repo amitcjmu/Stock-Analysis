@@ -145,52 +145,131 @@ async def _delete_dependent_records(db, engagement_id):
 
 
 async def _delete_engagement_tables(db, engagement_id):
-    """Delete records from engagement-related tables."""
-    # Hardcoded list of allowed tables - prevents any external influence
-    ALLOWED_TABLES = frozenset(
-        [
-            "access_audit_log",
-            "assessments",
-            "asset_embeddings",
-            "assets",
-            "cmdb_sixr_analyses",
-            "data_imports",
-            "engagement_access",
-            "feedback",
-            "feedback_summaries",
-            "llm_usage_logs",
-            "llm_usage_summary",
-            "mapping_learning_patterns",
-            "migration_waves",
-            "sixr_analyses",
-            "wave_plans",
-        ]
-    )
+    """Delete records from engagement-related tables.
 
-    for table in ALLOWED_TABLES:
+    This handles the complete FK dependency chain for all 64+ tables that
+    reference engagement_id. Tables are deleted in order of dependency
+    (children first, then parents).
+    """
+    # Tables that reference other child tables (deepest dependencies first)
+    child_tables_of_child_tables = [
+        # These reference data_imports
+        "raw_import_records",
+        "import_field_mappings",
+        # These reference flows
+        "collection_answer_history",
+        "collection_flow_applications",
+        "collection_gap_analysis",
+        "collection_question_rules",
+        "adaptive_questionnaires",
+        # These reference assets
+        "asset_contacts",
+        "asset_custom_attributes",
+        "asset_dependencies",
+        "asset_eol_assessments",
+        "asset_field_conflicts",
+        "asset_conflict_resolutions",
+        # These reference canonical_applications
+        "application_name_variants",
+        "application_components",
+        # These reference timelines
+        "timeline_milestones",
+        "timeline_phases",
+        # These reference decommission plans
+        "decommission_validation_checks",
+        "decommission_execution_logs",
+        # These reference resource pools
+        "resource_allocations",
+        "resource_skills",
+        # These reference archive policies
+        "archive_jobs",
+    ]
+
+    for table in child_tables_of_child_tables:
         try:
-            # Additional validation: ensure table name contains only alphanumeric and underscore
-            if not all(c.isalnum() or c == "_" for c in table):
-                logger.error(f"Invalid table name format: {table}")
-                continue
-
-            # Use format() with validated table name
-            # Table names are from hardcoded frozenset above, so this is safe
-            query_string = """
-                DELETE FROM {}
-                WHERE engagement_id = :engagement_id
-            """.format(
-                table
-            )  # nosec B608 # Table names from validated frozenset above
-
             await db.execute(
-                text(query_string),
+                text(
+                    f"DELETE FROM {table} WHERE engagement_id = :engagement_id"
+                ),  # noqa: S608
+                {"engagement_id": engagement_id},
+            )
+        except Exception as e:
+            logger.debug(f"Table {table} cleanup (may not exist or no data): {e}")
+
+    # All tables with direct engagement_id FK reference (comprehensive list)
+    direct_reference_tables = [
+        # Flow tables (must delete before crewai_flow_state_extensions)
+        "discovery_flows",
+        "collection_flows",
+        "assessment_flows",
+        "decommission_flows",
+        "planning_flows",
+        # The master flow table
+        "crewai_flow_state_extensions",
+        # Asset and related
+        "assets",
+        # Data management
+        "data_imports",
+        "data_retention_policies",
+        "data_cleansing_recommendations",
+        # Application tracking
+        "canonical_applications",
+        # Assessment related
+        "assessments",
+        "sixr_analyses_archive",
+        "tech_debt_analysis",
+        "sixr_decisions",
+        "assessment_learning_feedback",
+        "engagement_architecture_standards",
+        # Wave and migration planning
+        "migration_waves",
+        "migration_exceptions",
+        "project_timelines",
+        "resource_pools",
+        # Agent and performance tracking
+        "agent_task_history",
+        "agent_execution_history",
+        "agent_performance_daily",
+        "agent_discovered_patterns",
+        # Decommission
+        "decommission_plans",
+        # Caching and audit
+        "cache_metadata",
+        "access_audit_log",
+        "enhanced_access_audit_log",
+        "flow_deletion_audit",
+        "failure_journal",
+        # Feedback and usage
+        "feedback",
+        "feedback_summaries",
+        "llm_usage_logs",
+        "llm_usage_summary",
+        # Maintenance and scheduling
+        "maintenance_windows",
+        "blackout_periods",
+        # Approval workflows
+        "approval_requests",
+        # Vendor and credentials
+        "tenant_vendor_products",
+        # Field mapping and rules
+        "field_dependency_rules",
+        # Background tasks
+        "collection_background_tasks",
+        # User associations and access
+        "engagement_access",
+    ]
+
+    for table in direct_reference_tables:
+        try:
+            await db.execute(
+                text(
+                    f"DELETE FROM {table} WHERE engagement_id = :engagement_id"
+                ),  # noqa: S608
                 {"engagement_id": engagement_id},
             )
         except Exception as table_error:
-            logger.warning(
-                f"Could not delete from {table}: {table_error}"  # nosec B608
-                # table name from hardcoded list
+            logger.debug(
+                f"Table {table} cleanup (may not exist or no data): {table_error}"
             )
             # Continue with other tables
 

@@ -77,8 +77,18 @@ class AdminOperationsService:
         page: int,
         page_size: int,
         include_inactive: bool = False,
+        only_inactive: bool = False,
     ) -> Dict[str, Any]:
-        """Get users for admin management. Optionally includes inactive users for reactivation."""
+        """Get users for admin management.
+
+        Args:
+            user_id_str: ID of user making the request (for RBAC check)
+            page: Page number for pagination
+            page_size: Number of users per page
+            include_inactive: If True, include both active and inactive users
+            only_inactive: If True, show ONLY inactive users (for reactivation purposes)
+                          Takes precedence over include_inactive
+        """
         try:
             rbac_service = create_rbac_service(self.db)
 
@@ -94,11 +104,17 @@ class AdminOperationsService:
 
             # Try to get real users from database
             try:
-                # Build query conditions based on include_inactive flag
-                if include_inactive:
+                # Build query conditions based on filter parameters
+                # only_inactive takes precedence for explicit inactive-only queries
+                if only_inactive:
                     # Show ONLY inactive users for reactivation purposes
                     query_conditions = and_(
                         User.is_active == False,  # noqa: E712
+                        User.is_verified == True,  # noqa: E712
+                    )
+                elif include_inactive:
+                    # Backward compatible: include both active and inactive users
+                    query_conditions = and_(
                         User.is_verified == True,  # noqa: E712
                     )
                 else:

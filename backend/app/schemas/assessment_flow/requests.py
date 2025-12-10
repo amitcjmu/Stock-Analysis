@@ -43,6 +43,15 @@ class AssessmentFlowCreateRequest(BaseModel):
         description="UUID of the source collection flow (if assessment was created from collection)",
     )
 
+    # Issue #719: Force re-assessment for apps with previously accepted treatments
+    force_reassessment: bool = Field(
+        default=False,
+        description=(
+            "Force re-assessment even for applications with previously accepted 6R treatments. "
+            "If False (default), apps with accepted treatments will show their saved values."
+        ),
+    )
+
     application_asset_groups: Optional[List[ApplicationAssetGroup]] = Field(
         default_factory=list, description="Application-asset groupings with metadata"
     )

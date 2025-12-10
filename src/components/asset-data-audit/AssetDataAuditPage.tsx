@@ -60,6 +60,7 @@ import {
   CheckCircle2,
   XCircle,
   ChevronRight,
+  ChevronLeft,
   RefreshCw,
   Filter,
   Eye,
@@ -281,7 +282,7 @@ const JsonbSection: React.FC<{
 const DataGapsAlert: React.FC<{
   gaps: {
     empty_categories: string[];
-    low_completeness_categories: { category: string; completeness_pct: number }[];
+    low_completeness_categories: Array<{ category: string; completeness_pct: number }>;
     missing_enrichments: string[];
   };
 }> = ({ gaps }) => {
@@ -372,12 +373,22 @@ const AssetSelector: React.FC<{
 }> = ({ onSelect, selectedId }) => {
   const [search, setSearch] = useState('');
   const [phase, setPhase] = useState<string>('all');
+  const [page, setPage] = useState(0);
+  const pageSize = 50;
 
   const { data, isLoading, refetch } = useAssetListForAudit({
-    limit: 50,
+    limit: pageSize,
+    offset: page * pageSize,
     search: search || undefined,
     phase: phase && phase !== 'all' ? phase : undefined,
   });
+
+  // Reset to first page when search or phase changes
+  React.useEffect(() => {
+    setPage(0);
+  }, [search, phase]);
+
+  const totalPages = data ? Math.ceil(data.total / pageSize) : 0;
 
   return (
     <Card>
@@ -452,9 +463,36 @@ const AssetSelector: React.FC<{
           </div>
         )}
         {data && (
-          <p className="text-xs text-muted-foreground mt-2">
-            Showing {data.assets.length} of {data.total} assets
-          </p>
+          <div className="flex items-center justify-between mt-3 pt-3 border-t">
+            <p className="text-xs text-muted-foreground">
+              Showing {page * pageSize + 1}-{Math.min((page + 1) * pageSize, data.total)} of {data.total} assets
+            </p>
+            {totalPages > 1 && (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
+                  disabled={page === 0}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Prev
+                </Button>
+                <span className="text-xs text-muted-foreground px-2">
+                  {page + 1} / {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                  disabled={page >= totalPages - 1}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            )}
+          </div>
         )}
       </CardContent>
     </Card>
