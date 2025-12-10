@@ -29,6 +29,7 @@ class ClientCRUDHandler:
     create_client = ClientCommandOperations.create_client
     update_client = ClientCommandOperations.update_client
     delete_client = ClientCommandOperations.delete_client
+    bulk_delete_clients = ClientCommandOperations.bulk_delete_clients
 
 
 # Export all public APIs for backward compatibility
