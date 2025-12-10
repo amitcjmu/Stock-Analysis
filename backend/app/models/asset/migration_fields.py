@@ -29,8 +29,8 @@ class MigrationFieldsMixin:
         comment="The status of the asset's field mapping during import.",
         info={
             "display_name": "Mapping Status",
-            "short_hint": "Field mapping status",
-            "category": "import",
+            "short_hint": "Pending / Mapped / Validated",
+            "category": "migration",
         },
     )
     migration_priority = Column(

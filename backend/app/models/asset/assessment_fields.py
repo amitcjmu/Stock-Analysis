@@ -26,7 +26,7 @@ class AssessmentFieldsMixin:
         comment="Assessment readiness status for this asset (e.g., 'ready', 'not_ready').",
         info={
             "display_name": "Assessment Readiness",
-            "short_hint": "Ready / Not Ready status",
+            "short_hint": "Ready / Not Ready / Pending",
             "category": "assessment",
         },
     )
@@ -36,7 +36,7 @@ class AssessmentFieldsMixin:
         comment="Optional readiness score (0-100 or 0-1 depending on configuration).",
         info={
             "display_name": "Assessment Readiness Score",
-            "short_hint": "0-100 readiness score",
+            "short_hint": "0-100 scale",
             "category": "assessment",
         },
     )
@@ -46,7 +46,7 @@ class AssessmentFieldsMixin:
         comment="List of identified blockers preventing assessment readiness.",
         info={
             "display_name": "Assessment Blockers",
-            "short_hint": "Identified blockers list",
+            "short_hint": "Issues preventing readiness",
             "category": "assessment",
         },
     )
@@ -56,7 +56,7 @@ class AssessmentFieldsMixin:
         comment="List of recommendations to achieve assessment readiness.",
         info={
             "display_name": "Assessment Recommendations",
-            "short_hint": "Recommendations list",
+            "short_hint": "Suggested improvements",
             "category": "assessment",
         },
     )
@@ -79,7 +79,7 @@ class AssessmentFieldsMixin:
         comment="Timestamp when the asset was first discovered.",
         info={
             "display_name": "Discovered At",
-            "short_hint": "First discovery timestamp",
+            "short_hint": "Initial discovery timestamp",
             "category": "identification",
         },
     )
@@ -89,7 +89,7 @@ class AssessmentFieldsMixin:
         comment="Timestamp when discovery completed for this asset.",
         info={
             "display_name": "Discovery Completed At",
-            "short_hint": "Discovery completion time",
+            "short_hint": "Discovery completion timestamp",
             "category": "identification",
         },
     )

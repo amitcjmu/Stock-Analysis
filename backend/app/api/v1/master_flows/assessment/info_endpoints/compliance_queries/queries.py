@@ -8,13 +8,12 @@ import logging
 from typing import Any, Dict
 
 from fastapi import Depends, HTTPException
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext, get_current_context_dependency
 from app.core.database import get_db
-from app.models.assessment_flow import AssessmentFlow
 from app.utils.json_sanitization import sanitize_for_json
+from ...query_helpers import get_assessment_flow
 
 from .schemas import (
     ApplicationComplianceResult,
@@ -59,17 +58,9 @@ async def get_compliance_validation(
                 status_code=400, detail="Client account ID and Engagement ID required"
             )
 
-        # Query assessment flow with phase_results
-        stmt = select(AssessmentFlow).where(
-            AssessmentFlow.id == flow_id,
-            AssessmentFlow.client_account_id == client_account_id,
-            AssessmentFlow.engagement_id == engagement_id,
-        )
-        result = await db.execute(stmt)
-        flow = result.scalar_one_or_none()
-
-        if not flow:
-            raise HTTPException(status_code=404, detail="Assessment flow not found")
+        # Query assessment flow with master_flow_id fallback (MFO two-table pattern)
+        # flow_id in URL can be master_flow_id or child id
+        flow = await get_assessment_flow(db, flow_id, client_account_id, engagement_id)
 
         # Extract compliance data from phase_results
         phase_results = flow.phase_results or {}
@@ -159,17 +150,9 @@ async def get_eol_risks(
                 status_code=400, detail="Client account ID and Engagement ID required"
             )
 
-        # Query assessment flow with phase_results
-        stmt = select(AssessmentFlow).where(
-            AssessmentFlow.id == flow_id,
-            AssessmentFlow.client_account_id == client_account_id,
-            AssessmentFlow.engagement_id == engagement_id,
-        )
-        result = await db.execute(stmt)
-        flow = result.scalar_one_or_none()
-
-        if not flow:
-            raise HTTPException(status_code=404, detail="Assessment flow not found")
+        # Query assessment flow with master_flow_id fallback (MFO two-table pattern)
+        # flow_id in URL can be master_flow_id or child id
+        flow = await get_assessment_flow(db, flow_id, client_account_id, engagement_id)
 
         # Extract compliance data for EOL risks
         phase_results = flow.phase_results or {}

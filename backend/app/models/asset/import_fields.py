@@ -55,8 +55,8 @@ class ImportFieldsMixin:
         JSON,
         comment="A JSON blob of the original, raw data for this asset from the import source.",
         info={
-            "display_name": "Raw Data",
-            "short_hint": "Original import data",
+            "display_name": "Raw Import Data",
+            "short_hint": "Original unprocessed data",
             "category": "import",
         },
     )
@@ -78,7 +78,7 @@ class ImportFieldsMixin:
         comment="The raw import record this asset was created from.",
         info={
             "display_name": "Raw Import Record ID",
-            "short_hint": "Source import record",
+            "short_hint": "Link to raw import record",
             "category": "import",
         },
     )
@@ -90,7 +90,7 @@ class ImportFieldsMixin:
         comment="Discovery lifecycle status for this asset (e.g., 'completed').",
         info={
             "display_name": "Discovery Status",
-            "short_hint": "Discovery lifecycle status",
-            "category": "identification",
+            "short_hint": "Pending / In Progress / Completed",
+            "category": "import",
         },
     )

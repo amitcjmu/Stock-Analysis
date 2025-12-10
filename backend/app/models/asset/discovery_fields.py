@@ -22,7 +22,7 @@ class DiscoveryFieldsMixin:
         comment="A JSON array of assets that depend on this asset (Issue #962).",
         info={
             "display_name": "Dependents",
-            "short_hint": "Assets that depend on this",
+            "short_hint": "Assets depending on this",
             "category": "technical",
         },
     )
@@ -31,7 +31,7 @@ class DiscoveryFieldsMixin:
         comment="A JSON array of other related assets or CIs.",
         info={
             "display_name": "Related Assets",
-            "short_hint": "Related CIs or assets",
+            "short_hint": "Related configuration items",
             "category": "technical",
         },
     )
@@ -42,7 +42,7 @@ class DiscoveryFieldsMixin:
         comment="How the asset was discovered (e.g., 'network_scan', 'agent', 'import').",
         info={
             "display_name": "Discovery Method",
-            "short_hint": "How asset was discovered",
+            "short_hint": "Network Scan / Agent / Import",
             "category": "identification",
         },
     )
@@ -51,7 +51,7 @@ class DiscoveryFieldsMixin:
         comment="The specific tool or system that discovered the asset (e.g., 'ServiceNow', 'Azure Migrate').",
         info={
             "display_name": "Discovery Source",
-            "short_hint": "Source tool or system",
+            "short_hint": "ServiceNow / Azure Migrate / Manual",
             "category": "identification",
         },
     )
@@ -60,7 +60,7 @@ class DiscoveryFieldsMixin:
         comment="Timestamp of when the asset was last discovered or updated.",
         info={
             "display_name": "Discovery Timestamp",
-            "short_hint": "Last discovery time",
+            "short_hint": "Last discovery update",
             "category": "identification",
         },
     )

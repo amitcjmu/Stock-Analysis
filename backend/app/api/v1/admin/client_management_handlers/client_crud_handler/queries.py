@@ -99,9 +99,12 @@ class ClientQueryOperations:
 
             query = select(ClientAccount)
 
-            # Apply filters (example)
+            # Apply filters - default to active clients only unless explicitly requesting inactive
             if filters.get("is_active") is not None:
                 query = query.where(ClientAccount.is_active == filters["is_active"])
+            else:
+                # Default: only show active clients (exclude soft-deleted)
+                query = query.where(ClientAccount.is_active == True)  # noqa: E712
             if filters.get("account_name"):
                 query = query.where(
                     ClientAccount.name.ilike(f"%{filters['account_name']}%")
@@ -152,8 +155,10 @@ class ClientQueryOperations:
                     status_code=503, detail="Client models not available"
                 )
 
-            # Total clients
-            total_clients_query = select(func.count()).select_from(ClientAccount)
+            # Total clients (only active ones - exclude soft-deleted)
+            total_clients_query = select(func.count()).where(
+                ClientAccount.is_active == True  # noqa: E712
+            )
             total_clients = (await db.execute(total_clients_query)).scalar_one()
 
             # Active clients (based on is_active field)
@@ -162,9 +167,11 @@ class ClientQueryOperations:
             )  # noqa: E712
             active_clients = (await db.execute(active_clients_query)).scalar_one()
 
-            # Clients by industry (handle None values)
-            industry_query = select(ClientAccount.industry, func.count()).group_by(
-                ClientAccount.industry
+            # Clients by industry (only active ones, handle None values)
+            industry_query = (
+                select(ClientAccount.industry, func.count())
+                .where(ClientAccount.is_active == True)  # noqa: E712
+                .group_by(ClientAccount.industry)
             )
             industry_results = await db.execute(industry_query)
             clients_by_industry = {}
@@ -173,9 +180,11 @@ class ClientQueryOperations:
                 key = industry if industry is not None else "Unknown"
                 clients_by_industry[key] = count
 
-            # Clients by company size (handle None values)
-            size_query = select(ClientAccount.company_size, func.count()).group_by(
-                ClientAccount.company_size
+            # Clients by company size (only active ones, handle None values)
+            size_query = (
+                select(ClientAccount.company_size, func.count())
+                .where(ClientAccount.is_active == True)  # noqa: E712
+                .group_by(ClientAccount.company_size)
             )
             size_results = await db.execute(size_query)
             clients_by_company_size = {}
@@ -187,11 +196,15 @@ class ClientQueryOperations:
             # Placeholder for clients by cloud provider as it's not a direct field
             clients_by_cloud_provider = {"aws": 0, "azure": 0, "gcp": 0}
 
-            # Recent client registrations (last 30 days)
+            # Recent client registrations (last 30 days, only active ones)
             recent_clients_query = (
                 select(ClientAccount)
                 .where(
-                    ClientAccount.created_at > datetime.utcnow() - timedelta(days=30)
+                    and_(
+                        ClientAccount.is_active == True,  # noqa: E712
+                        ClientAccount.created_at
+                        > datetime.utcnow() - timedelta(days=30),
+                    )
                 )
                 .order_by(ClientAccount.created_at.desc())
                 .limit(5)
@@ -204,9 +217,11 @@ class ClientQueryOperations:
                 for c in recent_clients
             ]
 
-            # Engagements by status
-            status_query = select(Engagement.status, func.count()).group_by(
-                Engagement.status
+            # Engagements by status (only active ones)
+            status_query = (
+                select(Engagement.status, func.count())
+                .where(Engagement.is_active == True)  # noqa: E712
+                .group_by(Engagement.status)
             )
             engagements_by_status = {
                 row[0]: row[1]
@@ -214,7 +229,7 @@ class ClientQueryOperations:
                 if row[0]
             }
 
-            # Average engagement duration
+            # Average engagement duration (only active ones)
             duration_query = select(
                 func.avg(
                     func.extract(
@@ -224,6 +239,7 @@ class ClientQueryOperations:
                     / (60 * 60 * 24)
                 )
             ).where(
+                Engagement.is_active == True,  # noqa: E712
                 Engagement.actual_completion_date.isnot(None),
                 Engagement.start_date.isnot(None),
             )

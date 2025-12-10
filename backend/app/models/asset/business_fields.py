@@ -77,7 +77,7 @@ class BusinessFieldsMixin:
         comment="A JSON blob for storing any custom fields or attributes not in the standard schema.",
         info={
             "display_name": "Custom Attributes",
-            "short_hint": "Custom fields and attributes",
+            "short_hint": "User-defined attributes",
             "category": "other",
         },
     )
@@ -86,7 +86,7 @@ class BusinessFieldsMixin:
         comment="A JSON blob containing technical details and enrichments for the asset.",
         info={
             "display_name": "Technical Details",
-            "short_hint": "Technical enrichments data",
+            "short_hint": "Technical enrichment data",
             "category": "technical",
         },
     )

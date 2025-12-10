@@ -31,7 +31,7 @@ from .performance_fields import PerformanceFieldsMixin
 from .discovery_fields import DiscoveryFieldsMixin
 from .business_fields import BusinessFieldsMixin
 from .migration_fields import MigrationFieldsMixin
-from .system_fields import FlowTrackingFieldsMixin, AuditFieldsMixin
+from .system_fields import SystemFieldsMixin, AuditFieldsMixin
 
 
 class Asset(
@@ -46,7 +46,7 @@ class Asset(
     DiscoveryFieldsMixin,
     BusinessFieldsMixin,
     MigrationFieldsMixin,
-    FlowTrackingFieldsMixin,
+    SystemFieldsMixin,
     AuditFieldsMixin,
 ):
     """
@@ -58,23 +58,19 @@ class Asset(
     __tablename__ = "assets"
     __table_args__ = (
         CheckConstraint(
-            "virtualization_type IN ('virtual', 'physical', 'container', 'other') "
-            "OR virtualization_type IS NULL",
+            "virtualization_type IN ('virtual', 'physical', 'container', 'other') OR virtualization_type IS NULL",
             name="chk_assets_virtualization_type",
         ),
         CheckConstraint(
-            "business_logic_complexity IN ('low', 'medium', 'high', 'critical') "
-            "OR business_logic_complexity IS NULL",
+            "business_logic_complexity IN ('low', 'medium', 'high', 'critical') OR business_logic_complexity IS NULL",
             name="chk_assets_business_logic_complexity",
         ),
         CheckConstraint(
-            "configuration_complexity IN ('low', 'medium', 'high', 'critical') "
-            "OR configuration_complexity IS NULL",
+            "configuration_complexity IN ('low', 'medium', 'high', 'critical') OR configuration_complexity IS NULL",
             name="chk_assets_configuration_complexity",
         ),
         CheckConstraint(
-            "change_tolerance IN ('low', 'medium', 'high') "
-            "OR change_tolerance IS NULL",
+            "change_tolerance IN ('low', 'medium', 'high') OR change_tolerance IS NULL",
             name="chk_assets_change_tolerance",
         ),
         {"schema": "migration"},
@@ -156,7 +152,7 @@ class Asset(
         String(SMALL_STRING_LENGTH),
         nullable=False,
         index=True,
-        comment="The type of the asset (e.g., 'server', 'database').",
+        comment="The type of the asset, from the AssetType enum (e.g., 'server', 'database').",
         info={
             "display_name": "Asset Type",
             "short_hint": "Server / Database / Application / Network Device",
@@ -201,7 +197,6 @@ class Asset(
             "category": "identification",
         },
     )
-
     # Technical specifications (from Azure Migrate)
     operating_system = Column(
         String(MEDIUM_STRING_LENGTH),
@@ -261,16 +256,27 @@ class Asset(
     questionnaire_responses = relationship(
         "CollectionQuestionnaireResponse", back_populates="asset"
     )
+    # field_conflicts = relationship("AssetFieldConflict", back_populates="asset")
+    # Removed - causing circular dependency
 
     # Enrichment relationships (1:1) - PHASE 2 Bug #679
+    # Eager loading with selectinload for intelligent gap detection
     resilience = relationship(
-        "AssetResilience", uselist=False, back_populates="asset", lazy="selectin"
+        "AssetResilience",
+        uselist=False,
+        back_populates="asset",
+        lazy="selectin",
     )
     compliance_flags = relationship(
-        "AssetComplianceFlags", uselist=False, back_populates="asset", lazy="selectin"
+        "AssetComplianceFlags",
+        uselist=False,
+        back_populates="asset",
+        lazy="selectin",
     )
     vulnerabilities = relationship(
-        "AssetVulnerabilities", back_populates="asset", lazy="selectin"
+        "AssetVulnerabilities",
+        back_populates="asset",
+        lazy="selectin",
     )
     tech_debt = relationship(
         "app.models.asset_enrichments.AssetTechDebt",
@@ -290,11 +296,21 @@ class Asset(
         back_populates="asset",
         lazy="selectin",
     )
-    licenses = relationship("AssetLicenses", back_populates="asset", lazy="selectin")
-    eol_assessments = relationship(
-        "AssetEOLAssessment", back_populates="asset", lazy="selectin"
+    licenses = relationship(
+        "AssetLicenses",
+        back_populates="asset",
+        lazy="selectin",
     )
-    contacts = relationship("AssetContact", back_populates="asset", lazy="selectin")
+    eol_assessments = relationship(
+        "AssetEOLAssessment",
+        back_populates="asset",
+        lazy="selectin",
+    )
+    contacts = relationship(
+        "AssetContact",
+        back_populates="asset",
+        lazy="selectin",
+    )
 
     def __repr__(self):
         return f"<Asset(id={self.id}, name='{self.name}', type='{self.asset_type}')>"

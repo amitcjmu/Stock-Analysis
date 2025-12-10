@@ -4,7 +4,8 @@ Handles dependency graph retrieval and analysis execution via MFO.
 Uses MFO integration layer per ADR-006 (Master Flow Orchestrator pattern).
 
 CRITICAL: Follows MFO Flow ID Pattern from mfo_two_table_flow_id_pattern_critical.md
-- URL receives CHILD flow ID (AssessmentFlow.id)
+- URL may receive MASTER flow ID or CHILD flow ID (frontend uses master_flow_id)
+- Query uses OR condition to match both master_flow_id and id
 - MFO expects MASTER flow ID (extracted from child.master_flow_id)
 - phase_input includes CHILD flow ID for persistence
 """
@@ -15,7 +16,8 @@ from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends, HTTPException
 from pydantic import BaseModel
-from sqlalchemy import and_, select
+import sqlalchemy as sa
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.auth.auth_utils import get_current_user
@@ -24,15 +26,15 @@ from app.core.database import get_db
 from app.core.security.secure_logging import safe_log_format
 from app.models.assessment_flow import AssessmentFlow
 from app.repositories.dependency_repository import DependencyRepository
+from .dependency_helpers import (
+    build_empty_dependency_response,
+    populate_application_dependencies,
+    build_dependency_graph,
+)
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-
-
-# =============================================================================
-# Request/Response Models
-# =============================================================================
 
 
 class UpdateDependenciesRequest(BaseModel):
@@ -40,177 +42,6 @@ class UpdateDependenciesRequest(BaseModel):
 
     application_id: str
     dependencies: Optional[str] = None  # Comma-separated asset IDs, None to clear
-
-
-# =============================================================================
-# Helper Functions (Complexity Reduction)
-# =============================================================================
-
-
-def _build_empty_dependency_response(flow_id: str) -> Dict[str, Any]:
-    """
-    Build empty dependency response when no applications are selected.
-
-    Args:
-        flow_id: Child flow UUID
-
-    Returns:
-        Dict with empty graph structure
-    """
-    return {
-        "flow_id": flow_id,
-        "app_server_dependencies": [],
-        "app_app_dependencies": [],
-        "applications": [],
-        "dependency_graph": {
-            "nodes": [],
-            "edges": [],
-            "metadata": {
-                "dependency_count": 0,
-                "node_count": 0,
-                "app_count": 0,
-                "server_count": 0,
-            },
-        },
-        "agent_results": None,
-        "message": "No applications selected for assessment",
-    }
-
-
-def _populate_application_dependencies(
-    filtered_apps: list[Dict[str, Any]], all_deps: list[Dict[str, Any]]
-) -> None:
-    """
-    Populate dependencies field on applications for frontend table display.
-
-    Modifies filtered_apps in-place to add:
-    - dependencies: Comma-separated string of dependency IDs
-    - dependency_names: Comma-separated string of dependency names
-
-    Args:
-        filtered_apps: List of application metadata dicts (modified in-place)
-        all_deps: List of all dependency records
-    """
-    for app in filtered_apps:
-        app_id = app["id"]
-        dep_ids = []
-        dep_names = []
-
-        # Collect ALL dependencies (server, database, application, network, etc.)
-        for dep in all_deps:
-            if dep.get("source_app_id") == app_id:
-                target_info = dep.get("target_info", {})
-                target_id = target_info.get("id")
-                target_name = target_info.get("name")
-                if target_id:
-                    dep_ids.append(target_id)
-                    if target_name:
-                        dep_names.append(target_name)
-
-        # Set dependencies as comma-separated string (or None if no deps)
-        app["dependencies"] = ",".join([str(d) for d in dep_ids]) if dep_ids else None
-        # Add dependency_names for display in frontend table
-        app["dependency_names"] = ",".join(dep_names) if dep_names else None
-
-
-def _build_dependency_graph(
-    filtered_apps: list[Dict[str, Any]], all_deps: list[Dict[str, Any]]
-) -> Dict[str, Any]:
-    """
-    Construct dependency graph from application and dependency data.
-
-    Builds graph structure with nodes (applications, servers, databases, etc.)
-    and edges (dependencies between assets).
-
-    Args:
-        filtered_apps: List of selected application metadata
-        all_deps: List of all dependency records
-
-    Returns:
-        Dict with:
-        - nodes: List of graph nodes with type, name, metadata
-        - edges: List of directed edges (source -> target)
-        - metadata: Graph statistics (counts)
-    """
-    nodes = []
-    edges = []
-    node_ids = set()
-
-    # Add source application nodes from filtered_apps
-    for app in filtered_apps:
-        app_id = app["id"]
-        if app_id not in node_ids:
-            nodes.append(
-                {
-                    "id": app_id,
-                    "name": app.get("application_name") or app.get("name"),
-                    "type": "application",
-                    "business_criticality": app.get("business_criticality"),
-                }
-            )
-            node_ids.add(app_id)
-
-    # Add source application nodes from dependencies (in case not in filtered_apps)
-    for dep in all_deps:
-        source_id = dep.get("source_app_id")
-        if source_id and source_id not in node_ids:
-            nodes.append(
-                {
-                    "id": source_id,
-                    "name": dep.get("source_app_name"),
-                    "type": "application",
-                }
-            )
-            node_ids.add(source_id)
-
-    # Add target asset nodes and edges from all_deps (unified query)
-    for dep in all_deps:
-        target_info = dep.get("target_info", {})
-        target_id = target_info.get("id")
-        target_type = target_info.get("type", "unknown")
-
-        # Add target node if not already present
-        if target_id and target_id not in node_ids:
-            node_data = {
-                "id": target_id,
-                "name": target_info.get("name"),
-                "type": target_type,
-            }
-
-            # Add type-specific fields
-            if target_type == "server":
-                node_data["hostname"] = target_info.get("hostname")
-            elif target_type in ("application", "database"):
-                node_data["application_name"] = target_info.get("application_name")
-
-            nodes.append(node_data)
-            node_ids.add(target_id)
-
-        # Add edge
-        edges.append(
-            {
-                "source": dep.get("source_app_id"),
-                "target": target_id,
-                "type": dep.get("dependency_type", "unknown"),
-                "source_name": dep.get("source_app_name"),
-                "target_name": target_info.get("name"),
-            }
-        )
-
-    # Count node types
-    app_count = sum(1 for n in nodes if n["type"] == "application")
-    server_count = sum(1 for n in nodes if n["type"] == "server")
-
-    return {
-        "nodes": nodes,
-        "edges": edges,
-        "metadata": {
-            "dependency_count": len(edges),
-            "node_count": len(nodes),
-            "app_count": app_count,
-            "server_count": server_count,
-        },
-    }
 
 
 @router.get("/{flow_id}/dependency/analysis")
@@ -250,14 +81,16 @@ async def get_dependency_analysis(
     """
     try:
         # ============================================
-        # STEP 1: Query child flow table using CHILD ID
+        # STEP 1: Query with master_flow_id fallback (MFO two-table pattern)
+        # URL may receive master_flow_id or child id - support both
         # ============================================
         stmt = select(AssessmentFlow).where(
-            and_(
-                AssessmentFlow.id == UUID(flow_id),  # ← PRIMARY KEY (child ID)
-                AssessmentFlow.client_account_id == context.client_account_id,
-                AssessmentFlow.engagement_id == context.engagement_id,
-            )
+            sa.or_(
+                AssessmentFlow.master_flow_id == UUID(flow_id),
+                AssessmentFlow.id == UUID(flow_id),
+            ),
+            AssessmentFlow.client_account_id == context.client_account_id,
+            AssessmentFlow.engagement_id == context.engagement_id,
         )
         result = await db.execute(stmt)
         child_flow = result.scalar_one_or_none()
@@ -270,7 +103,7 @@ async def get_dependency_analysis(
         selected_app_ids = child_flow.selected_application_ids or []
         if not selected_app_ids:
             # No applications selected, return empty graph
-            return _build_empty_dependency_response(flow_id)
+            return build_empty_dependency_response(flow_id)
 
         # ============================================
         # STEP 2: Get dependencies filtered by selected applications
@@ -294,21 +127,13 @@ async def get_dependency_analysis(
             app for app in applications_metadata if app["id"] in selected_app_ids
         ]
 
-        # ============================================
-        # STEP 2.5: Populate dependencies field on applications
-        # ============================================
-        # The frontend table expects app.dependencies to be a comma-separated string
-        # of dependency IDs. Also add dependency_names for display.
-        _populate_application_dependencies(filtered_apps, all_deps)
+        # Populate dependencies field on applications (frontend expects comma-separated IDs)
+        populate_application_dependencies(filtered_apps, all_deps)
 
-        # ============================================
-        # STEP 3: Construct dependency graph from raw data
-        # ============================================
-        dependency_graph = _build_dependency_graph(filtered_apps, all_deps)
+        # Construct dependency graph from raw data
+        dependency_graph = build_dependency_graph(filtered_apps, all_deps)
 
-        # ============================================
-        # STEP 3: Extract agent results from phase_results (if executed)
-        # ============================================
+        # Extract agent results from phase_results (if executed)
         agent_results = None
         if (
             child_flow.phase_results
@@ -388,14 +213,16 @@ async def execute_dependency_analysis(
     """
     try:
         # ============================================
-        # STEP 1: Query child flow table using CHILD ID
+        # STEP 1: Query with master_flow_id fallback (MFO two-table pattern)
+        # URL may receive master_flow_id or child id - support both
         # ============================================
         stmt = select(AssessmentFlow).where(
-            and_(
-                AssessmentFlow.id == UUID(flow_id),  # ← PRIMARY KEY (child ID)
-                AssessmentFlow.client_account_id == context.client_account_id,
-                AssessmentFlow.engagement_id == context.engagement_id,
-            )
+            sa.or_(
+                AssessmentFlow.master_flow_id == UUID(flow_id),
+                AssessmentFlow.id == UUID(flow_id),
+            ),
+            AssessmentFlow.client_account_id == context.client_account_id,
+            AssessmentFlow.engagement_id == context.engagement_id,
         )
         result = await db.execute(stmt)
         child_flow = result.scalar_one_or_none()
@@ -493,13 +320,14 @@ async def update_application_dependencies(
         HTTPException 500: Update failed
     """
     try:
-        # Validate flow exists
+        # Validate flow exists with master_flow_id fallback (MFO two-table pattern)
         stmt = select(AssessmentFlow).where(
-            and_(
+            sa.or_(
+                AssessmentFlow.master_flow_id == UUID(flow_id),
                 AssessmentFlow.id == UUID(flow_id),
-                AssessmentFlow.client_account_id == context.client_account_id,
-                AssessmentFlow.engagement_id == context.engagement_id,
-            )
+            ),
+            AssessmentFlow.client_account_id == context.client_account_id,
+            AssessmentFlow.engagement_id == context.engagement_id,
         )
         result = await db.execute(stmt)
         child_flow = result.scalar_one_or_none()
