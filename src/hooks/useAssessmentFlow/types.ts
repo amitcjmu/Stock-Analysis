@@ -20,13 +20,18 @@ export type AssessmentFlowStatus =
   | "completed"
   | "error";
 
+// Assessment phases aligned with backend FlowTypeConfig (assessment_flow_config.py)
+// Order: readiness_assessment → architecture_minimums → complexity_analysis →
+//        dependency_analysis → tech_debt_assessment → risk_assessment → recommendation_generation
 export type AssessmentPhase =
   | "initialization"
+  | "readiness_assessment"
   | "architecture_minimums"
-  | "tech_debt_analysis"
-  | "component_sixr_strategies"
-  | "recommendation_generation" // Issue #7 fix: Add backend phase name
-  | "app_on_page_generation"
+  | "complexity_analysis"
+  | "dependency_analysis"
+  | "tech_debt_assessment"
+  | "risk_assessment"
+  | "recommendation_generation"
   | "finalization";
 
 export interface ArchitectureStandard {

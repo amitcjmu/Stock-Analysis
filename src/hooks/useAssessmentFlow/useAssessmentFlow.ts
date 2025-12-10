@@ -318,13 +318,16 @@ export const useAssessmentFlow = (
   // Utility function to check if navigation to phase is allowed
   const canNavigateToPhase = useCallback(
     (phase: AssessmentPhase): boolean => {
+      // Phase order aligned with backend FlowTypeConfig (assessment_flow_config.py)
       const phaseOrder: AssessmentPhase[] = [
         "initialization",
-        "asset_application_resolution",
+        "readiness_assessment",
         "architecture_minimums",
-        "tech_debt_analysis",
-        "component_sixr_strategies",
-        "app_on_page_generation",
+        "complexity_analysis",
+        "dependency_analysis",
+        "tech_debt_assessment",
+        "risk_assessment",
+        "recommendation_generation",
         "finalization",
       ];
 
@@ -715,17 +718,19 @@ export const useAssessmentFlow = (
     return loadApplicationData();
   }, [loadApplicationData]);
 
-  // Helper function for navigation
+  // Helper function for navigation - phase order aligned with backend FlowTypeConfig
   const getNextPhaseForNavigation = (
     currentPhase: AssessmentPhase,
   ): AssessmentPhase | null => {
     const phaseOrder: AssessmentPhase[] = [
       "initialization",
-      "asset_application_resolution",
+      "readiness_assessment",
       "architecture_minimums",
-      "tech_debt_analysis",
-      "component_sixr_strategies",
-      "app_on_page_generation",
+      "complexity_analysis",
+      "dependency_analysis",
+      "tech_debt_assessment",
+      "risk_assessment",
+      "recommendation_generation",
       "finalization",
     ];
 

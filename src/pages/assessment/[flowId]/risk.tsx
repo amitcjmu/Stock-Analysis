@@ -226,7 +226,10 @@ const RiskAssessmentPage: React.FC = () => {
           applications={state.selectedApplicationIds}
           selectedApp={selectedApp}
           onAppSelect={setSelectedApp}
-          getApplicationName={(appId) => appId}
+          getApplicationName={(appId) => {
+            const app = state.selectedApplications.find(a => a.application_id === appId);
+            return app?.application_name || appId;
+          }}
         />
 
         {selectedApp && (
@@ -238,7 +241,7 @@ const RiskAssessmentPage: React.FC = () => {
                   <Shield className="h-5 w-5" />
                   <span>Overall Risk Assessment</span>
                 </CardTitle>
-                <CardDescription>Summary for {selectedApp}</CardDescription>
+                <CardDescription>Summary for {state.selectedApplications.find(a => a.application_id === selectedApp)?.application_name || selectedApp}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
