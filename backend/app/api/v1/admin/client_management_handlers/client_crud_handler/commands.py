@@ -6,10 +6,13 @@ import logging
 from datetime import datetime
 
 from fastapi import HTTPException
-from sqlalchemy import func, select, text
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security.cache_encryption import secure_setattr
+from .cascade_delete import cascade_delete_client_data
+
+# bulk_delete_clients is in bulk_operations.py and re-exported via __init__.py
 from app.schemas.admin_schemas import (
     AdminSuccessResponse,
     ClientAccountCreate,
@@ -294,81 +297,10 @@ class ClientCommandOperations:
 
             # Handle cascade deletion of related records to avoid foreign key constraints
             try:
-                # Check if there are active engagements for this client
-                engagement_count_query = (
-                    select(func.count())
-                    .select_from(Engagement)
-                    .where(
-                        Engagement.client_account_id == client_id,
-                        Engagement.is_active == True,  # noqa: E712
-                    )
-                )
-                active_engagements = (
-                    await db.execute(engagement_count_query)
-                ).scalar_one()
+                # Perform comprehensive cascade deletion
+                await cascade_delete_client_data(db, client_id)
 
-                if active_engagements > 0:
-                    # If there are active engagements, suggest deactivation instead
-                    raise HTTPException(
-                        status_code=409,
-                        detail=f"Cannot delete client account with {active_engagements} active engagements. "
-                        "Please complete or archive engagements first.",
-                    )
-
-                # Delete related records in proper order to avoid foreign key constraints
-
-                # 1. Delete workflow_states that reference data_imports for this client's engagements
-                await db.execute(
-                    text(
-                        """
-                    DELETE FROM workflow_states
-                    WHERE data_import_id IN (
-                        SELECT di.id FROM data_imports di
-                        JOIN engagements e ON di.engagement_id = e.id
-                        WHERE e.client_account_id = :client_id
-                    )
-                """
-                    ),
-                    {"client_id": client_id},
-                )
-
-                # 2. Delete data_imports for this client's engagements
-                await db.execute(
-                    text(
-                        """
-                    DELETE FROM data_imports
-                    WHERE engagement_id IN (
-                        SELECT id FROM engagements
-                        WHERE client_account_id = :client_id
-                    )
-                """
-                    ),
-                    {"client_id": client_id},
-                )
-
-                # 3. Delete client_access records for this client
-                await db.execute(
-                    text(
-                        """
-                    DELETE FROM client_access
-                    WHERE client_account_id = :client_id
-                """
-                    ),
-                    {"client_id": client_id},
-                )
-
-                # 4. Delete engagements for this client
-                await db.execute(
-                    text(
-                        """
-                    DELETE FROM engagements
-                    WHERE client_account_id = :client_id
-                """
-                    ),
-                    {"client_id": client_id},
-                )
-
-                # 5. Finally delete the client itself
+                # Finally delete the client itself
                 await db.delete(client)
                 await db.commit()
 
@@ -381,7 +313,7 @@ class ClientCommandOperations:
                 )
 
             except HTTPException:
-                # Re-raise HTTP exceptions (like the 409 for active engagements)
+                # Re-raise HTTP exceptions
                 raise
             except Exception as cascade_error:
                 await db.rollback()
