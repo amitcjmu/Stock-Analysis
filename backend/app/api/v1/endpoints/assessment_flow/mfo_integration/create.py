@@ -23,6 +23,56 @@ from app.core.security.secure_logging import safe_log_format
 logger = logging.getLogger(__name__)
 
 
+async def _find_previously_accepted_treatments(
+    db: AsyncSession,
+    client_account_id: UUID,
+    engagement_id: UUID,
+    application_ids: List[UUID],
+) -> tuple[Dict[str, Any], List[UUID]]:
+    """
+    Issue #719: Find previously accepted treatments for the given applications.
+
+    Returns:
+        Tuple of (previously_accepted_treatments dict, apps_requiring_assessment list)
+    """
+    from sqlalchemy import select, and_
+
+    previously_accepted_treatments: Dict[str, Any] = {}
+    apps_requiring_assessment = list(application_ids)
+
+    # Query for any previous assessment flows with accepted treatments for these apps
+    stmt = select(AssessmentFlow).where(
+        and_(
+            AssessmentFlow.client_account_id == client_account_id,
+            AssessmentFlow.engagement_id == engagement_id,
+            AssessmentFlow.status == "completed",
+        )
+    )
+    result = await db.execute(stmt)
+    previous_flows = result.scalars().all()
+
+    for prev_flow in previous_flows:
+        phase_results = prev_flow.phase_results or {}
+        rec_gen = phase_results.get("recommendation_generation", {})
+        rec_results = rec_gen.get("results", {})
+        inner_rec = rec_results.get("recommendation_generation", {})
+        applications = inner_rec.get("applications", [])
+
+        for app in applications:
+            app_id_str = str(app.get("application_id", ""))
+            # Check if this app was accepted (finalized)
+            if app.get("is_accepted"):
+                # Check if this app_id is in our requested list
+                for req_app_id in application_ids:
+                    if str(req_app_id) == app_id_str:
+                        previously_accepted_treatments[app_id_str] = app
+                        if req_app_id in apps_requiring_assessment:
+                            apps_requiring_assessment.remove(req_app_id)
+                        break
+
+    return previously_accepted_treatments, apps_requiring_assessment
+
+
 async def create_assessment_via_mfo(
     client_account_id: UUID,
     engagement_id: UUID,
@@ -31,6 +81,7 @@ async def create_assessment_via_mfo(
     flow_name: Optional[str],
     source_collection_id: Optional[UUID],
     db: AsyncSession,
+    force_reassessment: bool = False,
 ) -> Dict[str, Any]:
     """
     Create assessment flow through MFO using two-table pattern.
@@ -41,6 +92,9 @@ async def create_assessment_via_mfo(
     3. Link via flow_id
     4. Return unified state
 
+    Issue #719: If an app has a previously accepted treatment and force_reassessment=False,
+    we copy the accepted treatment to the new flow instead of re-running agent analysis.
+
     Args:
         client_account_id: Client account UUID for multi-tenant isolation
         engagement_id: Engagement UUID for multi-tenant isolation
@@ -49,6 +103,7 @@ async def create_assessment_via_mfo(
         flow_name: Optional name for the flow
         source_collection_id: Optional UUID of source collection flow (for Issue #861)
         db: Database session
+        force_reassessment: If True, force re-assessment even for apps with accepted treatments
 
     Returns:
         Dict with flow_id, master_flow_id, status, and initial phase
@@ -63,6 +118,27 @@ async def create_assessment_via_mfo(
 
     if len(application_ids) > 100:
         raise ValueError("Cannot assess more than 100 applications at once")
+
+    # Issue #719: Look up previously accepted treatments for these applications
+    # If force_reassessment=False, we reuse accepted treatments instead of re-running agents
+    previously_accepted_treatments: Dict[str, Any] = {}
+    apps_requiring_assessment = list(application_ids)
+
+    if not force_reassessment:
+        previously_accepted_treatments, apps_requiring_assessment = (
+            await _find_previously_accepted_treatments(
+                db, client_account_id, engagement_id, application_ids
+            )
+        )
+        if previously_accepted_treatments:
+            logger.info(
+                safe_log_format(
+                    "Issue #719: Found {count} apps with accepted treatments, "
+                    "{remaining} apps need assessment",
+                    count=len(previously_accepted_treatments),
+                    remaining=len(apps_requiring_assessment),
+                )
+            )
 
     # Generate flow IDs
     flow_id = uuid4()
@@ -101,6 +177,37 @@ async def create_assessment_via_mfo(
                 "linked_at": datetime.utcnow().isoformat(),
             }
 
+        # Issue #719: Store info about previously accepted treatments
+        if previously_accepted_treatments:
+            flow_metadata["previously_accepted_treatments"] = {
+                app_id: {
+                    "overall_strategy": treatment.get("overall_strategy"),
+                    "accepted_at": treatment.get("accepted_at"),
+                    "accepted_by": treatment.get("accepted_by"),
+                }
+                for app_id, treatment in previously_accepted_treatments.items()
+            }
+            flow_metadata["apps_requiring_assessment"] = [
+                str(app_id) for app_id in apps_requiring_assessment
+            ]
+            flow_metadata["force_reassessment"] = force_reassessment
+
+        # Issue #719: Pre-populate phase_results with previously accepted treatments
+        # So when the UI loads, it shows the accepted treatments without re-running agents
+        initial_phase_results = {}
+        if previously_accepted_treatments:
+            initial_phase_results["recommendation_generation"] = {
+                "results": {
+                    "recommendation_generation": {
+                        "applications": [
+                            treatment
+                            for treatment in previously_accepted_treatments.values()
+                        ],
+                        "previously_accepted": True,  # Flag to indicate these are cached
+                    }
+                }
+            }
+
         child_flow = AssessmentFlow(
             # AssessmentFlow uses 'id' as PK, not 'flow_id' (CodeRabbit fix)
             master_flow_id=master_flow.flow_id,  # FK reference for relationship
@@ -114,9 +221,11 @@ async def create_assessment_via_mfo(
             selected_application_ids=[str(app_id) for app_id in application_ids],
             selected_asset_ids=[str(app_id) for app_id in application_ids],
             flow_metadata=flow_metadata,  # Store source collection link
+            phase_results=initial_phase_results,  # Issue #719: Pre-populate with accepted
             configuration={
                 "application_count": len(application_ids),
                 "auto_progression_enabled": True,
+                "force_reassessment": force_reassessment,  # Issue #719
             },
             runtime_state={
                 "initialized_at": datetime.utcnow().isoformat(),
@@ -142,7 +251,7 @@ async def create_assessment_via_mfo(
         )
 
         # Step 4: Return unified state
-        return {
+        response = {
             "flow_id": str(flow_id),
             "master_flow_id": str(master_flow.flow_id),
             "status": child_flow.status,  # Per ADR-012: Use child status for operations
@@ -151,6 +260,18 @@ async def create_assessment_via_mfo(
             "selected_applications": len(application_ids),
             "message": "Assessment flow created through Master Flow Orchestrator",
         }
+
+        # Issue #719: Include info about previously accepted treatments
+        if previously_accepted_treatments:
+            response["previously_accepted_count"] = len(previously_accepted_treatments)
+            response["apps_requiring_assessment"] = len(apps_requiring_assessment)
+            response["message"] = (
+                f"Assessment flow created. {len(previously_accepted_treatments)} app(s) "
+                f"have accepted treatments (will be reused). "
+                f"{len(apps_requiring_assessment)} app(s) require assessment."
+            )
+
+        return response
 
     except Exception as e:
         logger.error(

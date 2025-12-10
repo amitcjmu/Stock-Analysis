@@ -142,6 +142,8 @@ export const useAssessmentFlow = (
                 tech_debt_score: d.tech_debt_score as number | undefined,
                 user_modifications: d.user_modifications as Record<string, string | number | boolean> | undefined,
                 app_on_page_data: d.app_on_page_data as Record<string, string | number | boolean> | undefined,
+                // Issue #719: Load is_accepted flag for finalized treatments
+                is_accepted: (d.is_accepted as boolean) || false,
               };
             }
             setState((prev) => ({

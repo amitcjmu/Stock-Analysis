@@ -321,6 +321,7 @@ async def update_assessment_phase_data(  # noqa: C901
         elif phase == "six_r_decision":
             from app.models.assessment_flow import AssessmentFlow
             from uuid import UUID
+            from datetime import datetime
 
             app_id = data.get("app_id")
             decision = data.get("decision", {})
@@ -362,12 +363,32 @@ async def update_assessment_phase_data(  # noqa: C901
             inner_rec = rec_results.get("recommendation_generation", {})
             applications = inner_rec.get("applications", [])
 
-            # Find and update the specific application's user_modifications
+            # Issue #719: Check if treatment is being accepted (finalized)
+            is_accepted = decision.get("is_accepted", False)
+
+            # Find and update the specific application's decision data
             updated = False
             for app in applications:
                 if str(app.get("application_id")) == app_uuid_str:
                     # Merge user_modifications from decision
                     app["user_modifications"] = decision.get("user_modifications", {})
+
+                    # Issue #719: Persist is_accepted, accepted_at, accepted_by for finalized treatments
+                    if is_accepted:
+                        app["is_accepted"] = True
+                        app["accepted_at"] = datetime.utcnow().isoformat()
+                        app["accepted_by"] = context.user_id
+
+                        # Also update apps_ready_for_planning list
+                        apps_ready = flow.apps_ready_for_planning or []
+                        if app_uuid_str not in apps_ready:
+                            apps_ready.append(app_uuid_str)
+                            flow.apps_ready_for_planning = apps_ready
+
+                        logger.info(
+                            f"[six_r_decision] Treatment ACCEPTED (finalized) for app {app_id} "
+                            f"by user {context.user_id}"
+                        )
                     updated = True
                     break
 
@@ -376,7 +397,7 @@ async def update_assessment_phase_data(  # noqa: C901
                 flow.phase_results = phase_results
                 await db.commit()
                 logger.info(
-                    f"[six_r_decision] Updated user acceptance for app {app_id} in flow {flow_id}"
+                    f"[six_r_decision] Updated 6R decision for app {app_id} in flow {flow_id}"
                 )
 
             return sanitize_for_json(
@@ -384,9 +405,10 @@ async def update_assessment_phase_data(  # noqa: C901
                     "flow_id": flow_id,
                     "phase": phase,
                     "app_id": app_id,
+                    "is_accepted": is_accepted,
                     "status": "updated" if updated else "not_found",
                     "message": (
-                        f"6R decision accepted for application {app_id}"
+                        f"6R decision {'accepted (finalized)' if is_accepted else 'updated'} for application {app_id}"
                         if updated
                         else f"Application {app_id} not found in recommendations"
                     ),

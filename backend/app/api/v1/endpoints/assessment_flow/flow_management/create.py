@@ -84,6 +84,7 @@ async def initialize_assessment_flow(
 
         # Create assessment flow via MFO (ADR-006: Two-table pattern)
         # Issue #861: Pass source_collection_id to enable application loading
+        # Issue #719: Pass force_reassessment to control treatment reuse behavior
         result = await create_assessment_via_mfo(
             client_account_id=UUID(client_account_id),
             engagement_id=UUID(engagement_id),
@@ -92,6 +93,7 @@ async def initialize_assessment_flow(
             flow_name=request.flow_name if hasattr(request, "flow_name") else None,
             source_collection_id=request.source_collection_id,  # Fix for Issue #861
             db=db,
+            force_reassessment=request.force_reassessment,  # Issue #719
         )
 
         flow_id = result["flow_id"]
