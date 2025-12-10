@@ -114,7 +114,7 @@ const ApplicationSelection: React.FC = () => {
   } = useApplicationSelection({ collectionFlow });
 
   // Infinite scroll hook
-  const { loadMoreRef } = useInfiniteScroll({
+  const { loadMoreRef, scrollContainerRef } = useInfiniteScroll({
     hasNextPage,
     isFetchingNextPage,
     fetchNextPage,
@@ -341,7 +341,7 @@ const ApplicationSelection: React.FC = () => {
                   onClearFilters={handleClearFilters}
                 />
 
-                <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                <div ref={scrollContainerRef} className="space-y-3 max-h-[600px] overflow-y-auto">
                   <ApplicationGrid
                     applications={filteredAssets}
                     selectedApplications={selectedApplications}
