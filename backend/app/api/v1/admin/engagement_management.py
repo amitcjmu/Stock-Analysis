@@ -182,5 +182,26 @@ async def get_engagement_dashboard_stats(
         )
 
 
+@router.post("/bulk-delete", response_model=AdminSuccessResponse)
+async def bulk_delete_engagements(
+    engagement_ids: List[str],
+    db: AsyncSession = Depends(get_db),
+    admin_user: str = Depends(require_admin_access),
+):
+    """Bulk delete multiple engagements."""
+    if not engagement_ids:
+        raise HTTPException(status_code=400, detail="No engagement IDs provided")
+
+    try:
+        return await EngagementCRUDHandler.bulk_delete_engagements(
+            engagement_ids, db, admin_user
+        )
+    except Exception as e:
+        logger.error(f"Error in bulk delete engagements: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to bulk delete engagements: {str(e)}"
+        )
+
+
 # Export the router for use in the API
 export_router = router

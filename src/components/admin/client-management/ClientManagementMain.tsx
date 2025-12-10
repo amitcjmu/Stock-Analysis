@@ -1,8 +1,7 @@
 import React from 'react';
 import { useState } from 'react';
 import { useCallback } from 'react';
-import { Upload } from 'lucide-react';
-import { Building2, Plus, Search, Download } from 'lucide-react';
+import { Building2, Plus, Search, Download, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -79,9 +78,11 @@ const ClientManagementMain: React.FC = () => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [formData, setFormData] = useState<ClientFormData>(initialFormData);
+  const [selectedClients, setSelectedClients] = useState<string[]>([]);
 
   const { clients, setClients, loading } = useClientData({ searchTerm, filterIndustry });
-  const { actionLoading, createClient, updateClient, deleteClient } = useClientOperations();
+  const { actionLoading, createClient, updateClient, deleteClient, bulkDeleteClients } =
+    useClientOperations();
 
   // Form handlers
   const handleFormChange = useCallback((field: keyof ClientFormData, value: string | string[]) => {
@@ -122,7 +123,28 @@ const ClientManagementMain: React.FC = () => {
     const success = await deleteClient(clientId, clientName);
     if (success) {
       setClients((prev) => prev.filter((client) => client.id !== clientId));
+      setSelectedClients((prev) => prev.filter((id) => id !== clientId));
     }
+  };
+
+  const handleBulkDelete = async (): void => {
+    if (selectedClients.length === 0) return;
+
+    const result = await bulkDeleteClients(selectedClients);
+    if (result.deleted > 0) {
+      setClients((prev) => prev.filter((client) => !selectedClients.includes(client.id)));
+      setSelectedClients([]);
+    }
+  };
+
+  const handleToggleSelection = (clientId: string): void => {
+    setSelectedClients((prev) =>
+      prev.includes(clientId) ? prev.filter((id) => id !== clientId) : [...prev, clientId]
+    );
+  };
+
+  const handleSelectAll = (selected: boolean): void => {
+    setSelectedClients(selected ? clients.map((client) => client.id) : []);
   };
 
   const handleEditClient = (client: Client): void => {
@@ -177,6 +199,18 @@ const ClientManagementMain: React.FC = () => {
               </CardDescription>
             </div>
             <div className="flex gap-2">
+              {selectedClients.length > 0 && (
+                <Button
+                  variant="destructive"
+                  onClick={handleBulkDelete}
+                  disabled={actionLoading === 'bulk-delete'}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  {actionLoading === 'bulk-delete'
+                    ? 'Deleting...'
+                    : `Delete (${selectedClients.length})`}
+                </Button>
+              )}
               <Button variant="outline" size="icon" onClick={exportClients}>
                 <Download className="h-4 w-4" />
               </Button>
@@ -221,6 +255,9 @@ const ClientManagementMain: React.FC = () => {
             actionLoading={actionLoading}
             onEditClient={handleEditClient}
             onDeleteClient={handleDeleteClient}
+            selectedClients={selectedClients}
+            onToggleSelection={handleToggleSelection}
+            onSelectAll={handleSelectAll}
           />
         </CardContent>
       </Card>

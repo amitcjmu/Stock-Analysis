@@ -282,7 +282,7 @@ const JsonbSection: React.FC<{
 const DataGapsAlert: React.FC<{
   gaps: {
     empty_categories: string[];
-    low_completeness_categories: { category: string; completeness_pct: number }[];
+    low_completeness_categories: Array<{ category: string; completeness_pct: number }>;
     missing_enrichments: string[];
   };
 }> = ({ gaps }) => {

@@ -11,6 +11,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,6 +26,9 @@ interface ClientTableProps {
   actionLoading: string | null;
   onEditClient: (client: Client) => void;
   onDeleteClient: (clientId: string, clientName: string) => void;
+  selectedClients: string[];
+  onToggleSelection: (clientId: string) => void;
+  onSelectAll: (selected: boolean) => void;
 }
 
 export const ClientTable: React.FC<ClientTableProps> = ({
@@ -33,6 +37,9 @@ export const ClientTable: React.FC<ClientTableProps> = ({
   actionLoading,
   onEditClient,
   onDeleteClient,
+  selectedClients,
+  onToggleSelection,
+  onSelectAll,
 }) => {
   const getStatusBadge = (isActive: boolean): JSX.Element => {
     return isActive ? (
@@ -51,6 +58,9 @@ export const ClientTable: React.FC<ClientTableProps> = ({
     };
     return <Badge className={tierStyles[tier] || 'bg-gray-100 text-gray-800'}>{tier}</Badge>;
   };
+
+  const allSelected = clients.length > 0 && selectedClients.length === clients.length;
+  const someSelected = selectedClients.length > 0 && selectedClients.length < clients.length;
 
   if (loading) {
     return (
@@ -74,6 +84,14 @@ export const ClientTable: React.FC<ClientTableProps> = ({
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead className="w-12">
+              <Checkbox
+                checked={allSelected}
+                onCheckedChange={onSelectAll}
+                aria-label="Select all"
+                className={someSelected ? 'data-[state=checked]:bg-primary/50' : ''}
+              />
+            </TableHead>
             <TableHead>Account Name</TableHead>
             <TableHead>Industry</TableHead>
             <TableHead>Primary Contact</TableHead>
@@ -86,7 +104,17 @@ export const ClientTable: React.FC<ClientTableProps> = ({
         </TableHeader>
         <TableBody>
           {clients.map((client) => (
-            <TableRow key={client.id}>
+            <TableRow
+              key={client.id}
+              className={selectedClients.includes(client.id) ? 'bg-muted/50' : ''}
+            >
+              <TableCell>
+                <Checkbox
+                  checked={selectedClients.includes(client.id)}
+                  onCheckedChange={() => onToggleSelection(client.id)}
+                  aria-label={`Select ${client.account_name}`}
+                />
+              </TableCell>
               <TableCell className="font-medium">
                 <Link to={`/admin/clients/${client.id}`} className="hover:underline">
                   {client.account_name}

@@ -11,6 +11,7 @@ export const useClientOperations = (): {
   createClient: (formData: ClientFormData) => Promise<Client | null>;
   updateClient: (client: Client, formData: ClientFormData) => Promise<Client | null>;
   deleteClient: (clientId: string, clientName: string) => Promise<boolean>;
+  bulkDeleteClients: (clientIds: string[]) => Promise<{ deleted: number; failed: number }>;
 } => {
   const { toast } = useToast();
   const dialog = useDialog();
@@ -220,10 +221,63 @@ export const useClientOperations = (): {
     [toast, dialog]
   );
 
+  const bulkDeleteClients = useCallback(
+    async (clientIds: string[]): Promise<{ deleted: number; failed: number }> => {
+      const confirmed = await dialog.confirm({
+        title: 'Bulk Delete Clients',
+        description: `Delete ${clientIds.length} selected clients? This action cannot be undone.`,
+        confirmText: 'Delete All',
+        cancelText: 'Cancel',
+        variant: 'destructive',
+        icon: 'warning',
+      });
+
+      if (!confirmed) return { deleted: 0, failed: 0 };
+
+      try {
+        setActionLoading('bulk-delete');
+
+        const response = await apiCall('/api/v1/admin/clients/bulk-delete', {
+          method: 'POST',
+          body: JSON.stringify(clientIds),
+        });
+
+        if (response.status === 'success') {
+          const data = response.data || {};
+          toast({
+            title: 'Success',
+            description: `Deleted ${data.deleted_count || clientIds.length} clients`,
+          });
+          return {
+            deleted: data.deleted_count || clientIds.length,
+            failed: data.failed_count || 0,
+          };
+        } else {
+          throw new Error(response.message || 'Failed to bulk delete clients');
+        }
+      } catch (error) {
+        console.error('Error bulk deleting clients:', error);
+
+        const errorObj = error as { message?: string };
+        toast({
+          title: 'Error',
+          description: errorObj.message || 'Failed to bulk delete clients',
+          variant: 'destructive',
+        });
+
+        return { deleted: 0, failed: clientIds.length };
+      } finally {
+        setActionLoading(null);
+      }
+    },
+    [toast, dialog]
+  );
+
   return {
     actionLoading,
     createClient,
     updateClient,
     deleteClient,
+    bulkDeleteClients,
   };
 };

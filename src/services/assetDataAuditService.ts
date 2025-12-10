@@ -33,7 +33,7 @@ export interface CategoryStats {
 export interface EnrichmentTableInfo {
   exists: boolean;
   record_count: number;
-  records: Record<string, unknown>[];
+  records: Array<Record<string, unknown>>;
   error?: string;
 }
 
@@ -173,7 +173,7 @@ export const useAssetDataAudit = (assetId: string | null, enabled = true) => {
 
   return useQuery({
     queryKey: ['assetDataAudit', assetId],
-    queryFn: () => fetchAssetDataAudit(assetId!),
+    queryFn: () => fetchAssetDataAudit(assetId),
     enabled:
       enabled &&
       !!assetId &&
@@ -194,7 +194,7 @@ export const useAssetAuditSummary = (
 
   return useQuery({
     queryKey: ['assetAuditSummary', assetId],
-    queryFn: () => fetchAssetAuditSummary(assetId!),
+    queryFn: () => fetchAssetAuditSummary(assetId),
     enabled:
       enabled &&
       !!assetId &&
