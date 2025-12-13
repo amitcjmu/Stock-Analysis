@@ -107,9 +107,6 @@ class ApplicationNameVariant(Base, TimestampMixin):
     canonical_application = relationship(
         "CanonicalApplication", back_populates="name_variants"
     )
-    collection_flow_applications = relationship(
-        "CollectionFlowApplication", back_populates="name_variant"
-    )
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

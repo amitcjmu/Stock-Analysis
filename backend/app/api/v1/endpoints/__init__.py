@@ -7,8 +7,6 @@ from . import (
     agent_learning_endpoints,
     analysis,
     asset_workflow,
-    assessment_events,
-    assessment_flow_router,
     asset_inventory,
     chat,
     context,
@@ -35,8 +33,6 @@ data_import_router = data_import.router
 context_router = context.router
 # test_discovery_router removed - was dead code with auth bypass
 flow_processing_router = flow_processing.router
-assessment_flow_router = assessment_flow_router.router
-assessment_events_router = assessment_events.router
 agents_router = agents_router  # Use the imported agents_router
 analysis_router = analysis.router
 asset_workflow_router = asset_workflow.router

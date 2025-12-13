@@ -16,8 +16,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import AsyncSessionLocal
 from app.models.agent_discovered_patterns import AgentDiscoveredPatterns
 from app.models.agent_task_history import AgentTaskHistory
-from app.models.assessment_flow.core_models import AssessmentFlow
-from app.models.collection_flow.collection_flow_model import CollectionFlow
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 from app.models.discovery_flow import DiscoveryFlow
 
@@ -124,7 +122,7 @@ class PersistenceMixin:
         passes a child flow ID instead of master flow ID in the future.
 
         Per Qodo Bot review: Instead of setting to None, we resolve child flow ID to master
-        flow ID by checking child flow tables (Assessment, Discovery, Collection).
+        flow ID by checking child flow tables (Discovery only - Assessment and Collection flows removed).
         """
         flow_id = data.get("flow_id")
         master_flow_id = flow_id  # Start with provided ID, may be resolved
@@ -186,7 +184,7 @@ class PersistenceMixin:
         """Resolve a child flow ID to its master flow ID.
 
         Per Qodo Bot review: Instead of nullifying, attempt to resolve child→master.
-        Checks Assessment, Discovery, and Collection flow tables.
+        Checks Discovery flow table (Assessment and Collection flows removed).
 
         Args:
             db: Database session
@@ -195,27 +193,9 @@ class PersistenceMixin:
         Returns:
             The master_flow_id if found, None otherwise
         """
-        # Check AssessmentFlow
-        stmt = select(AssessmentFlow.master_flow_id).where(
-            AssessmentFlow.id == child_flow_uuid
-        )
-        result = await db.execute(stmt)
-        master_id = result.scalar_one_or_none()
-        if master_id:
-            return master_id
-
-        # Check DiscoveryFlow
+        # Check DiscoveryFlow (only remaining child flow type)
         stmt = select(DiscoveryFlow.master_flow_id).where(
             DiscoveryFlow.id == child_flow_uuid
-        )
-        result = await db.execute(stmt)
-        master_id = result.scalar_one_or_none()
-        if master_id:
-            return master_id
-
-        # Check CollectionFlow
-        stmt = select(CollectionFlow.master_flow_id).where(
-            CollectionFlow.id == child_flow_uuid
         )
         result = await db.execute(stmt)
         master_id = result.scalar_one_or_none()

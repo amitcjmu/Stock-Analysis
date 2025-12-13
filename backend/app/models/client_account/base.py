@@ -240,13 +240,7 @@ class ClientAccount(Base):
         lazy="select",
     )
 
-    # Collection flow relationships (string reference to avoid circular imports)
-    collection_flows = relationship(
-        "CollectionFlow",
-        back_populates="client_account",
-        cascade="all, delete-orphan",
-        lazy="select",
-    )
+    # Collection flow relationships REMOVED - Collection flow was removed
 
     # Canonical application relationships (string reference to avoid circular imports)
     canonical_applications = relationship(

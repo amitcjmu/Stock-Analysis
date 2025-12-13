@@ -42,7 +42,8 @@ import {
   ShieldAlert,
   GitBranch,
   Cloud,
-  Power
+  Power,
+  Star
 } from 'lucide-react';
 import type { SidebarProps } from './types'
 import type { NavigationItem, ExpandedStates } from './types'
@@ -83,14 +84,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
   const { data: allFlowPhases, isLoading: isPhasesLoading } = useAllFlowPhases();
 
   const [expandedStates, setExpandedStates] = useState<ExpandedStates>({
-    collection: location.pathname.startsWith('/collection'),
     discovery: location.pathname.startsWith('/discovery'),
-    assess: location.pathname.startsWith('/assess'),
-    plan: location.pathname.startsWith('/plan'),
-    execute: location.pathname.startsWith('/execute'),
-    modernize: location.pathname.startsWith('/modernize'),
-    decommission: location.pathname.startsWith('/decommission'),
-    decom: location.pathname.startsWith('/decom'),
     finops: location.pathname.startsWith('/finops'),
     observability: location.pathname.startsWith('/observability'),
     admin: location.pathname.startsWith('/admin')
@@ -150,148 +144,23 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
       };
     });
 
-    // Always include Overview at the top
+    // Always include Overview and Watchlist at the top
     return [
       { name: 'Overview', path: '/discovery/overview', icon: LayoutDashboard },
+      { name: 'Watchlist', path: '/discovery/watchlist', icon: Star },
       ...phases
     ];
   }, [allFlowPhases, discoveryFlowId]);
 
-  /**
-   * Extract flowId from current URL for assessment phase navigation
-   * Fix #632: Replace :flowId placeholder with actual flow ID from URL
-   */
-  const currentFlowId = React.useMemo(() => {
-    const match = location.pathname.match(/\/assessment\/([a-f0-9-]+)\//);
-    return match ? match[1] : null;
-  }, [location.pathname]);
-
-  /**
-   * Build dynamic Assessment submenu from API-driven phases
-   * Per ADR-027: Use FlowTypeConfig as single source of truth
-   * Fix #637: Only show phase links when active assessment flow exists
-   */
-  const assessmentSubmenu = React.useMemo(() => {
-    // Fallback while loading or if API fails
-    if (!allFlowPhases?.assessment) {
-      return [
-        { name: 'Overview', path: '/assess/overview', icon: FileText }
-      ];
-    }
-
-    // If no active flow, only show non-flow-specific routes
-    // Fix #637: Don't show phase links with :flowId placeholders
-    if (!currentFlowId) {
-      return [
-        { name: 'Overview', path: '/assess/overview', icon: FileText },
-        { name: 'Treatment', path: '/assess/treatment', icon: ClipboardList },
-        { name: 'Editor', path: '/assess/editor', icon: Edit }
-      ];
-    }
-
-    // Active flow exists - show all phase links with real flowId
-    // Use ui_short_name for compact sidebar labels, fallback to display_name
-    const phases = allFlowPhases.assessment.phase_details.map(phase => {
-      const routePath = phase.ui_route.replace(':flowId', currentFlowId);
-
-      return {
-        name: phase.ui_short_name || phase.display_name,
-        path: routePath,
-        icon: getIconForPhase(phase.name)
-      };
-    });
-
-    // Custom menu structure: Overview → Treatment → Phases → Editor
-    return [
-      { name: 'Overview', path: '/assess/overview', icon: FileText },
-      { name: 'Treatment', path: '/assess/treatment', icon: ClipboardList },
-      ...phases,
-      { name: 'Editor', path: '/assess/editor', icon: Edit }
-    ];
-  }, [allFlowPhases, currentFlowId]);
 
   const navigationItems: NavigationItem[] = [
     { name: 'Dashboard', path: '/', icon: Home },
     {
-      name: 'Discovery',
+      name: 'Stock Analysis',
       path: '/discovery',
       icon: Search,
       hasSubmenu: true,
       submenu: discoverySubmenu // ✅ API-driven submenu
-    },
-    {
-      name: 'Collection',
-      path: '/collection',
-      icon: Database,
-      hasSubmenu: true,
-      submenu: [
-        { name: 'Overview', path: '/collection/overview', icon: LayoutDashboard },
-        { name: 'Adaptive Forms', path: '/collection/adaptive-forms', icon: FileText },
-        { name: 'Bulk Upload', path: '/collection/bulk-upload', icon: Upload },
-        { name: 'Data Integration', path: '/collection/data-integration', icon: Network },
-        { name: 'Progress', path: '/collection/progress', icon: Activity }
-      ]
-    },
-    {
-      name: 'Assess',
-      path: '/assess',
-      icon: FileText,
-      hasSubmenu: true,
-      submenu: assessmentSubmenu // ✅ API-driven submenu
-    },
-    {
-      name: 'Plan',
-      path: '/plan',
-      icon: Building2,
-      hasSubmenu: true,
-      submenu: [
-        { name: 'Overview', path: '/plan/overview', icon: Building2 },
-        { name: '6R Analysis', path: '/plan/6r-analysis', icon: BarChart3 },
-        { name: 'Wave Planning', path: '/plan/waveplanning', icon: Calendar },
-        { name: 'Roadmap', path: '/plan/roadmap', icon: Route },
-        { name: 'Timeline', path: '/plan/timeline', icon: Clock },
-        { name: 'Resource', path: '/plan/resource', icon: Users },
-        { name: 'Target', path: '/plan/target', icon: Target }
-      ]
-    },
-    {
-      name: 'Execute',
-      path: '/execute',
-      icon: Wrench,
-      hasSubmenu: true,
-      submenu: [
-        { name: 'Overview', path: '/execute/overview', icon: Wrench },
-        { name: 'Rehost', path: '/execute/rehost', icon: Settings },
-        { name: 'Replatform', path: '/execute/replatform', icon: Cloud },
-        { name: 'Cutovers', path: '/execute/cutovers', icon: Calendar },
-        { name: 'Reports', path: '/execute/reports', icon: Activity }
-      ]
-    },
-    {
-      name: 'Modernize',
-      path: '/modernize',
-      icon: Sparkles,
-      hasSubmenu: true,
-      submenu: [
-        { name: 'Overview', path: '/modernize/overview', icon: Sparkles },
-        { name: 'Refactor', path: '/modernize/refactor', icon: Code },
-        { name: 'Rearchitect', path: '/modernize/rearchitect', icon: Layers },
-        { name: 'Replace', path: '/modernize/replace', icon: Zap },
-        { name: 'Progress', path: '/modernize/progress', icon: Activity }
-      ]
-    },
-    {
-      name: 'Decommission',
-      path: '/decommission',
-      icon: Trash2,
-      hasSubmenu: true,
-      submenu: [
-        { name: 'Overview', path: '/decommission', icon: LayoutDashboard },
-        { name: 'Planning', path: '/decommission/planning', icon: FileText },
-        { name: 'Data Migration', path: '/decommission/data-migration', icon: Database },
-        { name: 'Shutdown', path: '/decommission/shutdown', icon: Power },
-        { name: 'Export', path: '/decommission/export', icon: Upload }
-      ]
     },
     {
       name: 'FinOps',
@@ -306,19 +175,6 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
         { name: 'Wave Breakdown', path: '/finops/wave-breakdown', icon: BarChart3 },
         { name: 'Cost Trends', path: '/finops/cost-trends', icon: TrendingUp },
         { name: 'Budget Alerts', path: '/finops/budget-alerts', icon: AlertTriangle }
-      ]
-    },
-    {
-      name: 'Decom',
-      path: '/decom',
-      icon: Archive,
-      hasSubmenu: true,
-      submenu: [
-        { name: 'Overview', path: '/decom/overview', icon: Archive },
-        { name: 'Planning', path: '/decom/planning', icon: FileText },
-        { name: 'Data Retention', path: '/decom/data-retention', icon: Database },
-        { name: 'Execution', path: '/decom/execution', icon: Trash2 },
-        { name: 'Validation', path: '/decom/validation', icon: CheckCircle }
       ]
     },
     {
@@ -345,9 +201,8 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
     },
   ];
 
-  // Split items: keep FinOps, Decom (old mockup), Observability, Admin at the bottom near the profile block
-  // NOTE: NEW "Decommission" stays in TOP section after Modernize
-  const bottomNames = new Set(['FinOps', 'Decom', 'Observability', 'Admin']);
+  // Split items: keep FinOps, Observability, Admin at the bottom near the profile block
+  const bottomNames = new Set(['FinOps', 'Observability', 'Admin']);
   const topNavigationItems = navigationItems.filter((i) => !bottomNames.has(i.name));
   const bottomNavigationItems = navigationItems.filter((i) => bottomNames.has(i.name));
 

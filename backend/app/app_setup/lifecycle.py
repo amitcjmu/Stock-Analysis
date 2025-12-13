@@ -139,23 +139,7 @@ def get_lifespan():  # noqa: C901
                 "Redis initialization warning: %s", e, exc_info=True
             )
 
-        # Validate critical attributes consistency
-        try:
-            logging.getLogger(__name__).info(
-                "🔄 Validating critical attributes consistency..."
-            )
-            from app.services.collection.critical_attributes import (
-                validate_attribute_consistency,
-            )
-
-            validate_attribute_consistency()
-            logging.getLogger(__name__).info("✅ Critical attributes validation passed")
-        except Exception as e:
-            # This is a critical error that should halt startup
-            logging.getLogger(__name__).error(
-                f"❌ Critical attributes validation failed: {e}", exc_info=True
-            )
-            raise  # Re-raise to prevent startup with invalid configuration
+        # Critical attributes validation removed - collection flow functionality disabled
 
         # Initialize agent monitoring services
         try:

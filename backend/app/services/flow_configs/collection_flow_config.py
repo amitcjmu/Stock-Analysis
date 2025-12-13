@@ -22,7 +22,11 @@ from .collection_phases import (
 )
 
 # Per ADR-025: Use child_flow_service pattern (no crew_class)
-from app.services.child_flow_services import CollectionChildFlowService
+# REMOVED - CollectionFlow was removed
+try:
+    from app.services.child_flow_services import CollectionChildFlowService
+except ImportError:
+    CollectionChildFlowService = None
 
 
 def get_collection_flow_config() -> FlowTypeConfig:
@@ -82,7 +86,7 @@ def get_collection_flow_config() -> FlowTypeConfig:
             manual_collection_phase,
             synthesis_phase,
         ],
-        child_flow_service=CollectionChildFlowService,  # Per ADR-025: Single execution path
+        child_flow_service=CollectionChildFlowService if CollectionChildFlowService else None,  # Per ADR-025: Single execution path (REMOVED - CollectionFlow was removed)
         capabilities=capabilities,
         default_configuration={
             "automation_tier": "tier_2",  # Default to Tier 2

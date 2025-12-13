@@ -92,7 +92,7 @@ function generateBreadcrumb(pathname: string, pageContext: PageContext | null): 
 
   // Map segments to readable names
   const segmentNames: Record<string, string> = {
-    discovery: 'Discovery',
+    discovery: 'Stock Analysis',
     collection: 'Collection',
     assessment: 'Assessment',
     plan: 'Planning',

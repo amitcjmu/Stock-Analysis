@@ -139,13 +139,7 @@ class DiscoveryFlow(Base):
         back_populates="discovery_flows",
     )
 
-    # Collection flow relationships (string reference to avoid circular imports)
-    collection_flows = relationship(
-        "CollectionFlow",
-        back_populates="discovery_flow",
-        cascade="all, delete-orphan",
-        lazy="select",
-    )
+    # Collection flow relationships REMOVED - CollectionFlow was removed
 
     # Data cleansing recommendations relationship
     recommendations = relationship(

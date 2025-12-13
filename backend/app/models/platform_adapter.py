@@ -71,7 +71,7 @@ class PlatformAdapter(Base, TimestampMixin):
     )
 
     # Relationships
-    collected_data = relationship("CollectedDataInventory", back_populates="adapter")
+    # collected_data relationship REMOVED - CollectedDataInventory was removed
 
     def __repr__(self):
         return f"<PlatformAdapter(id={self.id}, name='{self.adapter_name}', version='{self.version}')>"

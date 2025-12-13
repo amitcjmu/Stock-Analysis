@@ -1,100 +1,18 @@
 import type React from 'react';
 import { Link } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
-import { Building2, BarChart3, Eye, Search, FileText, Wrench, Archive, Sparkles } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { apiCall } from '@/config/api';
-import { useAuth } from '@/contexts/AuthContext';
-
-const DashboardOverviewStats: React.FC = () => {
-  const auth = useAuth();
-  const { getAuthHeaders } = auth;
-  const { data } = useQuery({
-    queryKey: ['workflow-summary', auth.client?.id, auth.engagement?.id],
-    queryFn: async () => {
-      const headers = getAuthHeaders();
-      const res = await apiCall('/api/v1/asset-workflow/workflow/summary', { method: 'GET', headers });
-      return res as {
-        total_assets: number;
-        assessment_ready: number;
-        phase_distribution: Record<string, number>;
-      };
-    },
-    staleTime: 60_000,
-  });
-
-  const total = data?.total_assets ?? 0;
-  const assessed = data?.assessment_ready ?? 0;
-  const inProgress = Math.max(0, total - assessed);
-
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div className="text-center">
-        <div className="text-3xl font-bold text-blue-600">{total}</div>
-        <div className="text-gray-600">Total Applications</div>
-      </div>
-      <div className="text-center">
-        <div className="text-3xl font-bold text-green-600">{assessed}</div>
-        <div className="text-gray-600">Assessed</div>
-      </div>
-      <div className="text-center">
-        <div className="text-3xl font-bold text-orange-600">{inProgress}</div>
-        <div className="text-gray-600">In Progress</div>
-      </div>
-    </div>
-  );
-};
+import { BarChart3, Eye, Search } from 'lucide-react';
 
 const Index = (): JSX.Element => {
-  // Primary modules (2 rows x 3 cols): Discovery, Assess, Plan, Execute, Modernize, Decommission
+  // Primary modules - Stock Analysis
   const primaryPhases = [
     {
-      title: 'Discovery/Collection',
-      description: 'Discover and inventory your applications and infrastructure',
+      title: 'Stock Analysis',
+      description: 'Search and analyze stocks with AI-powered insights',
       icon: Search,
       path: '/discovery',
       color: 'bg-green-500',
       status: 'Active'
-    },
-    {
-      title: 'Assess',
-      description: 'Understand Tech Debt and cloud readiness of app inventory',
-      icon: FileText,
-      path: '/assess',
-      color: 'bg-blue-500',
-      status: 'Active'
-    },
-    {
-      title: 'Plan',
-      description: 'Prepare migration grouping, wave planning and resourcing',
-      icon: Building2,
-      path: '/plan',
-      color: 'bg-purple-500',
-      status: 'Active'
-    },
-    {
-      title: 'Execute',
-      description: 'Lift and Shift (P2V, V2V, IaaS)',
-      icon: Wrench,
-      path: '/execute',
-      color: 'bg-orange-500',
-      status: 'Planned'
-    },
-    {
-      title: 'Modernize',
-      description: 'Modernize and Cloud Native treatments (PaaS, SaaS)',
-      icon: Sparkles,
-      path: '/modernize',
-      color: 'bg-indigo-500',
-      status: 'Planned'
-    },
-    {
-      title: 'Decommission',
-      description: 'Safely retire legacy and migrated assets',
-      icon: Archive,
-      path: '/decommission',
-      color: 'bg-red-500',
-      status: 'In Progress'
     },
   ];
 
@@ -125,10 +43,10 @@ const Index = (): JSX.Element => {
           <div className="max-w-7xl mx-auto">
             <div className="mb-8">
               <h1 className="text-4xl font-bold text-gray-900 mb-4">
-                AI Force Assess
+                Stock Analysis Platform
               </h1>
               <p className="text-xl text-gray-600">
-                Manage your entire cloud migration journey from discovery to decommission with AI-powered automation
+                Search and analyze stocks with AI-powered insights and real-time market data
               </p>
             </div>
 
@@ -166,11 +84,6 @@ const Index = (): JSX.Element => {
                   </Link>
                 );
               })}
-            </div>
-
-            <div className="mt-12 bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">Migration Overview</h2>
-              <DashboardOverviewStats />
             </div>
 
             <div className="mt-16">

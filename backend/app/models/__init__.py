@@ -17,60 +17,6 @@ from app.models.agent_performance_daily import AgentPerformanceDaily
 # Agent Observability Models
 from app.models.agent_task_history import AgentTaskHistory
 
-# Collection Gaps Models (Phase 1)
-from app.models.vendor_products_catalog import (
-    VendorProductsCatalog,
-    ProductVersionsCatalog,
-    TenantVendorProducts,
-    TenantProductVersions,
-    LifecycleMilestones,
-    AssetProductLinks,
-)
-from app.models.asset_resilience import (
-    AssetResilience,
-    AssetComplianceFlags,
-    AssetVulnerabilities,
-    AssetLicenses,
-)
-from app.models.asset_enrichments import (
-    AssetTechDebt,
-    AssetPerformanceMetrics,
-    AssetCostOptimization,
-)
-from app.models.maintenance_windows import (
-    MaintenanceWindows,
-    BlackoutPeriods,
-)
-from app.models.governance import (
-    ApprovalRequests,
-    MigrationExceptions,
-)
-
-# Assessment Models
-from app.models.assessment import Assessment, WavePlan
-
-# Planning Flow Models (New - Migration 112-114)
-from app.models.planning import (
-    PlanningFlow,
-    ProjectTimeline,
-    ResourceAllocation,
-    ResourcePool,
-    ResourceSkill,
-    TimelineMilestone,
-    TimelinePhase,
-)
-
-# Assessment Flow Models (New)
-from app.models.assessment_flow import (
-    ApplicationArchitectureOverride,
-    ApplicationComponent,
-    AssessmentFlow,
-    AssessmentLearningFeedback,
-    ComponentTreatment,
-    EngagementArchitectureStandard,
-    SixRDecision,
-    TechDebtAnalysis,
-)
 
 # Assessment Flow State Models (New) - Temporarily disabled due to SQLAlchemy compatibility issue
 # from app.models.assessment_flow_state import (
@@ -103,32 +49,11 @@ from app.models.client_account import (
     User,
     UserAccountAssociation,
 )
-from app.models.collected_data_inventory import CollectedDataInventory
-from app.models.collection_data_gap import CollectionDataGap
-
-# Collection Flow Models (needed by ClientAccount)
-from app.models.collection_flow import (
-    AutomationTier,
-    CollectionFlow,
-    CollectionFlowStatus,
-)
-from app.models.collection_questionnaire_response import CollectionQuestionnaireResponse
-
-# Decommission Flow Models (New - Issue #932)
-from app.models.decommission_flow import (
-    DecommissionFlow,
-    DecommissionPlan,
-    DataRetentionPolicy,
-    ArchiveJob,
-    DecommissionExecutionLog,
-    DecommissionValidationCheck,
-)
 
 # Canonical Applications Models
 from app.models.canonical_applications import (
     CanonicalApplication,
     ApplicationNameVariant,
-    CollectionFlowApplication,
     MatchMethod,
     VerificationSource,
 )
@@ -181,6 +106,10 @@ from app.models.security_audit import RoleChangeApproval, SecurityAuditLog
 # Tags Models
 from app.models.tags import AssetTag, Tag
 
+# Stock Analysis Models
+from app.models.stock import Stock, StockAnalysis
+from app.models.watchlist import Watchlist
+
 # User Flow Management Models
 from app.models.user_active_flows import UserActiveFlow
 
@@ -204,44 +133,6 @@ __all__ = [
     "ImportFieldMapping",
     # Data Cleansing Models
     "DataCleansingRecommendation",
-    # Assessment Models
-    "Assessment",
-    "WavePlan",
-    # Planning Flow Models
-    "PlanningFlow",
-    "ProjectTimeline",
-    "TimelinePhase",
-    "TimelineMilestone",
-    "ResourcePool",
-    "ResourceAllocation",
-    "ResourceSkill",
-    # Assessment Flow Models (SQLAlchemy)
-    "AssessmentFlow",
-    "EngagementArchitectureStandard",
-    "ApplicationArchitectureOverride",
-    "ApplicationComponent",
-    "TechDebtAnalysis",
-    "ComponentTreatment",
-    "SixRDecision",
-    "AssessmentLearningFeedback",
-    # Assessment Flow State Models (Pydantic) - Temporarily disabled
-    # "AssessmentFlowState",
-    # "SixRStrategy",
-    # "AssessmentPhase",
-    # "AssessmentFlowStatus",
-    # "TechDebtSeverity",
-    # "ComponentType",
-    # "OverrideType",
-    # "ArchitectureRequirement",
-    # "ApplicationArchitectureOverrideState",
-    # "ApplicationComponentState",
-    # "TechDebtItem",
-    # "ComponentTreatmentState",
-    # "SixRDecisionState",
-    # "AssessmentLearningFeedbackState",
-    # "AssessmentFlowSummary",
-    # "AssessmentPhaseResult",
-    # "AssessmentValidationResult",
     # Asset Models
     "Asset",
     "AssetDependency",
@@ -273,24 +164,9 @@ __all__ = [
     "LLMUsageSummary",
     # SixR Analysis Models REMOVED - Replaced by Assessment Flow (Phase 4, Issue #840)
     # "SixRAnalysis",
-    # Collection Flow Models
-    "CollectionFlow",
-    "AutomationTier",
-    "CollectionFlowStatus",
-    "CollectedDataInventory",
-    "CollectionDataGap",
-    "CollectionQuestionnaireResponse",
-    # Decommission Flow Models
-    "DecommissionFlow",
-    "DecommissionPlan",
-    "DataRetentionPolicy",
-    "ArchiveJob",
-    "DecommissionExecutionLog",
-    "DecommissionValidationCheck",
     # Canonical Applications Models
     "CanonicalApplication",
     "ApplicationNameVariant",
-    "CollectionFlowApplication",
     "MatchMethod",
     "VerificationSource",
     # Platform Models
@@ -306,23 +182,8 @@ __all__ = [
     "AgentTaskHistory",
     "AgentPerformanceDaily",
     "AgentDiscoveredPatterns",
-    # Collection Gaps Models (Phase 1)
-    "VendorProductsCatalog",
-    "ProductVersionsCatalog",
-    "TenantVendorProducts",
-    "TenantProductVersions",
-    "LifecycleMilestones",
-    "AssetProductLinks",
-    "AssetResilience",
-    "AssetComplianceFlags",
-    "AssetVulnerabilities",
-    "AssetLicenses",
-    # Asset Enrichment Models (Issue #980)
-    "AssetTechDebt",
-    "AssetPerformanceMetrics",
-    "AssetCostOptimization",
-    "MaintenanceWindows",
-    "BlackoutPeriods",
-    "ApprovalRequests",
-    "MigrationExceptions",
+    # Stock Analysis Models
+    "Stock",
+    "StockAnalysis",
+    "Watchlist",
 ]

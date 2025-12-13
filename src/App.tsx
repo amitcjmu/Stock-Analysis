@@ -14,11 +14,6 @@ import { AppInitializer } from "./services/appInitializer";
 import { useGlobalErrorHandler } from "./hooks/useGlobalErrorHandler";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
-// Collection Gaps Phase 2 Components
-const CollectionGapsDashboard = React.lazy(() => import('./pages/assessment/collection-gaps/index'));
-const VendorProductsPage = React.lazy(() => import('./pages/assessment/collection-gaps/vendor-products'));
-const MaintenanceWindowsPage = React.lazy(() => import('./pages/assessment/collection-gaps/maintenance-windows'));
-const GovernancePage = React.lazy(() => import('./pages/assessment/collection-gaps/governance/index'));
 
 // Lazy Loading Infrastructure
 import { LazyLoadingProvider, LoadingPriority } from "./components/lazy";
@@ -26,8 +21,6 @@ import { routePreloader } from "./utils/lazy/routePreloader";
 
 // Lazy-loaded route components (organized by priority)
 import {
-  LazyAssessmentAppOnPage,
-  LazyAssessmentSummary,
   LazyAgentDetailPage,
   LazyClientDetails,
   LazyEngagementDetails,
@@ -39,13 +32,8 @@ import {
   LazyForgotPassword,
   LazyResetPassword,
   LazyDiscovery,
-  LazyAssess,
-  LazyPlan,
-  LazyExecute,
-  LazyModernize,
   LazyFinOps,
   LazyObservability,
-  LazyDecommission,
   LazyDataImport,
   LazyInventory,
   LazyDependencies,
@@ -54,56 +42,9 @@ import {
   LazyAttributeMapping,
   LazyTechDebtAnalysis,
   LazyDiscoveryDashboard,
+  LazyStockAnalysis,
+  LazyWatchlist,
   LazyFlowStatusMonitor,
-  LazyCollectionIndex,
-  LazyAdaptiveForms,
-  LazyBulkUpload,
-  LazyDataIntegration,
-  LazyCollectionProgress,
-  LazyCollectionGapAnalysis,
-  LazyCollectionFlowManagement,
-  LazyApplicationSelection,
-  LazyCollectionSummary,
-  LazyTreatment,
-  LazyWavePlanning,
-  LazyRoadmap,
-  LazyEditor,
-  LazyAssessmentFlowOverview,
-  LazyInitializeFlowWithInventory,
-  LazyAssessmentArchitecture,
-  LazyAssessmentComplexity,
-  LazyAssessmentDependency,
-  LazyAssessmentTechDebt,
-  LazyAssessmentRisk,
-  LazyAssessmentDependencyAnalysis,
-  LazyAssessmentTechDebtAssessment,
-  LazyAssetDataAudit,
-  LazyPlanIndex,
-  LazySixRAnalysis,
-  LazyTimeline,
-  LazyResource,
-  LazyExport,
-  LazyTarget,
-  LazyExecuteIndex,
-  LazyRehost,
-  LazyReplatform,
-  LazyCutovers,
-  LazyReports,
-  LazyModernizeIndex,
-  LazyRefactor,
-  LazyRearchitect,
-  LazyRewrite,
-  LazyProgress,
-  LazyDecommissionIndex,
-  LazyDecommissionPlanning,
-  LazyDataRetention,
-  LazyDecommissionExecution,
-  LazyDecommissionValidation,
-  LazyDecommissionFlowOverview,
-  LazyDecommissionFlowPlanning,
-  LazyDecommissionDataMigration,
-  LazyDecommissionShutdown,
-  LazyDecommissionExport,
   LazyCloudComparison,
   LazySavingsAnalysis,
   LazyCostAnalysis,
@@ -162,30 +103,6 @@ const AuthenticatedApp = (): JSX.Element => {
         priority: LoadingPriority.HIGH,
       });
 
-      routePreloader.registerRoute({
-        path: "/assess",
-        importFn: () => import("./pages/Assess"),
-        priority: LoadingPriority.HIGH,
-      });
-
-      // Register collection routes for preloading
-      routePreloader.registerRoute({
-        path: "/collection",
-        importFn: () => import("./pages/collection/Index"),
-        priority: LoadingPriority.HIGH,
-      });
-
-      routePreloader.registerRoute({
-        path: "/collection/adaptive-forms",
-        importFn: () => import("./pages/collection/adaptive-forms"),
-        priority: LoadingPriority.HIGH,
-      });
-
-      routePreloader.registerRoute({
-        path: "/collection/gap-analysis",
-        importFn: () => import("./pages/collection/GapAnalysis"),
-        priority: LoadingPriority.NORMAL,
-      });
 
       // Start intelligent preloading
       routePreloader.setupHoverPreloading();
@@ -225,13 +142,11 @@ const AuthenticatedApp = (): JSX.Element => {
       <Route path="/" element={<LazyIndex />} />
       <Route path="/login" element={<LazyLogin />} />
 
-      {/* HIGH PRIORITY - Main workflow routes */}
-      <Route path="/discovery" element={<LazyDiscovery />} />
-      <Route path="/assess" element={<LazyAssess />} />
-      <Route path="/plan" element={<LazyPlan />} />
-      <Route path="/execute" element={<LazyExecute />} />
 
       {/* NORMAL PRIORITY - Discovery sub-routes */}
+      <Route path="/discovery" element={<LazyStockAnalysis />} />
+      <Route path="/discovery/stock-analysis" element={<LazyStockAnalysis />} />
+      <Route path="/discovery/watchlist" element={<LazyWatchlist />} />
       <Route path="/discovery/overview" element={<LazyDiscoveryDashboard />} />
       <Route path="/discovery/dashboard" element={<LazyDiscoveryDashboard />} />
       <Route
@@ -279,248 +194,7 @@ const AuthenticatedApp = (): JSX.Element => {
         element={<LazyAttributeMapping />}
       />
 
-      {/* Collection workflow routes */}
-      <Route path="/collection" element={<LazyCollectionIndex />} />
-      <Route path="/collection/overview" element={<LazyCollectionIndex />} />
-      <Route
-        path="/collection/adaptive-forms"
-        element={<LazyAdaptiveForms />}
-      />
-      <Route
-        path="/collection/adaptive-forms/:applicationId"
-        element={<LazyAdaptiveForms />}
-      />
-      <Route path="/collection/bulk-upload" element={<LazyBulkUpload />} />
-      <Route
-        path="/collection/data-integration"
-        element={<LazyDataIntegration />}
-      />
-      <Route
-        path="/collection/select-applications"
-        element={<LazyApplicationSelection />}
-      />
-      <Route path="/collection/progress" element={<LazyCollectionProgress />} />
-      <Route
-        path="/collection/progress/:flowId"
-        element={<LazyCollectionProgress />}
-      />
-      {/* Individual flow detail route - redirects to progress page for now */}
-      <Route
-        path="/collection/flow/:flowId"
-        element={<LazyCollectionProgress />}
-      />
-      <Route
-        path="/collection/gap-analysis/:flowId"
-        element={<LazyCollectionGapAnalysis />}
-      />
-      <Route
-        path="/collection/summary/:flowId"
-        element={<LazyCollectionSummary />}
-      />
-      <Route
-        path="/collection/questionnaire-generation/:flowId"
-        element={<LazyAdaptiveForms />}
-      />
-      <Route
-        path="/collection/manual-collection/:flowId"
-        element={<LazyAdaptiveForms />}
-      />
-      <Route
-        path="/collection/synthesis/:flowId"
-        element={<LazyAdaptiveForms />}
-      />
-      <Route
-        path="/collection/flow-management"
-        element={<LazyCollectionFlowManagement />}
-      />
 
-      {/* Collection Gaps Phase 2 Routes */}
-      <Route
-        path="/assessment/collection-gaps"
-        element={
-          <React.Suspense fallback={<div>Loading...</div>}>
-            <CollectionGapsDashboard />
-          </React.Suspense>
-        }
-      />
-      <Route
-        path="/assessment/collection-gaps/vendor-products"
-        element={
-          <React.Suspense fallback={<div>Loading...</div>}>
-            <VendorProductsPage />
-          </React.Suspense>
-        }
-      />
-      <Route
-        path="/assessment/collection-gaps/maintenance-windows"
-        element={
-          <React.Suspense fallback={<div>Loading...</div>}>
-            <MaintenanceWindowsPage />
-          </React.Suspense>
-        }
-      />
-      <Route
-        path="/assessment/collection-gaps/governance"
-        element={
-          <React.Suspense fallback={<div>Loading...</div>}>
-            <GovernancePage />
-          </React.Suspense>
-        }
-      />
-
-      {/* Assessment sub-routes */}
-      <Route path="/assess/overview" element={<LazyAssessmentFlowOverview />} />
-      <Route path="/assess/treatment" element={<LazyTreatment />} />
-      <Route path="/assess/tech-debt" element={<LazyTechDebtAnalysis />} />
-      <Route path="/assess/editor" element={<LazyEditor />} />
-
-      {/* Assessment Flow Routes */}
-      <Route path="/assessment" element={<LazyAssessmentFlowOverview />} />
-      <Route
-        path="/assessment/overview"
-        element={<LazyAssessmentFlowOverview />}
-      />
-      <Route
-        path="/assessment/initialize"
-        element={<LazyInitializeFlowWithInventory />}
-      />
-      <Route
-        path="/assessment/:flowId/architecture"
-        element={<LazyAssessmentArchitecture />}
-      />
-      <Route
-        path="/assessment/:flowId/complexity"
-        element={<LazyAssessmentComplexity />}
-      />
-      <Route
-        path="/assessment/:flowId/dependency"
-        element={<LazyAssessmentDependency />}
-      />
-      <Route
-        path="/assessment/:flowId/tech-debt"
-        element={<LazyAssessmentTechDebt />}
-      />
-      <Route
-        path="/assessment/:flowId/risk"
-        element={<LazyAssessmentRisk />}
-      />
-      {/* Bug #869 fix: Redirect sixr-review to app-on-page (Assessment Flow architecture) */}
-      {/* 6R Strategy Review phase is handled by app-on-page which displays 6R decisions */}
-      <Route
-        path="/assessment/:flowId/sixr-review"
-        element={<LazyAssessmentAppOnPage />}
-      />
-      <Route
-        path="/assessment/:flowId/app-on-page"
-        element={<LazyAssessmentAppOnPage />}
-      />
-      <Route
-        path="/assessment/:flowId/summary"
-        element={<LazyAssessmentSummary />}
-      />
-      {/* Assessment Phase Routes - ADR-027 (Migrated from Discovery) */}
-      <Route
-        path="/assessment/dependency-analysis"
-        element={<LazyAssessmentDependencyAnalysis />}
-      />
-      <Route
-        path="/assessment/tech-debt"
-        element={<LazyAssessmentTechDebtAssessment />}
-      />
-      {/* Asset Data Audit - Comprehensive asset data review */}
-      <Route
-        path="/assessment/asset-data-audit"
-        element={<LazyAssetDataAudit />}
-      />
-
-      {/* Assessment routes without flowId - redirect to overview (Issue #673) */}
-      <Route
-        path="/assessment/readiness"
-        element={<Navigate to="/assessment/overview" replace />}
-      />
-      <Route
-        path="/assessment/risk"
-        element={<Navigate to="/assessment/overview" replace />}
-      />
-      <Route
-        path="/assessment/complexity"
-        element={<Navigate to="/assessment/overview" replace />}
-      />
-      <Route
-        path="/assessment/recommendations"
-        element={<Navigate to="/assessment/overview" replace />}
-      />
-
-      {/* Plan sub-routes */}
-      <Route path="/plan/overview" element={<LazyPlanIndex />} />
-      <Route path="/plan/6r-analysis" element={<LazySixRAnalysis />} />
-      <Route path="/planning/6r-analysis" element={<LazySixRAnalysis />} />
-      <Route path="/plan/waveplanning" element={<LazyWavePlanning />} />
-      <Route path="/plan/roadmap" element={<LazyRoadmap />} />
-      <Route path="/plan/timeline" element={<LazyTimeline />} />
-      <Route path="/plan/resource" element={<LazyResource />} />
-      <Route path="/plan/export" element={<LazyExport />} />
-      <Route path="/plan/export/:flowId" element={<LazyExport />} />
-      <Route path="/plan/target" element={<LazyTarget />} />
-
-      {/* Execute sub-routes */}
-      <Route path="/execute/overview" element={<LazyExecuteIndex />} />
-      <Route path="/execute/rehost" element={<LazyRehost />} />
-      <Route path="/execute/replatform" element={<LazyReplatform />} />
-      <Route path="/execute/cutovers" element={<LazyCutovers />} />
-      <Route path="/execute/reports" element={<LazyReports />} />
-
-      {/* NORMAL PRIORITY - Secondary workflow routes */}
-      <Route path="/modernize" element={<LazyModernize />} />
-      <Route path="/modernize/overview" element={<LazyModernizeIndex />} />
-      <Route path="/modernize/refactor" element={<LazyRefactor />} />
-      <Route path="/modernize/rearchitect" element={<LazyRearchitect />} />
-      <Route path="/modernize/replace" element={<LazyRewrite />} />
-      {/* Backward compatibility redirect for old /modernize/rewrite route */}
-      <Route path="/modernize/rewrite" element={<LazyRewrite />} />
-      <Route path="/modernize/progress" element={<LazyProgress />} />
-
-      {/* Decom routes - renamed from Decommission per Issue #930 */}
-      <Route path="/decom" element={<LazyDecommission />} />
-      <Route
-        path="/decom/overview"
-        element={<LazyDecommissionIndex />}
-      />
-      <Route
-        path="/decom/planning"
-        element={<LazyDecommissionPlanning />}
-      />
-      <Route
-        path="/decom/data-retention"
-        element={<LazyDataRetention />}
-      />
-      <Route
-        path="/decom/execution"
-        element={<LazyDecommissionExecution />}
-      />
-      <Route
-        path="/decom/validation"
-        element={<LazyDecommissionValidation />}
-      />
-
-      {/* Decommission Flow routes (Issue #942-946 - v2.5.0) */}
-      <Route path="/decommission" element={<LazyDecommissionFlowOverview />} />
-      <Route
-        path="/decommission/planning"
-        element={<LazyDecommissionFlowPlanning />}
-      />
-      <Route
-        path="/decommission/data-migration"
-        element={<LazyDecommissionDataMigration />}
-      />
-      <Route
-        path="/decommission/shutdown"
-        element={<LazyDecommissionShutdown />}
-      />
-      <Route
-        path="/decommission/export"
-        element={<LazyDecommissionExport />}
-      />
 
       <Route path="/finops" element={<LazyFinOps />} />
       <Route
@@ -661,16 +335,6 @@ const AuthenticatedApp = (): JSX.Element => {
           <AdminRoute>
             <AdminLayout>
               <LazyUserApprovals />
-            </AdminLayout>
-          </AdminRoute>
-        }
-      />
-      <Route
-        path="/admin/reports"
-        element={
-          <AdminRoute>
-            <AdminLayout>
-              <LazyReports />
             </AdminLayout>
           </AdminRoute>
         }

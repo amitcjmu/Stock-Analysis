@@ -252,13 +252,7 @@ class CrewAIFlowStateExtensions(
         cascade="all, delete-orphan",
     )
 
-    assessment_flows = relationship(
-        "AssessmentFlow",
-        foreign_keys="AssessmentFlow.master_flow_id",
-        primaryjoin="CrewAIFlowStateExtensions.flow_id == AssessmentFlow.master_flow_id",
-        back_populates="master_flow",
-        cascade="all, delete-orphan",
-    )
+    # assessment_flows relationship REMOVED - AssessmentFlow was removed
 
     data_imports = relationship(
         "DataImport",
@@ -276,33 +270,11 @@ class CrewAIFlowStateExtensions(
         cascade="all, delete-orphan",
     )
 
-    # Collection flow relationship (one-to-one with collection_flows)
-    collection_flow = relationship(
-        "CollectionFlow",
-        foreign_keys="CollectionFlow.master_flow_id",
-        primaryjoin="CrewAIFlowStateExtensions.flow_id == CollectionFlow.master_flow_id",
-        back_populates="master_flow",
-        uselist=False,
-        cascade="all, delete-orphan",
-    )
+    # Collection flow relationship REMOVED - CollectionFlow was removed
 
-    # Planning flow relationship (added in migration 112)
-    planning_flows = relationship(
-        "PlanningFlow",
-        foreign_keys="PlanningFlow.master_flow_id",
-        primaryjoin="CrewAIFlowStateExtensions.flow_id == PlanningFlow.master_flow_id",
-        back_populates="master_flow",
-        cascade="all, delete-orphan",
-    )
+    # Planning flow relationship REMOVED - PlanningFlow was removed
 
-    # Decommission flow relationship (added in migration 120)
-    decommission_flows = relationship(
-        "DecommissionFlow",
-        foreign_keys="DecommissionFlow.master_flow_id",
-        primaryjoin="CrewAIFlowStateExtensions.flow_id == DecommissionFlow.master_flow_id",
-        back_populates="master_flow",
-        cascade="all, delete-orphan",
-    )
+    # Decommission flow relationship REMOVED - DecommissionFlow was removed
 
     # Parent-child flow relationships (hierarchical flows)
     parent_flow = relationship(

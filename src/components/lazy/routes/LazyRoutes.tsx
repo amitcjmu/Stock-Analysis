@@ -78,30 +78,7 @@ export const LazyDiscovery = createLazyRoute(
   LoadingPriority.HIGH,
 );
 
-export const LazyAssess = createLazyRoute(
-  () => import("@/pages/Assess"),
-  "Assessment",
-  LoadingPriority.HIGH,
-);
-
-export const LazyPlan = createLazyRoute(
-  () => import("@/pages/plan/Index"),
-  "Planning",
-  LoadingPriority.HIGH,
-);
-
-export const LazyExecute = createLazyRoute(
-  () => import("@/pages/Execute"),
-  "Execution",
-  LoadingPriority.HIGH,
-);
-
 // NORMAL PRIORITY - Secondary workflow pages
-export const LazyModernize = createLazyRoute(
-  () => import("@/pages/Modernize"),
-  "Modernization",
-  LoadingPriority.NORMAL,
-);
 
 export const LazyFinOps = createLazyRoute(
   () => import("@/pages/FinOps"),
@@ -115,11 +92,6 @@ export const LazyObservability = createLazyRoute(
   LoadingPriority.NORMAL,
 );
 
-export const LazyDecommission = createLazyRoute(
-  () => import("@/pages/Decommission"),
-  "Decommissioning",
-  LoadingPriority.NORMAL,
-);
 
 // Discovery Sub-routes (NORMAL priority)
 export const LazyDiscoveryIndex = createLazyRoute(
@@ -167,300 +139,22 @@ export const LazyDiscoveryDashboard = createLazyRoute(
   "Discovery Dashboard",
 );
 
+export const LazyStockAnalysis = createLazyRoute(
+  () => import("@/pages/discovery/StockAnalysis"),
+  "Stock Analysis",
+);
+
+export const LazyWatchlist = createLazyRoute(
+  () => import("@/pages/discovery/Watchlist"),
+  "Watchlist",
+);
+
 export const LazyFlowStatusMonitor = createLazyRoute(
   () => import("@/pages/discovery/FlowStatusMonitor"),
   "Flow Status Monitor",
 );
 
-// Collection Sub-routes (HIGH priority - frequently accessed workflows)
-export const LazyCollectionIndex = createLazyRoute(
-  () => import("@/pages/collection/Index"),
-  "Collection Overview",
-  LoadingPriority.HIGH,
-);
 
-export const LazyAdaptiveForms = createLazyRoute(
-  () => import("@/pages/collection/adaptive-forms"),
-  "Adaptive Forms",
-  LoadingPriority.HIGH,
-);
-
-export const LazyBulkUpload = createLazyRoute(
-  () => import("@/pages/collection/BulkUpload"),
-  "Bulk Upload",
-  LoadingPriority.HIGH,
-);
-
-export const LazyDataIntegration = createLazyRoute(
-  () => import("@/pages/collection/DataIntegration"),
-  "Data Integration",
-  LoadingPriority.HIGH,
-);
-
-export const LazyCollectionProgress = createLazyRoute(
-  () => import("@/pages/collection/Progress"),
-  "Collection Progress",
-  LoadingPriority.NORMAL,
-);
-
-export const LazyCollectionGapAnalysis = createLazyRoute(
-  () => import("@/pages/collection/GapAnalysis"),
-  "Gap Analysis",
-  LoadingPriority.NORMAL,
-);
-
-export const LazyCollectionFlowManagement = createLazyRoute(
-  () => import("@/pages/CollectionFlowManagementPage"),
-  "Collection Flow Management",
-  LoadingPriority.HIGH,
-);
-
-export const LazyApplicationSelection = createLazyRoute(
-  () => import("@/pages/collection/ApplicationSelection"),
-  "Application Selection",
-  LoadingPriority.HIGH,
-);
-
-export const LazyCollectionSummary = createLazyRoute(
-  () => import("@/pages/collection/Summary"),
-  "Collection Summary",
-  LoadingPriority.NORMAL,
-);
-
-// Assessment Sub-routes
-export const LazyAssessIndex = createLazyRoute(
-  () => import("@/pages/assess/Index"),
-  "Assessment Overview",
-);
-
-export const LazyTreatment = createLazyRoute(
-  () => import("@/pages/assess/Treatment"),
-  "Treatment Planning",
-);
-
-export const LazyWavePlanning = createLazyRoute(
-  () => import("@/pages/plan/WavePlanning"),
-  "Wave Planning",
-);
-
-export const LazyRoadmap = createLazyRoute(
-  () => import("@/pages/assess/Roadmap"),
-  "Roadmap",
-);
-
-export const LazyEditor = createLazyRoute(
-  () => import("@/pages/assess/Editor"),
-  "Assessment Editor",
-);
-
-// Assessment Flow Routes
-export const LazyInitializeAssessmentFlow = createLazyRoute(
-  () => import("@/pages/assessment/InitializeFlow"),
-  "Initialize Assessment",
-);
-
-export const LazyAssessmentFlowOverview = createLazyRoute(
-  () => import("@/pages/assessment/AssessmentFlowOverview"),
-  "Assessment Flow Overview",
-);
-
-export const LazyInitializeFlowWithInventory = createLazyRoute(
-  () => import("@/pages/assessment/InitializeFlowWithInventory"),
-  "Initialize Flow with Inventory",
-);
-
-export const LazyAssessmentArchitecture = createLazyRoute(
-  () => import("@/pages/assessment/[flowId]/architecture"),
-  "Assessment Architecture",
-);
-
-export const LazyAssessmentComplexity = createLazyRoute(
-  () => import("@/pages/assessment/[flowId]/complexity"),
-  "Assessment Complexity Analysis",
-);
-
-export const LazyAssessmentDependency = createLazyRoute(
-  () => import("@/pages/assessment/[flowId]/dependency"),
-  "Assessment Dependency Analysis",
-);
-
-export const LazyAssessmentTechDebt = createLazyRoute(
-  () => import("@/pages/assessment/[flowId]/tech-debt"),
-  "Assessment Tech Debt",
-);
-
-export const LazyAssessmentRisk = createLazyRoute(
-  () => import("@/pages/assessment/[flowId]/risk"),
-  "Assessment Risk Analysis",
-);
-
-// Bug #869 fix: Re-added LazyAssessmentSixRReview for Dependencies and Risk Assessment phases
-export const LazyAssessmentSixRReview = createLazyRoute(
-  () => import("@/pages/assessment/[flowId]/sixr-review"),
-  "6R Strategy Review",
-);
-
-export const LazyAssessmentAppOnPage = createLazyRoute(
-  () => import("@/pages/assessment/[flowId]/app-on-page"),
-  "Assessment App Details",
-);
-
-export const LazyAssessmentSummary = createLazyRoute(
-  () => import("@/pages/assessment/[flowId]/summary"),
-  "Assessment Summary",
-);
-
-// Assessment Phase Routes (ADR-027 - Migrated from Discovery)
-export const LazyAssessmentDependencyAnalysis = createLazyRoute(
-  () => import("@/pages/assessment/DependencyAnalysis"),
-  "Assessment Dependency Analysis",
-);
-
-export const LazyAssessmentTechDebtAssessment = createLazyRoute(
-  () => import("@/pages/assessment/TechDebtAssessment"),
-  "Assessment Tech Debt Assessment",
-);
-
-// Asset Data Audit - Comprehensive asset data review
-export const LazyAssetDataAudit = createLazyRoute(
-  () => import("@/pages/assessment/AssetDataAudit"),
-  "Asset Data Audit",
-);
-
-// Plan Sub-routes
-export const LazyPlanIndex = createLazyRoute(
-  () => import("@/pages/plan/Index"),
-  "Plan Overview",
-);
-
-export const LazySixRAnalysis = createLazyRoute(
-  () => import("@/pages/planning/SixRAnalysis"),
-  "6R Analysis",
-);
-
-export const LazyTimeline = createLazyRoute(
-  () => import("@/pages/plan/Timeline"),
-  "Timeline",
-);
-
-export const LazyResource = createLazyRoute(
-  () => import("@/pages/plan/Resource"),
-  "Resource Planning",
-);
-
-export const LazyExport = createLazyRoute(
-  () => import("@/pages/plan/Export"),
-  "Export",
-);
-
-export const LazyTarget = createLazyRoute(
-  () => import("@/pages/plan/Target"),
-  "Target Architecture",
-);
-
-// Execute Sub-routes
-export const LazyExecuteIndex = createLazyRoute(
-  () => import("@/pages/execute/Index"),
-  "Execute Overview",
-);
-
-export const LazyRehost = createLazyRoute(
-  () => import("@/pages/execute/Rehost"),
-  "Rehosting",
-);
-
-export const LazyReplatform = createLazyRoute(
-  () => import("@/pages/execute/Replatform"),
-  "Replatforming",
-);
-
-export const LazyCutovers = createLazyRoute(
-  () => import("@/pages/execute/Cutovers"),
-  "Cutovers",
-);
-
-export const LazyReports = createLazyRoute(
-  () => import("@/pages/execute/Reports"),
-  "Reports",
-);
-
-// Modernize Sub-routes
-export const LazyModernizeIndex = createLazyRoute(
-  () => import("@/pages/modernize/Index"),
-  "Modernize Overview",
-);
-
-export const LazyRefactor = createLazyRoute(
-  () => import("@/pages/modernize/Refactor"),
-  "Refactoring",
-);
-
-export const LazyRearchitect = createLazyRoute(
-  () => import("@/pages/modernize/Rearchitect"),
-  "Rearchitecting",
-);
-
-export const LazyRewrite = createLazyRoute(
-  () => import("@/pages/modernize/Rewrite"),
-  "Replace (COTS/SaaS or Rewrite)",
-);
-
-export const LazyProgress = createLazyRoute(
-  () => import("@/pages/modernize/Progress"),
-  "Progress Tracking",
-);
-
-// Decom Sub-routes (renamed from Decommission - Issue #930)
-export const LazyDecommissionIndex = createLazyRoute(
-  () => import("@/pages/decom/Index"),
-  "Decom Overview",
-);
-
-export const LazyDecommissionPlanning = createLazyRoute(
-  () => import("@/pages/decom/Planning"),
-  "Decom Planning",
-);
-
-export const LazyDataRetention = createLazyRoute(
-  () => import("@/pages/decom/DataRetention"),
-  "Data Retention",
-);
-
-export const LazyDecommissionExecution = createLazyRoute(
-  () => import("@/pages/decom/Execution"),
-  "Decom Execution",
-);
-
-export const LazyDecommissionValidation = createLazyRoute(
-  () => import("@/pages/decom/Validation"),
-  "Decom Validation",
-);
-
-// Decommission Flow Sub-routes (Issue #942-946 - v2.5.0)
-export const LazyDecommissionFlowOverview = createLazyRoute(
-  () => import("@/pages/decommission/Index"),
-  "Decommission Flow Overview",
-);
-
-export const LazyDecommissionFlowPlanning = createLazyRoute(
-  () => import("@/pages/decommission/Planning"),
-  "Decommission Planning",
-);
-
-export const LazyDecommissionDataMigration = createLazyRoute(
-  () => import("@/pages/decommission/DataMigration"),
-  "Decommission Data Migration",
-);
-
-export const LazyDecommissionShutdown = createLazyRoute(
-  () => import("@/pages/decommission/Shutdown"),
-  "Decommission Shutdown",
-);
-
-export const LazyDecommissionExport = createLazyRoute(
-  () => import("@/pages/decommission/Export"),
-  "Decommission Export",
-);
 
 // FinOps Sub-routes
 export const LazyCloudComparison = createLazyRoute(

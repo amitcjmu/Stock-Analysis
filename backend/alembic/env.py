@@ -15,17 +15,6 @@ from app.models.agent_communication import AgentInsight, AgentQuestion, DataItem
 from app.models.agent_discovered_patterns import AgentDiscoveredPatterns
 from app.models.agent_performance_daily import AgentPerformanceDaily
 from app.models.agent_task_history import AgentTaskHistory
-from app.models.assessment import Assessment, WavePlan
-from app.models.assessment_flow import (
-    ApplicationArchitectureOverride,
-    ApplicationComponent,
-    AssessmentFlow,
-    AssessmentLearningFeedback,
-    ComponentTreatment,
-    EngagementArchitectureStandard,
-    SixRDecision,
-    TechDebtAnalysis,
-)
 from app.models.asset import Asset, AssetDependency
 from app.models.client_account import (
     ClientAccount,
@@ -33,14 +22,6 @@ from app.models.client_account import (
     User,
     UserAccountAssociation,
 )
-from app.models.collected_data_inventory import CollectedDataInventory
-from app.models.collection_data_gap import CollectionDataGap
-from app.models.collection_flow import (
-    AutomationTier,
-    CollectionFlow,
-    CollectionFlowStatus,
-)
-from app.models.collection_questionnaire_response import CollectionQuestionnaireResponse
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 from app.models.data_cleansing import DataCleansingRecommendation
 from app.models.data_import.core import DataImport, RawImportRecord
@@ -64,8 +45,10 @@ from app.models.security_audit import RoleChangeApproval, SecurityAuditLog
 
 # REMOVED: SixR Analysis model deleted in Phase 4 (Issue #840)
 # from app.models.sixr_analysis import SixRAnalysis
+from app.models.stock import Stock, StockAnalysis
 from app.models.tags import AssetTag, Tag
 from app.models.user_active_flows import UserActiveFlow
+from app.models.watchlist import Watchlist
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

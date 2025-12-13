@@ -135,18 +135,7 @@ class User(Base):
     active_flows = relationship(
         "UserActiveFlow", back_populates="user", cascade="all, delete-orphan"
     )
-    collection_flows = relationship(
-        "CollectionFlow",
-        back_populates="user",
-        cascade="all, delete-orphan",
-        lazy="select",
-    )
-    questionnaire_responses = relationship(
-        "CollectionQuestionnaireResponse",
-        back_populates="user",
-        cascade="all, delete-orphan",
-        lazy="select",
-    )
+    # Collection flow relationships REMOVED - Collection flow was removed
     # Define association proxy with deferred import to avoid circular imports
 
     def _create_association(self, client_account):

@@ -23,25 +23,8 @@ def register_conditional_routers(api_router: APIRouter):
         dependency_analysis_router,
         agent_insights_router,
         clarifications_router,
-        # ASSESSMENT_FLOW_AVAILABLE,  # Currently disabled
-        # assessment_flow_router,     # Currently disabled
-        COLLECTION_AVAILABLE,
-        collection_flows_router,
-        collection_post_completion_router,
-        collection_bulk_ops_router,
-        COLLECTION_GAPS_AVAILABLE,
-        collection_gaps_vendor_products_router,
-        collection_gaps_maintenance_windows_router,
-        collection_gaps_governance_router,
-        collection_gaps_assets_router,
-        collection_gaps_collection_flows_router,
-        collection_gap_analysis_router,
         FLOW_PROCESSING_AVAILABLE,
         flow_processing_router,
-        DECOMMISSION_AVAILABLE,
-        decommission_router,
-        DECOMMISSION_FLOW_AVAILABLE,
-        decommission_flow_router,
         routers_with_flags,
     )
 
@@ -64,112 +47,6 @@ def register_conditional_routers(api_router: APIRouter):
         )
         # DO NOT register the legacy discovery router - it violates MFO-first architecture
 
-    # Assessment Flow API - ENABLED: Phase 2 of Assessment Flow MFO Migration (Issue #838)
-    # Re-enabled with MFO integration layer per ADR-006 two-table pattern
-    # Endpoints now route through MFO integration layer in assessment_flow/mfo_integration.py
-    try:
-        from app.api.v1.router_imports import (
-            ASSESSMENT_FLOW_AVAILABLE,
-            assessment_flow_router,
-        )
-
-        if ASSESSMENT_FLOW_AVAILABLE:
-            api_router.include_router(assessment_flow_router, prefix="/assessment-flow")
-            logger.info("✅ Assessment Flow API router included at /assessment-flow")
-        else:
-            logger.warning("⚠️ Assessment Flow API router not available")
-    except ImportError as e:
-        logger.error(f"❌ Failed to import Assessment Flow router: {e}")
-        logger.info("ℹ️ Assessment Flow endpoints accessed via MFO at /master-flows/*")
-
-    # Assessment Flow Readiness API - NEW: Gap Detection Integration (Issue #980)
-    # Provides asset readiness analysis endpoints using GapAnalyzer
-    try:
-        from app.api.v1.router_imports import (
-            ASSESSMENT_FLOW_READINESS_AVAILABLE,
-            assessment_flow_readiness_router,
-        )
-
-        if ASSESSMENT_FLOW_READINESS_AVAILABLE:
-            # Router has prefix /assessment-flow, main router has /api/v1, so final path is /api/v1/assessment-flow
-            api_router.include_router(
-                assessment_flow_readiness_router,
-                tags=[APITags.ASSESSMENT_FLOW_READINESS],
-            )
-            logger.info(
-                "✅ Assessment Flow Readiness API router included at "
-                "/assessment-flow/{flow_id}/asset-readiness/* (Issue #980)"
-            )
-        else:
-            logger.warning("⚠️ Assessment Flow Readiness API router not available")
-    except ImportError as e:
-        logger.error(f"❌ Failed to import Assessment Flow Readiness router: {e}")
-
-    # Collection Gaps API - MUST be registered BEFORE collection_router for correct
-    # routing. The gap analysis router has more specific routes
-    # (/collection/flows/{id}/gaps, /scan-gaps, etc.) that would otherwise be
-    # shadowed by the legacy /collection/flows/{id}/gaps endpoint
-    if COLLECTION_GAPS_AVAILABLE:
-        api_router.include_router(
-            # Two-phase gap analysis endpoints (FIRST for precedence)
-            collection_gap_analysis_router,
-            tags=[APITags.COLLECTION_GAP_ANALYSIS],
-        )
-        api_router.include_router(
-            collection_gaps_vendor_products_router, prefix="/collection"
-        )
-        api_router.include_router(
-            collection_gaps_maintenance_windows_router, prefix="/collection"
-        )
-        api_router.include_router(
-            collection_gaps_governance_router, prefix="/collection"
-        )
-        api_router.include_router(collection_gaps_assets_router, prefix="/collection")
-        api_router.include_router(
-            collection_gaps_collection_flows_router, prefix="/collection"
-        )
-        logger.info(
-            (
-                "✅ Collection Gaps API routers included at /collection/vendor-products, "
-                "/collection/maintenance-windows, /collection/governance, "
-                "/collection/assets, /collection/collection-flows, "
-                "/collection/flows/{flow_id}/gaps|scan-gaps|analyze-gaps|update-gaps"
-            )
-        )
-    else:
-        logger.warning("⚠️ Collection Gaps API routers not available")
-
-    # Collection Flow API - Registered AFTER gap analysis router to avoid shadowing
-    if COLLECTION_AVAILABLE:
-        # Legacy Collection Flow API (from collection_flows.py)
-        api_router.include_router(collection_flows_router, prefix="/collection")
-        logger.info("✅ Collection Flow API router included at /collection")
-
-        # Collection Post-Completion API - Asset resolution after collection
-        api_router.include_router(
-            collection_post_completion_router, prefix="/collection"
-        )
-        logger.info("✅ Collection Post-Completion router included at /collection")
-
-        # Collection Bulk Operations API - Adaptive Questionnaire Enhancements
-        # Aggregated router from collection/__init__.py includes:
-        # - bulk_answer (bulk-answer-preview, bulk-answer)
-        # - dynamic_questions (questions/filtered, dependency-change)
-        # - bulk_import (bulk-import/analyze, bulk-import/execute, bulk-import/status)
-        # - gap_analysis (gap-analysis)
-        api_router.include_router(
-            collection_bulk_ops_router,
-            prefix="/collection",
-            tags=[APITags.COLLECTION_BULK_OPERATIONS],
-        )
-        logger.info(
-            "✅ Collection Bulk Operations router included at /collection "
-            "(bulk-answer, questions/filtered, bulk-import, gap-analysis)"
-        )
-    else:
-        logger.warning(
-            "⚠️ Collection Flow API and Bulk Operations routers not available"
-        )
 
     # Flow Processing API
     if FLOW_PROCESSING_AVAILABLE:
@@ -208,16 +85,3 @@ def register_conditional_routers(api_router: APIRouter):
     else:
         logger.warning("⚠️ Unified Discovery Flow API router not available")
 
-    # Decommission Flow API - MFO-integrated (Issue #935)
-    if DECOMMISSION_FLOW_AVAILABLE:
-        api_router.include_router(decommission_flow_router, prefix="/decommission-flow")
-        logger.info("✅ Decommission Flow API router included at /decommission-flow")
-    else:
-        logger.warning("⚠️ Decommission Flow API router not available")
-
-    # Decommission API - Data retention and system retirement endpoints
-    if DECOMMISSION_AVAILABLE:
-        api_router.include_router(decommission_router, prefix="/decommission")
-        logger.info("✅ Decommission API router included at /decommission")
-    else:
-        logger.warning("⚠️ Decommission API router not available")

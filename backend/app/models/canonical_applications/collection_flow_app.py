@@ -61,13 +61,13 @@ class CollectionFlowApplication(Base, TimestampMixin):
     gap_analysis_result = Column(JSONB, nullable=True)
     collection_status = Column(String(50), nullable=False, default="pending")
 
-    # Relationships
-    canonical_application = relationship(
-        "CanonicalApplication", back_populates="collection_flow_applications"
-    )
-    name_variant = relationship(
-        "ApplicationNameVariant", back_populates="collection_flow_applications"
-    )
+    # Relationships - REMOVED - CollectionFlow was removed, relationships no longer exist
+    # canonical_application = relationship(
+    #     "CanonicalApplication", back_populates="collection_flow_applications"
+    # )
+    # name_variant = relationship(
+    #     "ApplicationNameVariant", back_populates="collection_flow_applications"
+    # )
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for API responses"""

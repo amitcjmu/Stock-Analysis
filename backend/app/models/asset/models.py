@@ -253,54 +253,14 @@ class Asset(
         foreign_keys="Asset.flow_id",
         primaryjoin="Asset.flow_id == DiscoveryFlow.flow_id",
     )
-    questionnaire_responses = relationship(
-        "CollectionQuestionnaireResponse", back_populates="asset"
-    )
     # field_conflicts = relationship("AssetFieldConflict", back_populates="asset")
     # Removed - causing circular dependency
 
     # Enrichment relationships (1:1) - PHASE 2 Bug #679
     # Eager loading with selectinload for intelligent gap detection
-    resilience = relationship(
-        "AssetResilience",
-        uselist=False,
-        back_populates="asset",
-        lazy="selectin",
-    )
-    compliance_flags = relationship(
-        "AssetComplianceFlags",
-        uselist=False,
-        back_populates="asset",
-        lazy="selectin",
-    )
-    vulnerabilities = relationship(
-        "AssetVulnerabilities",
-        back_populates="asset",
-        lazy="selectin",
-    )
-    tech_debt = relationship(
-        "app.models.asset_enrichments.AssetTechDebt",
-        uselist=False,
-        back_populates="asset",
-        lazy="selectin",
-    )
-    performance_metrics = relationship(
-        "app.models.asset_enrichments.AssetPerformanceMetrics",
-        uselist=False,
-        back_populates="asset",
-        lazy="selectin",
-    )
-    cost_optimization = relationship(
-        "app.models.asset_enrichments.AssetCostOptimization",
-        uselist=False,
-        back_populates="asset",
-        lazy="selectin",
-    )
-    licenses = relationship(
-        "AssetLicenses",
-        back_populates="asset",
-        lazy="selectin",
-    )
+    # Removed: AssetResilience, AssetComplianceFlags, AssetVulnerabilities, 
+    # AssetTechDebt, AssetPerformanceMetrics, AssetCostOptimization, AssetLicenses
+    # (part of removed flows: Collection, Assess, Plan, Execute, Modernize, Decommission)
     eol_assessments = relationship(
         "AssetEOLAssessment",
         back_populates="asset",

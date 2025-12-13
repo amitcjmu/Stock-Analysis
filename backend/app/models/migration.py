@@ -110,9 +110,7 @@ class Migration(Base):
     assets = relationship(
         "Asset", back_populates="migration", cascade="all, delete-orphan"
     )
-    assessments = relationship(
-        "Assessment", back_populates="migration", cascade="all, delete-orphan"
-    )
+    # assessments relationship REMOVED - Assessment was removed
     # sixr_analyses relationship REMOVED - Use Assessment Flow (Phase 4, Issue #840)
     # sixr_analyses = relationship(
     #     "SixRAnalysis", back_populates="migration", cascade="all, delete-orphan"

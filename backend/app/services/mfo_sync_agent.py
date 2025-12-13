@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
 from app.core.exceptions import FlowNotFoundError
-from app.repositories.assessment_flow_repository import AssessmentFlowRepository
+# from app.repositories.assessment_flow_repository import AssessmentFlowRepository  # REMOVED - AssessmentFlow was removed
 from app.repositories.crewai_flow_state_extensions_repository import (
     CrewAIFlowStateExtensionsRepository,
 )
@@ -53,12 +53,8 @@ class MFOSyncAgent:
                     self.context.user_id,
                 )
             elif flow_type == "assessment":
-                self._child_repos[flow_type] = AssessmentFlowRepository(
-                    self.db,
-                    self.context.client_account_id,
-                    self.context.engagement_id,
-                    self.context.user_id,
-                )
+                # REMOVED - AssessmentFlow was removed
+                raise ValueError(f"Assessment flow type is no longer supported")
             else:
                 raise ValueError(f"Unsupported flow type: {flow_type}")
 

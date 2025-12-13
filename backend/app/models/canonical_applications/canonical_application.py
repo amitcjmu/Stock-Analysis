@@ -133,9 +133,6 @@ class CanonicalApplication(Base, TimestampMixin):
         back_populates="canonical_application",
         cascade="all, delete-orphan",
     )
-    collection_flow_applications = relationship(
-        "CollectionFlowApplication", back_populates="canonical_application"
-    )
 
     @validates("canonical_name")
     def validate_canonical_name(self, key, name):

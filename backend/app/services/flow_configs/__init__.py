@@ -15,15 +15,35 @@ from .registry_manager import (
 )
 
 # Import flow configuration getters
-from .assessment_flow_config import get_assessment_flow_config
-from .collection_flow_config import get_collection_flow_config
-from .decommission_flow_config import get_decommission_flow_config
+# REMOVED: assessment_flow_config, collection_flow_config, decommission_flow_config,
+# execution_flow_config, modernize_flow_config, planning_flow_config (flows were removed)
+try:
+    from .assessment_flow_config import get_assessment_flow_config
+except ImportError:
+    get_assessment_flow_config = None
+try:
+    from .collection_flow_config import get_collection_flow_config
+except ImportError:
+    get_collection_flow_config = None
+try:
+    from .decommission_flow_config import get_decommission_flow_config
+except ImportError:
+    get_decommission_flow_config = None
 from .discovery_flow_config import get_discovery_flow_config
-from .execution_flow_config import get_execution_flow_config
+try:
+    from .execution_flow_config import get_execution_flow_config
+except ImportError:
+    get_execution_flow_config = None
 from .finops_flow_config import get_finops_flow_config
-from .modernize_flow_config import get_modernize_flow_config
+try:
+    from .modernize_flow_config import get_modernize_flow_config
+except ImportError:
+    get_modernize_flow_config = None
 from .observability_flow_config import get_observability_flow_config
-from .planning_flow_config import get_planning_flow_config
+try:
+    from .planning_flow_config import get_planning_flow_config
+except ImportError:
+    get_planning_flow_config = None
 
 
 def initialize_all_flows() -> Dict[str, Any]:

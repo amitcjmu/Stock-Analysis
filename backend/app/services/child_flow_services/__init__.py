@@ -4,13 +4,20 @@ Services for managing child flow operations per flow type
 """
 
 from .base import BaseChildFlowService
-from .collection import CollectionChildFlowService
-from .decommission import DecommissionChildFlowService
+# REMOVED - CollectionFlow and DecommissionFlow were removed
+try:
+    from .collection import CollectionChildFlowService
+except ImportError:
+    CollectionChildFlowService = None
+try:
+    from .decommission import DecommissionChildFlowService
+except ImportError:
+    DecommissionChildFlowService = None
 from .discovery import DiscoveryChildFlowService
 
 __all__ = [
     "BaseChildFlowService",
-    "CollectionChildFlowService",
-    "DecommissionChildFlowService",
     "DiscoveryChildFlowService",
+    # "CollectionChildFlowService",  # REMOVED
+    # "DecommissionChildFlowService",  # REMOVED
 ]

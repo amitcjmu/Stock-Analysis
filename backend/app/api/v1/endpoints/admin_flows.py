@@ -15,7 +15,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.dependencies import get_db
 from app.core.context import RequestContext, get_current_context
-from app.models.collection_flow import CollectionFlow
+# from app.models.collection_flow import CollectionFlow  # REMOVED - CollectionFlow was removed
+try:
+    from app.models.collection_flow import CollectionFlow
+except ImportError:
+    CollectionFlow = None
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 
 router = APIRouter()
@@ -69,15 +73,17 @@ async def cleanup_stale_flows(
 
     cutoff_time = datetime.utcnow() - timedelta(hours=hours_threshold)
 
-    # Find stuck collection flows
-    collection_result = await db.execute(
-        select(CollectionFlow)
-        .where(CollectionFlow.status.in_(["running", "paused"]))
-        .where(CollectionFlow.updated_at < cutoff_time)
-        .where(CollectionFlow.client_account_id == context.client_account_id)
-        .where(CollectionFlow.engagement_id == context.engagement_id)
-    )
-    stuck_collection_flows = collection_result.scalars().all()
+    # Find stuck collection flows - REMOVED: CollectionFlow was removed
+    stuck_collection_flows = []
+    if CollectionFlow is not None:
+        collection_result = await db.execute(
+            select(CollectionFlow)
+            .where(CollectionFlow.status.in_(["running", "paused"]))
+            .where(CollectionFlow.updated_at < cutoff_time)
+            .where(CollectionFlow.client_account_id == context.client_account_id)
+            .where(CollectionFlow.engagement_id == context.engagement_id)
+        )
+        stuck_collection_flows = collection_result.scalars().all()
 
     # Find stuck master flows
     master_flow_result = await db.execute(
@@ -111,7 +117,7 @@ async def cleanup_stale_flows(
             f"(phase: {flow.current_phase}, stale since: {flow.updated_at})"
         )
 
-    if cleaned_collection_ids:
+    if cleaned_collection_ids and CollectionFlow is not None:
         await db.execute(
             update(CollectionFlow)
             .where(CollectionFlow.flow_id.in_(cleaned_collection_ids))

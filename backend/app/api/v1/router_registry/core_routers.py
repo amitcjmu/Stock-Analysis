@@ -14,13 +14,9 @@ logger = logging.getLogger(__name__)
 def register_core_routers(api_router: APIRouter):
     """Register core routers that are always available."""
     from app.api.v1.router_imports import (
-        # sixr_router removed - replaced by Assessment Flow with MFO
-        # integration (Phase 4, Issue #840)
         analysis_router,
         agents_router,
         agent_learning_router,
-        assessment_events_router,
-        # assessment_flow_router,  # Moved to conditional routers
         asset_workflow_router,
         asset_inventory_router,
         asset_conflicts_router,
@@ -30,13 +26,11 @@ def register_core_routers(api_router: APIRouter):
         chat_router,
         context_router,
         data_import_router,
-        execute_router,
         feedback_router,
         field_mapping_router,
         monitoring_router,
         context_establishment_router,
         flow_sync_debug_router,
-        plan_router,
     )
     from app.api.v1.endpoints.flow_metadata import router as flow_metadata_router
 
@@ -54,13 +48,9 @@ def register_core_routers(api_router: APIRouter):
     api_router.include_router(agent_learning_router, prefix="/agent-learning")
     logger.info("✅ Agent management routers registered")
 
-    # Assessment and Workflow
-    api_router.include_router(assessment_events_router, prefix="/assessment-events")
-    # api_router.include_router(assessment_flow_router,
-    #                           prefix="/assessment-flow")  # Disabled - circular import
+    # Asset Workflow
     api_router.include_router(asset_workflow_router, prefix="/asset-workflow")
-    api_router.include_router(execute_router, prefix="/execute")
-    logger.info("✅ Assessment and workflow routers registered")
+    logger.info("✅ Asset workflow routers registered")
 
     # Asset Management
     api_router.include_router(asset_inventory_router, prefix="/asset-inventory")
@@ -94,10 +84,12 @@ def register_core_routers(api_router: APIRouter):
     api_router.include_router(flow_sync_debug_router, prefix="/flow-sync-debug")
     logger.info("✅ Data and monitoring routers registered")
 
-    # Planning
-    api_router.include_router(plan_router, prefix="/plan")
-    logger.info("✅ Plan router registered")
 
     # Flow Metadata (for FlowTypeConfig pattern per ADR-027)
     api_router.include_router(flow_metadata_router)
     logger.info("✅ Flow metadata router registered")
+
+    # Stock Analysis
+    from app.api.v1.endpoints.stock.stock_routes import router as stock_router
+    api_router.include_router(stock_router, prefix="/stock/stocks")
+    logger.info("✅ Stock analysis router registered")
