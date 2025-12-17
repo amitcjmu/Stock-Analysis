@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, Loader2, AlertTriangle, Plus, GitCompare, X, Star, StarOff, BarChart3, CheckCircle } from 'lucide-react';
 
 // Components
@@ -10,6 +10,7 @@ import { Input } from '../../../components/ui/input';
 import { Alert, AlertDescription } from '../../../components/ui/alert';
 import { Badge } from '../../../components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs';
+import { Popover, PopoverContent, PopoverTrigger } from '../../../components/ui/popover';
 import { PriceChart } from '../../../components/stock/PriceChart';
 import { useAuth } from '../../../contexts/AuthContext';
 import { apiCall } from '../../../config/api';
@@ -81,6 +82,14 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
   const [isInWatchlist, setIsInWatchlist] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
 
+  // Autocomplete state
+  const [suggestions, setSuggestions] = useState<Stock[]>([]);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   const formatCurrency = (value?: number | null) => {
     if (value === undefined || value === null || isNaN(value)) return 'N/A';
     return new Intl.NumberFormat('en-US', {
@@ -149,6 +158,137 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
     }
   };
 
+  // Fetch suggestions for autocomplete
+  const fetchSuggestions = useCallback(async (query: string) => {
+    if (!query.trim() || query.length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    setIsLoadingSuggestions(true);
+    try {
+      const response = await apiCall(
+        `/stock/stocks/search?q=${encodeURIComponent(query)}&limit=5`,
+        {
+          method: 'GET',
+          headers: getAuthHeaders(),
+        }
+      );
+
+      if (response.success && response.stocks) {
+        setSuggestions(response.stocks);
+        setShowSuggestions(true);
+        setSelectedSuggestionIndex(-1);
+      } else {
+        setSuggestions([]);
+        setShowSuggestions(false);
+      }
+    } catch (err: any) {
+      console.error('Error fetching suggestions:', err);
+      setSuggestions([]);
+      setShowSuggestions(false);
+    } finally {
+      setIsLoadingSuggestions(false);
+    }
+  }, [getAuthHeaders]);
+
+  // Handle input change with debounced suggestions
+  const handleInputChange = useCallback((value: string) => {
+    setSearchQuery(value);
+    setShowSuggestions(false);
+    setSelectedSuggestionIndex(-1);
+
+    // Clear previous timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    // Debounce suggestion fetching
+    if (value.trim().length >= 2) {
+      debounceTimerRef.current = setTimeout(() => {
+        fetchSuggestions(value);
+      }, 300);
+    } else {
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
+  }, [fetchSuggestions]);
+
+  // Handle keyboard navigation in suggestions
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!showSuggestions || suggestions.length === 0) {
+      if (e.key === 'Enter') {
+        handleSearch();
+      }
+      return;
+    }
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setSelectedSuggestionIndex((prev) =>
+          prev < suggestions.length - 1 ? prev + 1 : prev
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setSelectedSuggestionIndex((prev) => (prev > 0 ? prev - 1 : -1));
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (selectedSuggestionIndex >= 0 && selectedSuggestionIndex < suggestions.length) {
+          const selectedStock = suggestions[selectedSuggestionIndex];
+          setSearchQuery(selectedStock.symbol);
+          setShowSuggestions(false);
+          setSelectedSuggestionIndex(-1);
+          setSuggestions([]);
+          handleAnalyzeStock(selectedStock);
+        } else {
+          handleSearch();
+        }
+        break;
+      case 'Escape':
+        setShowSuggestions(false);
+        setSelectedSuggestionIndex(-1);
+        break;
+    }
+  }, [showSuggestions, suggestions, selectedSuggestionIndex]);
+
+  // Handle suggestion selection
+  const handleSelectSuggestion = (stock: Stock) => {
+    setSearchQuery(stock.symbol);
+    setShowSuggestions(false);
+    setSelectedSuggestionIndex(-1);
+    setSuggestions([]);
+    // Call handleAnalyzeStock directly - it's defined later in the component
+    handleAnalyzeStock(stock);
+  };
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchInputRef.current && !searchInputRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
+        setSelectedSuggestionIndex(-1);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
+
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
 
@@ -206,7 +346,7 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
 
     // Load historical prices
     await loadHistoricalPrices(stock.symbol, pricePeriod);
-    
+
     // Check if stock is in watchlist
     const inWatchlist = watchlist.some(
       (item) => item.stock_symbol.toUpperCase() === stock.symbol.toUpperCase()
@@ -216,7 +356,7 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
 
   const handleAnalyzeStockWithAI = async () => {
     if (!selectedStock) return;
-    
+
     setError(null);
     setIsAnalyzing(true);
 
@@ -352,14 +492,55 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
                   <CardTitle>Search Stocks</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Enter stock symbol or company name (e.g., HCLTECH, RELIANCE, AAPL, Apple)"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                      className="flex-1"
-                    />
+                  <div className="flex gap-2 relative">
+                    <div className="flex-1 relative" ref={searchInputRef}>
+                      <Input
+                        placeholder="Enter stock symbol or company name (e.g., HCLTECH, RELIANCE, AAPL, Apple)"
+                        value={searchQuery}
+                        onChange={(e) => handleInputChange(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        onFocus={() => {
+                          if (suggestions.length > 0) {
+                            setShowSuggestions(true);
+                          }
+                        }}
+                        className="w-full"
+                      />
+                      {showSuggestions && suggestions.length > 0 && (
+                        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
+                          {isLoadingSuggestions ? (
+                            <div className="p-4 text-center">
+                              <Loader2 className="w-4 h-4 animate-spin mx-auto" />
+                            </div>
+                          ) : (
+                            <ul className="py-1">
+                              {suggestions.map((stock, index) => (
+                                <li
+                                  key={stock.symbol}
+                                  className={`px-4 py-2 cursor-pointer hover:bg-gray-100 ${
+                                    index === selectedSuggestionIndex ? 'bg-gray-100' : ''
+                                  }`}
+                                  onClick={() => handleSelectSuggestion(stock)}
+                                  onMouseEnter={() => setSelectedSuggestionIndex(index)}
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <div>
+                                      <div className="font-semibold text-sm">{stock.symbol}</div>
+                                      <div className="text-xs text-gray-500">{stock.company_name}</div>
+                                    </div>
+                                    {stock.exchange && (
+                                      <Badge variant="outline" className="text-xs">
+                                        {stock.exchange}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      )}
+                    </div>
                     <Button onClick={handleSearch} disabled={isSearching || !searchQuery.trim()}>
                       {isSearching ? (
                         <>
@@ -683,7 +864,7 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
                                   size="sm"
                                   onClick={() => handlePeriodChange(period)}
                                 >
-                                  {period === '1d' ? '1 Day' : 
+                                  {period === '1d' ? '1 Day' :
                                    period === '5d' ? '5 Days' :
                                    period === '1mo' ? '1 Month' :
                                    period === 'ytd' ? 'YTD' :
@@ -771,7 +952,7 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
                               size="sm"
                               onClick={() => handlePeriodChange(period)}
                             >
-                              {period === '1d' ? '1 Day' : 
+                              {period === '1d' ? '1 Day' :
                                period === '5d' ? '5 Days' :
                                period === '1mo' ? '1 Month' :
                                period === 'ytd' ? 'YTD' :

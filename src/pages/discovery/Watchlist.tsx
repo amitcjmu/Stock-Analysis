@@ -489,4 +489,3 @@ const WatchlistPage: React.FC = () => {
 };
 
 export default WatchlistPage;
-

@@ -41,34 +41,34 @@ export const PriceChart: React.FC<PriceChartProps> = ({ data, symbol, period }) 
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" />
-          <XAxis 
-            dataKey="date" 
+          <XAxis
+            dataKey="date"
             angle={-45}
             textAnchor="end"
             height={80}
             interval="preserveStartEnd"
           />
-          <YAxis 
+          <YAxis
             domain={['auto', 'auto']}
             tickFormatter={(value) => `$${value.toFixed(2)}`}
           />
-          <Tooltip 
+          <Tooltip
             formatter={(value: number) => `$${value.toFixed(2)}`}
             labelFormatter={(label) => `Date: ${label}`}
           />
           <Legend />
-          <Line 
-            type="monotone" 
-            dataKey="close" 
-            stroke="#2563eb" 
+          <Line
+            type="monotone"
+            dataKey="close"
+            stroke="#2563eb"
             strokeWidth={2}
             name="Close Price"
             dot={false}
           />
-          <Line 
-            type="monotone" 
-            dataKey="open" 
-            stroke="#10b981" 
+          <Line
+            type="monotone"
+            dataKey="open"
+            stroke="#10b981"
             strokeWidth={1}
             name="Open Price"
             dot={false}
@@ -79,4 +79,3 @@ export const PriceChart: React.FC<PriceChartProps> = ({ data, symbol, period }) 
     </div>
   );
 };
-

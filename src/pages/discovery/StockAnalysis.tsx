@@ -116,7 +116,7 @@ const StockAnalysisPage: React.FC = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   // New state for enhanced features
   const [historicalPrices, setHistoricalPrices] = useState<HistoricalPrice[]>([]);
   const [pricePeriod, setPricePeriod] = useState('1mo');
@@ -171,14 +171,14 @@ const StockAnalysisPage: React.FC = () => {
   useEffect(() => {
     const stockFromState = location.state?.stock;
     const comparisonStocksFromState = location.state?.comparisonStocks;
-    
+
     console.log('Navigation effect triggered:', {
       pathname: location.pathname,
       hasStock: !!stockFromState,
       stockSymbol: stockFromState?.symbol,
       currentSelectedStock: selectedStock?.symbol
     });
-    
+
     if (stockFromState) {
       // Only load if it's a different stock
       const stockSymbol = stockFromState.symbol;
@@ -189,7 +189,7 @@ const StockAnalysisPage: React.FC = () => {
         console.log('Stock already selected, skipping load');
       }
     }
-    
+
     if (comparisonStocksFromState && comparisonStocksFromState.length > 0) {
       setComparisonStocks(comparisonStocksFromState);
       setShowComparison(true);
@@ -359,7 +359,7 @@ const StockAnalysisPage: React.FC = () => {
     } catch (err) {
       console.error('Error loading historical prices:', err);
     }
-    
+
     // Check if stock is in watchlist
     const inWatchlist = watchlist.some(
       (item) => item.stock_symbol.toUpperCase() === stock.symbol.toUpperCase()
@@ -369,7 +369,7 @@ const StockAnalysisPage: React.FC = () => {
 
   const handleAnalyzeStockWithAI = async () => {
     if (!selectedStock) return;
-    
+
     setError(null);
     setIsAnalyzing(true);
 
@@ -667,11 +667,11 @@ const StockAnalysisPage: React.FC = () => {
                       {selectedStock.metadata?.country || 'United States'} {selectedStock.metadata?.country === 'India' ? 'Delayed Price' : ''} - Currency is {selectedStock.currency || selectedStock.metadata?.currency || 'USD'}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {new Date().toLocaleString('en-US', { 
-                        month: 'short', 
-                        day: 'numeric', 
-                        year: 'numeric', 
-                        hour: 'numeric', 
+                      {new Date().toLocaleString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                        hour: 'numeric',
                         minute: '2-digit',
                         timeZoneName: selectedStock.metadata?.country === 'India' ? 'short' : undefined
                       })}
@@ -978,7 +978,7 @@ const StockAnalysisPage: React.FC = () => {
                                   size="sm"
                                   onClick={() => handlePeriodChange(period)}
                                 >
-                                  {period === '1d' ? '1 Day' : 
+                                  {period === '1d' ? '1 Day' :
                                    period === '5d' ? '5 Days' :
                                    period === '1mo' ? '1 Month' :
                                    period === 'ytd' ? 'YTD' :
@@ -1057,7 +1057,7 @@ const StockAnalysisPage: React.FC = () => {
                               <div>
                                 <div className="text-sm text-muted-foreground">Dividend</div>
                                 <div className="font-semibold text-lg">
-                                  {(selectedStock.current_price && selectedStock.metadata.dividend_yield) 
+                                  {(selectedStock.current_price && selectedStock.metadata.dividend_yield)
                                     ? `${(selectedStock.current_price * selectedStock.metadata.dividend_yield).toFixed(2)} (${(selectedStock.metadata.dividend_yield * 100).toFixed(2)}%)`
                                     : 'N/A'}
                                 </div>
@@ -1150,7 +1150,7 @@ const StockAnalysisPage: React.FC = () => {
                               size="sm"
                               onClick={() => handlePeriodChange(period)}
                             >
-                              {period === '1d' ? '1 Day' : 
+                              {period === '1d' ? '1 Day' :
                                period === '5d' ? '5 Days' :
                                period === '1mo' ? '1 Month' :
                                period === 'ytd' ? 'YTD' :
@@ -1159,7 +1159,7 @@ const StockAnalysisPage: React.FC = () => {
                             </Button>
                           ))}
                         </div>
-                        
+
                         {/* Chart */}
                         {isLoadingPrices ? (
                           <div className="flex items-center justify-center h-96">
@@ -1314,4 +1314,3 @@ const StockAnalysisPage: React.FC = () => {
 };
 
 export default StockAnalysisPage;
-

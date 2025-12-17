@@ -6,7 +6,6 @@ Contains routers that are conditionally available based on feature flags or impo
 import logging
 from fastapi import APIRouter
 
-from app.api.v1.api_tags import APITags
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +46,6 @@ def register_conditional_routers(api_router: APIRouter):
         )
         # DO NOT register the legacy discovery router - it violates MFO-first architecture
 
-
     # Flow Processing API
     if FLOW_PROCESSING_AVAILABLE:
         api_router.include_router(flow_processing_router, prefix="/flow-processing")
@@ -84,4 +82,3 @@ def register_conditional_routers(api_router: APIRouter):
         logger.info("✅ Clarifications router included at /unified-discovery")
     else:
         logger.warning("⚠️ Unified Discovery Flow API router not available")
-

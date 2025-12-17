@@ -5,15 +5,14 @@ Supports both US stocks and Indian stocks (BSE/NSE)
 
 import logging
 from typing import Any, Dict, List, Optional
-from datetime import datetime, timedelta
 import asyncio
-import re
 
 logger = logging.getLogger(__name__)
 
 # Try to import yfinance, fallback to mock if not available
 try:
     import yfinance as yf
+
     YFINANCE_AVAILABLE = True
 except ImportError:
     YFINANCE_AVAILABLE = False
@@ -31,7 +30,7 @@ class StockDataAPIService:
     def __init__(self):
         if not YFINANCE_AVAILABLE:
             logger.warning("yfinance not available - using mock data")
-        
+
         # Indian company name to ticker mapping (BSE/NSE)
         self.indian_companies = {
             # Major Indian Companies - NSE
@@ -146,7 +145,7 @@ class StockDataAPIService:
             "ADANI GREEN": "ADANIGREEN.NS",
             "ADANI TRANSMISSION": "ADANITRANS.NS",
         }
-        
+
         # BSE Sensex and NSE Nifty indices
         self.indian_indices = {
             "SENSEX": "^BSESN",
@@ -163,34 +162,42 @@ class StockDataAPIService:
     def _normalize_symbol(self, symbol: str) -> str:
         """Normalize symbol to handle Indian stocks and company names"""
         symbol_upper = symbol.upper().strip()
-        
+
         # Remove common suffixes like "LIMITED", "LTD", "INC", "CORPORATION", etc.
         cleaned_symbol = symbol_upper
-        for suffix in [" LIMITED", " LTD", " INC", " CORPORATION", " CORP", " COMPANY", " CO"]:
+        for suffix in [
+            " LIMITED",
+            " LTD",
+            " INC",
+            " CORPORATION",
+            " CORP",
+            " COMPANY",
+            " CO",
+        ]:
             if cleaned_symbol.endswith(suffix):
-                cleaned_symbol = cleaned_symbol[:-len(suffix)].strip()
-        
+                cleaned_symbol = cleaned_symbol[: -len(suffix)].strip()
+
         # Check if already has exchange suffix
-        if symbol_upper.endswith('.NS') or symbol_upper.endswith('.BO'):
+        if symbol_upper.endswith(".NS") or symbol_upper.endswith(".BO"):
             return symbol_upper
-        
+
         # Check Indian indices
         if symbol_upper in self.indian_indices:
             return self.indian_indices[symbol_upper]
         if cleaned_symbol in self.indian_indices:
             return self.indian_indices[cleaned_symbol]
-        
+
         # Check Indian companies (exact match first)
         if symbol_upper in self.indian_companies:
             return self.indian_companies[symbol_upper]
         if cleaned_symbol in self.indian_companies:
             return self.indian_companies[cleaned_symbol]
-        
+
         # Check for partial matches (more flexible matching)
         # Try to find the best match by checking if query contains company name or vice versa
         best_match = None
         best_match_length = 0
-        
+
         for company_name, ticker in self.indian_companies.items():
             # Check if query is contained in company name or company name is contained in query
             if cleaned_symbol in company_name or company_name in cleaned_symbol:
@@ -198,11 +205,11 @@ class StockDataAPIService:
                 if len(company_name) > best_match_length:
                     best_match = ticker
                     best_match_length = len(company_name)
-        
+
         if best_match:
             logger.info(f"Matched '{symbol_upper}' to '{best_match}' via partial match")
             return best_match
-        
+
         # Default: assume US stock or return as-is
         return symbol_upper
 
@@ -263,13 +270,15 @@ class StockDataAPIService:
             "NIKE": "NKE",
             "MERCK": "MRK",
         }
-        
+
         # Normalize symbol (handles both US and Indian stocks)
         search_symbol = self._normalize_symbol(query_upper)
-        
+
         # If normalization didn't change it, check US companies
         if search_symbol == query_upper and query_upper in us_company_to_ticker:
-            logger.info(f"Mapping US company name '{query_upper}' to ticker '{us_company_to_ticker[query_upper]}'")
+            logger.info(
+                f"Mapping US company name '{query_upper}' to ticker '{us_company_to_ticker[query_upper]}'"
+            )
             search_symbol = us_company_to_ticker[query_upper]
 
         # Try direct ticker lookup first
@@ -281,12 +290,22 @@ class StockDataAPIService:
                 if stock_data:
                     stocks.append(stock_data)
             elif info and "error" in info:
-                error_desc = info.get("error", {}).get("description", "Unknown error") if isinstance(info.get("error"), dict) else str(info.get("error", "Unknown error"))
+                error_desc = (
+                    info.get("error", {}).get("description", "Unknown error")
+                    if isinstance(info.get("error"), dict)
+                    else str(info.get("error", "Unknown error"))
+                )
                 # Only log as warning if it's not a "Not Found" error (which is expected for some searches)
-                if "not found" not in error_desc.lower() and "404" not in str(error_desc):
-                    logger.warning(f"Yahoo Finance error for '{search_symbol}': {error_desc}")
+                if "not found" not in error_desc.lower() and "404" not in str(
+                    error_desc
+                ):
+                    logger.warning(
+                        f"Yahoo Finance error for '{search_symbol}': {error_desc}"
+                    )
                 else:
-                    logger.debug(f"Stock not found in Yahoo Finance for '{search_symbol}': {error_desc}")
+                    logger.debug(
+                        f"Stock not found in Yahoo Finance for '{search_symbol}': {error_desc}"
+                    )
         except Exception as e:
             # Suppress yfinance HTTP 404 errors as they're expected for unknown symbols
             if "404" not in str(e) and "not found" not in str(e).lower():
@@ -299,9 +318,31 @@ class StockDataAPIService:
         # For broader search, try common tickers
         # Note: Yahoo Finance doesn't have a direct search API, so we try common patterns
         common_tickers = [
-            "AAPL", "MSFT", "GOOGL", "AMZN", "TSLA", "META", "NVDA", "JPM",
-            "V", "JNJ", "WMT", "PG", "MA", "UNH", "HD", "DIS", "PYPL",
-            "BAC", "VZ", "ADBE", "CMCSA", "NFLX", "KO", "NKE", "MRK"
+            "AAPL",
+            "MSFT",
+            "GOOGL",
+            "AMZN",
+            "TSLA",
+            "META",
+            "NVDA",
+            "JPM",
+            "V",
+            "JNJ",
+            "WMT",
+            "PG",
+            "MA",
+            "UNH",
+            "HD",
+            "DIS",
+            "PYPL",
+            "BAC",
+            "VZ",
+            "ADBE",
+            "CMCSA",
+            "NFLX",
+            "KO",
+            "NKE",
+            "MRK",
         ]
 
         for ticker_symbol in common_tickers:
@@ -311,7 +352,10 @@ class StockDataAPIService:
                     info = ticker.info
                     if info and "symbol" in info:
                         stock_data = self._format_stock_data(info, ticker)
-                        if stock_data and query_upper in stock_data.get("symbol", "").upper():
+                        if (
+                            stock_data
+                            and query_upper in stock_data.get("symbol", "").upper()
+                        ):
                             stocks.append(stock_data)
                             if len(stocks) >= limit:
                                 break
@@ -341,24 +385,32 @@ class StockDataAPIService:
         try:
             # Normalize symbol (handles both US and Indian stocks)
             symbol_normalized = self._normalize_symbol(symbol)
-            
+
             logger.info(f"Fetching stock data for '{symbol}' -> '{symbol_normalized}'")
-            
+
             ticker = yf.Ticker(symbol_normalized)
             info = ticker.info
-            
+
             # Check if we got valid data
             if not info:
                 logger.warning(f"No data returned for symbol {symbol_normalized}")
                 return None
-                
+
             # Check for error in response (yfinance sometimes returns error in info)
             if "error" in info or "symbol" not in info:
-                error_msg = info.get('error', {}).get('description', 'No symbol in response') if isinstance(info.get('error'), dict) else info.get('error', 'No symbol in response')
-                logger.warning(f"Invalid symbol or error for {symbol_normalized}: {error_msg}")
+                error_msg = (
+                    info.get("error", {}).get("description", "No symbol in response")
+                    if isinstance(info.get("error"), dict)
+                    else info.get("error", "No symbol in response")
+                )
+                logger.warning(
+                    f"Invalid symbol or error for {symbol_normalized}: {error_msg}"
+                )
                 # Try to suggest alternative if it's a company name search
                 if symbol != symbol_normalized:
-                    logger.info(f"Original search was '{symbol}', normalized to '{symbol_normalized}' but not found")
+                    logger.info(
+                        f"Original search was '{symbol}', normalized to '{symbol_normalized}' but not found"
+                    )
                 return None
 
             return self._format_stock_data(info, ticker, symbol_normalized)
@@ -366,7 +418,9 @@ class StockDataAPIService:
             logger.error(f"Error fetching stock data for {symbol}: {e}")
             return None
 
-    def _format_stock_data(self, info: Dict, ticker: Any, symbol: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    def _format_stock_data(
+        self, info: Dict, ticker: Any, symbol: Optional[str] = None
+    ) -> Optional[Dict[str, Any]]:
         """Format Yahoo Finance data to our stock model format
         Supports both US and Indian stocks
         """
@@ -374,7 +428,7 @@ class StockDataAPIService:
             # Get current price from history or info
             current_price = None
             previous_close = None
-            
+
             try:
                 hist = ticker.history(period="2d")
                 if not hist.empty:
@@ -386,39 +440,49 @@ class StockDataAPIService:
 
             # Fallback to info if history not available
             if current_price is None:
-                current_price = info.get("currentPrice") or info.get("regularMarketPrice") or info.get("regularMarketLastPrice")
+                current_price = (
+                    info.get("currentPrice")
+                    or info.get("regularMarketPrice")
+                    or info.get("regularMarketLastPrice")
+                )
             if previous_close is None:
-                previous_close = info.get("previousClose") or info.get("regularMarketPreviousClose")
+                previous_close = info.get("previousClose") or info.get(
+                    "regularMarketPreviousClose"
+                )
 
             # Calculate price change
             price_change = None
             price_change_percent = None
             if current_price and previous_close:
                 price_change = current_price - previous_close
-                price_change_percent = (price_change / previous_close) * 100 if previous_close else 0
+                price_change_percent = (
+                    (price_change / previous_close) * 100 if previous_close else 0
+                )
 
             # Extract symbol and determine exchange
             symbol_raw = info.get("symbol", symbol or "")
             exchange = info.get("exchange")
-            
+
             # Determine if it's an Indian stock
             is_indian = False
-            if symbol_raw.endswith('.NS'):
+            if symbol_raw.endswith(".NS"):
                 exchange = exchange or "NSE"
                 is_indian = True
-                symbol_raw = symbol_raw.replace('.NS', '')
-            elif symbol_raw.endswith('.BO'):
+                symbol_raw = symbol_raw.replace(".NS", "")
+            elif symbol_raw.endswith(".BO"):
                 exchange = exchange or "BSE"
                 is_indian = True
-                symbol_raw = symbol_raw.replace('.BO', '')
-            
+                symbol_raw = symbol_raw.replace(".BO", "")
+
             # Get currency (INR for Indian stocks, USD for US)
             currency = info.get("currency", "INR" if is_indian else "USD")
             country = info.get("country", "India" if is_indian else "United States")
 
             return {
                 "symbol": symbol_raw.upper(),
-                "company_name": info.get("longName") or info.get("shortName") or info.get("symbol", symbol_raw),
+                "company_name": info.get("longName")
+                or info.get("shortName")
+                or info.get("symbol", symbol_raw),
                 "exchange": exchange,
                 "sector": info.get("sector"),
                 "industry": info.get("industry"),
@@ -426,8 +490,14 @@ class StockDataAPIService:
                 "previous_close": float(previous_close) if previous_close else None,
                 "market_cap": info.get("marketCap"),
                 "volume": info.get("volume") or info.get("regularMarketVolume"),
-                "price_change": float(price_change) if price_change is not None else None,
-                "price_change_percent": float(price_change_percent) if price_change_percent is not None else None,
+                "price_change": (
+                    float(price_change) if price_change is not None else None
+                ),
+                "price_change_percent": (
+                    float(price_change_percent)
+                    if price_change_percent is not None
+                    else None
+                ),
                 "currency": currency,
                 "metadata": {
                     "currency": currency,
@@ -441,7 +511,7 @@ class StockDataAPIService:
                     "52_week_low": info.get("fiftyTwoWeekLow"),
                     "is_indian_stock": is_indian,
                     "yfinance_symbol": info.get("symbol", symbol),
-                }
+                },
             }
         except Exception as e:
             logger.error(f"Error formatting stock data: {e}")
@@ -452,7 +522,7 @@ class StockDataAPIService:
     ) -> Optional[List[Dict[str, Any]]]:
         """
         Get historical price data for a stock.
-        
+
         Args:
             symbol: Stock symbol
             period: Valid periods: 1d, 5d, 1mo, 3mo, 6mo, 1y, 2y, 5y, 10y, ytd, max
@@ -478,26 +548,30 @@ class StockDataAPIService:
         try:
             # Normalize symbol to handle Indian stocks
             symbol_normalized = self._normalize_symbol(symbol)
-            logger.info(f"Fetching historical prices for '{symbol}' -> '{symbol_normalized}'")
-            
+            logger.info(
+                f"Fetching historical prices for '{symbol}' -> '{symbol_normalized}'"
+            )
+
             ticker = yf.Ticker(symbol_normalized)
             hist = ticker.history(period=period, interval=interval)
-            
+
             if hist.empty:
                 logger.warning(f"No historical data found for {symbol_normalized}")
                 return None
 
             prices = []
             for date, row in hist.iterrows():
-                prices.append({
-                    "date": date.strftime("%Y-%m-%d"),
-                    "timestamp": int(date.timestamp()),
-                    "open": float(row["Open"]),
-                    "high": float(row["High"]),
-                    "low": float(row["Low"]),
-                    "close": float(row["Close"]),
-                    "volume": int(row["Volume"]) if "Volume" in row else None,
-                })
+                prices.append(
+                    {
+                        "date": date.strftime("%Y-%m-%d"),
+                        "timestamp": int(date.timestamp()),
+                        "open": float(row["Open"]),
+                        "high": float(row["High"]),
+                        "low": float(row["Low"]),
+                        "close": float(row["Close"]),
+                        "volume": int(row["Volume"]) if "Volume" in row else None,
+                    }
+                )
 
             return prices
         except Exception as e:
@@ -537,8 +611,10 @@ class StockDataAPIService:
         ]
         query_upper = query.upper()
         filtered = [
-            stock for stock in mock_stocks
-            if query_upper in stock["symbol"] or query_upper in stock["company_name"].upper()
+            stock
+            for stock in mock_stocks
+            if query_upper in stock["symbol"]
+            or query_upper in stock["company_name"].upper()
         ]
         return filtered[:limit]
 
@@ -562,15 +638,16 @@ class StockDataAPIService:
             date = datetime.now() - timedelta(days=days - i)
             change = random.uniform(-2, 2)
             base_price += change
-            prices.append({
-                "date": date.strftime("%Y-%m-%d"),
-                "timestamp": int(date.timestamp()),
-                "open": base_price,
-                "high": base_price + random.uniform(0, 2),
-                "low": base_price - random.uniform(0, 2),
-                "close": base_price + random.uniform(-0.5, 0.5),
-                "volume": random.randint(1000000, 10000000),
-            })
+            prices.append(
+                {
+                    "date": date.strftime("%Y-%m-%d"),
+                    "timestamp": int(date.timestamp()),
+                    "open": base_price,
+                    "high": base_price + random.uniform(0, 2),
+                    "low": base_price - random.uniform(0, 2),
+                    "close": base_price + random.uniform(-0.5, 0.5),
+                    "volume": random.randint(1000000, 10000000),
+                }
+            )
 
         return prices
-

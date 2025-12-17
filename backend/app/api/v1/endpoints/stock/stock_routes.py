@@ -19,7 +19,7 @@ from sqlalchemy import select, and_, delete
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="", tags=["stocks"])
+router = APIRouter(prefix="")
 
 
 # Request/Response Models
@@ -57,6 +57,7 @@ class StockAnalysisResponse(BaseModel):
 # IMPORTANT: Specific routes must come BEFORE parameterized routes
 # to prevent route conflicts (e.g., /watchlist matching /{symbol})
 
+
 @router.get("/search", response_model=StockSearchResponse)
 async def search_stocks(
     q: str = Query(..., description="Search query (symbol or company name)"),
@@ -80,7 +81,9 @@ async def search_stocks(
 
     except Exception as e:
         logger.error(f"Error searching stocks: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to search stocks: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to search stocks: {str(e)}"
+        )
 
 
 @router.post("/analyze", response_model=StockAnalysisResponse)
@@ -109,6 +112,7 @@ async def analyze_stock(
     except Exception as e:
         logger.error(f"Error analyzing stock {request.symbol}: {e}", exc_info=True)
         import traceback
+
         logger.error(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(
             status_code=500, detail=f"Failed to analyze stock: {str(e)}"
@@ -144,10 +148,12 @@ async def get_watchlist(
         watchlist_with_data = []
         for item in watchlist_items:
             stock_data = await stock_service.get_stock_by_symbol(item.stock_symbol)
-            watchlist_with_data.append({
-                **item.to_dict(),
-                "stock_data": stock_data,
-            })
+            watchlist_with_data.append(
+                {
+                    **item.to_dict(),
+                    "stock_data": stock_data,
+                }
+            )
 
         return {"success": True, "watchlist": watchlist_with_data}
 
@@ -171,15 +177,12 @@ async def add_to_watchlist(
     """
     try:
         # Check if already in watchlist
-        stmt = (
-            select(Watchlist)
-            .where(
-                and_(
-                    Watchlist.stock_symbol == symbol.upper(),
-                    Watchlist.client_account_id == context.client_account_id,
-                    Watchlist.engagement_id == context.engagement_id,
-                    Watchlist.user_id == context.user_id,
-                )
+        stmt = select(Watchlist).where(
+            and_(
+                Watchlist.stock_symbol == symbol.upper(),
+                Watchlist.client_account_id == context.client_account_id,
+                Watchlist.engagement_id == context.engagement_id,
+                Watchlist.user_id == context.user_id,
             )
         )
         result = await db.execute(stmt)
@@ -239,15 +242,12 @@ async def remove_from_watchlist(
     Remove a stock from user's watchlist.
     """
     try:
-        stmt = (
-            delete(Watchlist)
-            .where(
-                and_(
-                    Watchlist.stock_symbol == symbol.upper(),
-                    Watchlist.client_account_id == context.client_account_id,
-                    Watchlist.engagement_id == context.engagement_id,
-                    Watchlist.user_id == context.user_id,
-                )
+        stmt = delete(Watchlist).where(
+            and_(
+                Watchlist.stock_symbol == symbol.upper(),
+                Watchlist.client_account_id == context.client_account_id,
+                Watchlist.engagement_id == context.engagement_id,
+                Watchlist.user_id == context.user_id,
             )
         )
         result = await db.execute(stmt)
@@ -273,7 +273,9 @@ async def remove_from_watchlist(
 # Comparison endpoint (must come before /{symbol} route)
 @router.get("/compare", response_model=dict)
 async def compare_stocks(
-    symbols: str = Query(..., description="Comma-separated list of stock symbols to compare"),
+    symbols: str = Query(
+        ..., description="Comma-separated list of stock symbols to compare"
+    ),
     db: AsyncSession = Depends(get_db),
     context: RequestContext = Depends(get_current_context),
 ):
@@ -283,7 +285,7 @@ async def compare_stocks(
     try:
         # Parse comma-separated symbols
         symbol_list = [s.strip().upper() for s in symbols.split(",") if s.strip()]
-        
+
         if len(symbol_list) < 2:
             raise HTTPException(
                 status_code=400, detail="At least 2 stocks required for comparison"
@@ -302,7 +304,9 @@ async def compare_stocks(
                 comparison_data.append(stock_data)
 
         if not comparison_data:
-            raise HTTPException(status_code=404, detail="No valid stocks found for comparison")
+            raise HTTPException(
+                status_code=404, detail="No valid stocks found for comparison"
+            )
 
         return {
             "success": True,
@@ -349,8 +353,13 @@ async def get_stock(
 @router.get("/{symbol}/historical", response_model=dict)
 async def get_historical_prices(
     symbol: str,
-    period: str = Query("1mo", description="Period: 1d, 5d, 1mo, 3mo, 6mo, 1y, 2y, 5y, 10y, ytd, max"),
-    interval: str = Query("1d", description="Interval: 1m, 2m, 5m, 15m, 30m, 60m, 90m, 1h, 1d, 5d, 1wk, 1mo, 3mo"),
+    period: str = Query(
+        "1mo", description="Period: 1d, 5d, 1mo, 3mo, 6mo, 1y, 2y, 5y, 10y, ytd, max"
+    ),
+    interval: str = Query(
+        "1d",
+        description="Interval: 1m, 2m, 5m, 15m, 30m, 60m, 90m, 1h, 1d, 5d, 1wk, 1mo, 3mo",
+    ),
     db: AsyncSession = Depends(get_db),
     context: RequestContext = Depends(get_current_context),
 ):
@@ -366,7 +375,13 @@ async def get_historical_prices(
                 status_code=404, detail=f"No historical data found for {symbol}"
             )
 
-        return {"success": True, "symbol": symbol, "period": period, "interval": interval, "prices": prices}
+        return {
+            "success": True,
+            "symbol": symbol,
+            "period": period,
+            "interval": interval,
+            "prices": prices,
+        }
 
     except HTTPException:
         raise
@@ -404,4 +419,3 @@ async def get_stock_analysis(
         raise HTTPException(
             status_code=500, detail=f"Failed to get stock analysis: {str(e)}"
         )
-

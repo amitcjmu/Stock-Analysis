@@ -3,7 +3,7 @@ Stock Analysis Agent - Uses CrewAI and LLM to analyze stocks
 """
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -50,8 +50,10 @@ class StockAnalysisAgent:
 
             # Extract the actual response text from the response dict
             # multi_model_service returns {"response": "...", "status": "...", ...}
-            response_text = response_data.get("response") or response_data.get("content", "")
-            
+            response_text = response_data.get("response") or response_data.get(
+                "content", ""
+            )
+
             if not response_text:
                 raise ValueError(f"Empty response from LLM for {stock_symbol}")
 
@@ -73,26 +75,35 @@ class StockAnalysisAgent:
         except Exception as e:
             logger.error(f"Error analyzing stock {stock_symbol}: {e}", exc_info=True)
             import traceback
+
             logger.error(f"Traceback: {traceback.format_exc()}")
             raise
 
     def _create_analysis_prompt(self, stock_data: Dict[str, Any]) -> str:
         """Create comprehensive prompt for stock analysis"""
         # Safely format numeric values that might be None
-        current_price = stock_data.get('current_price')
-        previous_close = stock_data.get('previous_close')
-        price_change_percent = stock_data.get('price_change_percent')
-        market_cap = stock_data.get('market_cap')
-        volume = stock_data.get('volume')
-        
-        current_price_str = f"${current_price:,.2f}" if current_price is not None else "N/A"
-        previous_close_str = f"${previous_close:,.2f}" if previous_close is not None else "N/A"
-        price_change_str = f"{price_change_percent:.2f}%" if price_change_percent is not None else "N/A"
+        current_price = stock_data.get("current_price")
+        previous_close = stock_data.get("previous_close")
+        price_change_percent = stock_data.get("price_change_percent")
+        market_cap = stock_data.get("market_cap")
+        volume = stock_data.get("volume")
+
+        current_price_str = (
+            f"${current_price:,.2f}" if current_price is not None else "N/A"
+        )
+        previous_close_str = (
+            f"${previous_close:,.2f}" if previous_close is not None else "N/A"
+        )
+        price_change_str = (
+            f"{price_change_percent:.2f}%"
+            if price_change_percent is not None
+            else "N/A"
+        )
         market_cap_str = f"${market_cap:,.0f}" if market_cap is not None else "N/A"
         volume_str = f"{volume:,.0f}" if volume is not None else "N/A"
-        
+
         return f"""
-You are a senior financial analyst with expertise in stock market analysis. 
+You are a senior financial analyst with expertise in stock market analysis.
 Analyze the following stock and provide a comprehensive analysis.
 
 Stock Information:
@@ -200,15 +211,21 @@ Provide only valid JSON, no additional text.
             return {
                 "analysis_type": "comprehensive",
                 "summary": response[:500] if len(response) > 500 else response,
-                "key_insights": [response[i : i + 200] for i in range(0, min(600, len(response)), 200)],
+                "key_insights": [
+                    response[i : i + 200]
+                    for i in range(0, min(600, len(response)), 200)
+                ],
                 "technical_analysis": {},
                 "fundamental_analysis": {},
                 "risk_assessment": {},
-                "recommendations": {"action": "hold", "confidence": 0.5, "reasoning": response},
+                "recommendations": {
+                    "action": "hold",
+                    "confidence": 0.5,
+                    "reasoning": response,
+                },
                 "price_targets": {},
                 "llm_model": "llama4_maverick",
                 "llm_prompt": self._create_analysis_prompt(stock_data),
                 "llm_response": {"raw_response": response},
                 "confidence_score": 0.5,
             }
-

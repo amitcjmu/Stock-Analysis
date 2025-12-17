@@ -30,16 +30,19 @@ try:
 except ImportError:
     get_decommission_flow_config = None
 from .discovery_flow_config import get_discovery_flow_config
+
 try:
     from .execution_flow_config import get_execution_flow_config
 except ImportError:
     get_execution_flow_config = None
 from .finops_flow_config import get_finops_flow_config
+
 try:
     from .modernize_flow_config import get_modernize_flow_config
 except ImportError:
     get_modernize_flow_config = None
 from .observability_flow_config import get_observability_flow_config
+
 try:
     from .planning_flow_config import get_planning_flow_config
 except ImportError:

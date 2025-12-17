@@ -21,6 +21,7 @@ from fastapi import HTTPException
 
 from app.core.context import RequestContext
 from app.core.database import AsyncSessionLocal
+
 # Planning services removed - planning flow functionality disabled
 # from app.services.planning import execute_wave_planning_for_flow
 
@@ -201,7 +202,7 @@ async def run_wave_planning_background(
     """Background task to execute wave planning with proper lifecycle management.
 
     DISABLED: Planning flow functionality has been removed.
-    
+
     Per Qodo Bot security review: Implements proper task tracking and cleanup
     to prevent orphaned tasks on worker shutdown.
 
@@ -215,7 +216,9 @@ async def run_wave_planning_background(
 
     try:
         bg_db = AsyncSessionLocal()
-        logger.warning(f"[Background] Wave planning disabled - planning flow functionality removed")
+        logger.warning(
+            f"[Background] Wave planning disabled - planning flow functionality removed"
+        )
 
         # Planning services removed - return error result
         logger.warning(

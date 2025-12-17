@@ -25,9 +25,7 @@ class StockService:
         self.context = context
         self.stock_data_api = StockDataAPIService()
 
-    async def search_stocks(
-        self, query: str, limit: int = 20
-    ) -> List[Dict[str, Any]]:
+    async def search_stocks(self, query: str, limit: int = 20) -> List[Dict[str, Any]]:
         """
         Search for stocks by symbol or company name.
         Uses Yahoo Finance API for real stock data.
@@ -71,24 +69,21 @@ class StockService:
     ) -> Optional[List[Dict[str, Any]]]:
         """Get historical price data for a stock"""
         try:
-            return await self.stock_data_api.get_historical_prices(symbol, period, interval)
+            return await self.stock_data_api.get_historical_prices(
+                symbol, period, interval
+            )
         except Exception as e:
             logger.error(f"Error getting historical prices: {e}")
             return None
 
-    async def get_stock_by_symbol(
-        self, symbol: str
-    ) -> Optional[Dict[str, Any]]:
+    async def get_stock_by_symbol(self, symbol: str) -> Optional[Dict[str, Any]]:
         """Get stock by symbol"""
         try:
-            stmt = (
-                select(Stock)
-                .where(
-                    and_(
-                        Stock.symbol == symbol.upper(),
-                        Stock.client_account_id == self.context.client_account_id,
-                        Stock.engagement_id == self.context.engagement_id,
-                    )
+            stmt = select(Stock).where(
+                and_(
+                    Stock.symbol == symbol.upper(),
+                    Stock.client_account_id == self.context.client_account_id,
+                    Stock.engagement_id == self.context.engagement_id,
                 )
             )
             result = await self.db.execute(stmt)
@@ -109,14 +104,11 @@ class StockService:
         """Save or update stock in database"""
         try:
             # Check if stock already exists
-            stmt = (
-                select(Stock)
-                .where(
-                    and_(
-                        Stock.symbol == stock_data["symbol"].upper(),
-                        Stock.client_account_id == self.context.client_account_id,
-                        Stock.engagement_id == self.context.engagement_id,
-                    )
+            stmt = select(Stock).where(
+                and_(
+                    Stock.symbol == stock_data["symbol"].upper(),
+                    Stock.client_account_id == self.context.client_account_id,
+                    Stock.engagement_id == self.context.engagement_id,
                 )
             )
             result = await self.db.execute(stmt)
@@ -125,7 +117,14 @@ class StockService:
             if existing_stock:
                 # Update existing stock
                 # Exclude fields that are auto-managed by SQLAlchemy or shouldn't be updated
-                excluded_fields = ["id", "created_at", "updated_at", "client_account_id", "engagement_id", "user_id"]
+                excluded_fields = [
+                    "id",
+                    "created_at",
+                    "updated_at",
+                    "client_account_id",
+                    "engagement_id",
+                    "user_id",
+                ]
                 for key, value in stock_data.items():
                     if hasattr(existing_stock, key) and key not in excluded_fields:
                         setattr(existing_stock, key, value)
@@ -139,7 +138,7 @@ class StockService:
                 metadata = stock_data.get("metadata", {})
                 if stock_data.get("currency"):
                     metadata["currency"] = stock_data.get("currency")
-                
+
                 new_stock = Stock(
                     symbol=stock_data["symbol"].upper(),
                     company_name=stock_data.get("company_name", ""),
@@ -166,9 +165,7 @@ class StockService:
             await self.db.rollback()
             raise
 
-    async def get_stock_analysis(
-        self, stock_id: UUID
-    ) -> Optional[Dict[str, Any]]:
+    async def get_stock_analysis(self, stock_id: UUID) -> Optional[Dict[str, Any]]:
         """Get latest stock analysis for a stock"""
         try:
             stmt = (
@@ -176,7 +173,8 @@ class StockService:
                 .where(
                     and_(
                         StockAnalysis.stock_id == stock_id,
-                        StockAnalysis.client_account_id == self.context.client_account_id,
+                        StockAnalysis.client_account_id
+                        == self.context.client_account_id,
                         StockAnalysis.engagement_id == self.context.engagement_id,
                         StockAnalysis.is_latest == "true",
                     )
@@ -202,15 +200,12 @@ class StockService:
         """Save stock analysis from LLM agent"""
         try:
             # Mark previous analyses as not latest
-            stmt = (
-                select(StockAnalysis)
-                .where(
-                    and_(
-                        StockAnalysis.stock_id == stock_id,
-                        StockAnalysis.client_account_id == self.context.client_account_id,
-                        StockAnalysis.engagement_id == self.context.engagement_id,
-                        StockAnalysis.is_latest == "true",
-                    )
+            stmt = select(StockAnalysis).where(
+                and_(
+                    StockAnalysis.stock_id == stock_id,
+                    StockAnalysis.client_account_id == self.context.client_account_id,
+                    StockAnalysis.engagement_id == self.context.engagement_id,
+                    StockAnalysis.is_latest == "true",
                 )
             )
             result = await self.db.execute(stmt)
@@ -246,4 +241,3 @@ class StockService:
             logger.error(f"Error saving stock analysis: {e}")
             await self.db.rollback()
             raise
-

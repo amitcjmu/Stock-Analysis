@@ -86,7 +86,9 @@ def get_collection_flow_config() -> FlowTypeConfig:
             manual_collection_phase,
             synthesis_phase,
         ],
-        child_flow_service=CollectionChildFlowService if CollectionChildFlowService else None,  # Per ADR-025: Single execution path (REMOVED - CollectionFlow was removed)
+        child_flow_service=(
+            CollectionChildFlowService if CollectionChildFlowService else None
+        ),  # Per ADR-025: Single execution path (REMOVED - CollectionFlow was removed)
         capabilities=capabilities,
         default_configuration={
             "automation_tier": "tier_2",  # Default to Tier 2

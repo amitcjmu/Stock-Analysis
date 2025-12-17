@@ -102,8 +102,8 @@ const DiscoveryDashboard: React.FC = () => {
       return;
     }
     // Navigate to comparison view
-    navigate('/discovery/stock-analysis', { 
-      state: { comparisonStocks } 
+    navigate('/discovery/stock-analysis', {
+      state: { comparisonStocks }
     });
   };
 

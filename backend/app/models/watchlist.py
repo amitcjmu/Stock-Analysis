@@ -4,7 +4,6 @@ Watchlist Model - For tracking favorite stocks
 
 import uuid
 from typing import Any, Dict
-from datetime import datetime
 
 from sqlalchemy import Column, DateTime, String, ForeignKey, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
@@ -80,4 +79,3 @@ class Watchlist(Base):
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
-

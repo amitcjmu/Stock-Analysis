@@ -258,7 +258,7 @@ class Asset(
 
     # Enrichment relationships (1:1) - PHASE 2 Bug #679
     # Eager loading with selectinload for intelligent gap detection
-    # Removed: AssetResilience, AssetComplianceFlags, AssetVulnerabilities, 
+    # Removed: AssetResilience, AssetComplianceFlags, AssetVulnerabilities,
     # AssetTechDebt, AssetPerformanceMetrics, AssetCostOptimization, AssetLicenses
     # (part of removed flows: Collection, Assess, Plan, Execute, Modernize, Decommission)
     eol_assessments = relationship(

@@ -3,8 +3,7 @@ Stock Model - For Stock Analysis Application
 """
 
 import uuid
-from typing import Any, Dict, Optional
-from datetime import datetime
+from typing import Any, Dict
 
 from sqlalchemy import Column, DateTime, Float, String, Text, ForeignKey
 from sqlalchemy.dialects.postgresql import JSONB, UUID
@@ -46,7 +45,9 @@ class Stock(Base):
     price_change_percent = Column(Float, nullable=True)
 
     # Additional metadata
-    stock_metadata = Column(JSONB, nullable=False, default={})  # Store additional stock data (renamed from metadata to avoid SQLAlchemy conflict)
+    stock_metadata = Column(
+        JSONB, nullable=False, default={}
+    )  # Store additional stock data (renamed from metadata to avoid SQLAlchemy conflict)
     search_keywords = Column(Text, nullable=True)  # Keywords used to find this stock
 
     # Timestamps
@@ -61,7 +62,9 @@ class Stock(Base):
     )
 
     # Relationships
-    analyses = relationship("StockAnalysis", back_populates="stock", cascade="all, delete-orphan")
+    analyses = relationship(
+        "StockAnalysis", back_populates="stock", cascade="all, delete-orphan"
+    )
 
     def __repr__(self):
         return f"<Stock(symbol={self.symbol}, name='{self.company_name}')>"
@@ -77,7 +80,9 @@ class Stock(Base):
             "industry": self.industry,
             "current_price": self.current_price,
             "previous_close": self.previous_close,
-            "currency": self.stock_metadata.get("currency") if self.stock_metadata else None,
+            "currency": (
+                self.stock_metadata.get("currency") if self.stock_metadata else None
+            ),
             "market_cap": self.market_cap,
             "volume": self.volume,
             "price_change": self.price_change,
@@ -113,11 +118,17 @@ class StockAnalysis(Base):
     user_id = Column(String, nullable=False)
 
     # Analysis content from LLM agent
-    analysis_type = Column(String(50), nullable=False, default="comprehensive")  # comprehensive, technical, fundamental
+    analysis_type = Column(
+        String(50), nullable=False, default="comprehensive"
+    )  # comprehensive, technical, fundamental
     summary = Column(Text, nullable=False)  # Executive summary
     key_insights = Column(JSONB, nullable=False, default=[])  # List of key insights
-    technical_analysis = Column(JSONB, nullable=True)  # Technical indicators, charts, etc.
-    fundamental_analysis = Column(JSONB, nullable=True)  # Financial metrics, ratios, etc.
+    technical_analysis = Column(
+        JSONB, nullable=True
+    )  # Technical indicators, charts, etc.
+    fundamental_analysis = Column(
+        JSONB, nullable=True
+    )  # Financial metrics, ratios, etc.
     risk_assessment = Column(JSONB, nullable=True)  # Risk factors and assessment
     recommendations = Column(JSONB, nullable=True)  # Buy/sell/hold recommendations
     price_targets = Column(JSONB, nullable=True)  # Price targets and forecasts
@@ -129,8 +140,12 @@ class StockAnalysis(Base):
     confidence_score = Column(Float, nullable=True)  # Confidence in analysis
 
     # Analysis metadata
-    analysis_date = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    is_latest = Column(String(10), nullable=False, default="true")  # "true" or "false" as string for JSONB compatibility
+    analysis_date = Column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    is_latest = Column(
+        String(10), nullable=False, default="true"
+    )  # "true" or "false" as string for JSONB compatibility
 
     # Timestamps
     created_at = Column(
@@ -164,9 +179,10 @@ class StockAnalysis(Base):
             "price_targets": self.price_targets or {},
             "llm_model": self.llm_model,
             "confidence_score": self.confidence_score,
-            "analysis_date": self.analysis_date.isoformat() if self.analysis_date else None,
+            "analysis_date": (
+                self.analysis_date.isoformat() if self.analysis_date else None
+            ),
             "is_latest": self.is_latest == "true",
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
-

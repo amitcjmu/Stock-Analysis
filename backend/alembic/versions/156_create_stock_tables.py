@@ -22,9 +22,10 @@ depends_on = None
 
 def upgrade() -> None:
     """Create stock and stock_analyses tables"""
-    
+
     # Create stocks table
-    op.execute("""
+    op.execute(
+        """
         DO $$ BEGIN
             IF NOT EXISTS (
                 SELECT 1 FROM information_schema.tables
@@ -52,16 +53,18 @@ def upgrade() -> None:
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
                     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
                 );
-                
+
                 CREATE INDEX IF NOT EXISTS ix_stocks_symbol ON migration.stocks(symbol);
                 CREATE INDEX IF NOT EXISTS ix_stocks_client_account_id ON migration.stocks(client_account_id);
                 CREATE INDEX IF NOT EXISTS ix_stocks_engagement_id ON migration.stocks(engagement_id);
             END IF;
         END $$;
-    """)
-    
+    """
+    )
+
     # Create stock_analyses table
-    op.execute("""
+    op.execute(
+        """
         DO $$ BEGIN
             IF NOT EXISTS (
                 SELECT 1 FROM information_schema.tables
@@ -90,26 +93,30 @@ def upgrade() -> None:
                     is_latest VARCHAR(10) DEFAULT 'true' NOT NULL,
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
                     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
-                    CONSTRAINT fk_stock_analyses_stock_id 
-                        FOREIGN KEY (stock_id) 
-                        REFERENCES migration.stocks(id) 
+                    CONSTRAINT fk_stock_analyses_stock_id
+                        FOREIGN KEY (stock_id)
+                        REFERENCES migration.stocks(id)
                         ON DELETE CASCADE
                 );
-                
+
                 CREATE INDEX IF NOT EXISTS ix_stock_analyses_stock_id ON migration.stock_analyses(stock_id);
                 CREATE INDEX IF NOT EXISTS ix_stock_analyses_client_account_id ON migration.stock_analyses(client_account_id);
                 CREATE INDEX IF NOT EXISTS ix_stock_analyses_engagement_id ON migration.stock_analyses(engagement_id);
             END IF;
         END $$;
-    """)
+    """
+    )
 
 
 def downgrade() -> None:
     """Drop stock analysis tables"""
-    op.execute("""
+    op.execute(
+        """
         DROP TABLE IF EXISTS migration.stock_analyses CASCADE;
-    """)
-    op.execute("""
+    """
+    )
+    op.execute(
+        """
         DROP TABLE IF EXISTS migration.stocks CASCADE;
-    """)
-
+    """
+    )

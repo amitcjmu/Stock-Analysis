@@ -84,12 +84,12 @@ def register_core_routers(api_router: APIRouter):
     api_router.include_router(flow_sync_debug_router, prefix="/flow-sync-debug")
     logger.info("✅ Data and monitoring routers registered")
 
-
     # Flow Metadata (for FlowTypeConfig pattern per ADR-027)
     api_router.include_router(flow_metadata_router)
     logger.info("✅ Flow metadata router registered")
 
     # Stock Analysis
     from app.api.v1.endpoints.stock.stock_routes import router as stock_router
+
     api_router.include_router(stock_router, prefix="/stock/stocks")
     logger.info("✅ Stock analysis router registered")

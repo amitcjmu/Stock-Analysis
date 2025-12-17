@@ -18,8 +18,9 @@ depends_on = None
 
 def upgrade() -> None:
     """Create watchlist table"""
-    
-    op.execute("""
+
+    op.execute(
+        """
         DO $$ BEGIN
             IF NOT EXISTS (
                 SELECT 1 FROM information_schema.tables
@@ -37,14 +38,14 @@ def upgrade() -> None:
                     alert_price VARCHAR(50),
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
                     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
-                    CONSTRAINT fk_watchlists_stock_id 
-                        FOREIGN KEY (stock_id) 
-                        REFERENCES migration.stocks(id) 
+                    CONSTRAINT fk_watchlists_stock_id
+                        FOREIGN KEY (stock_id)
+                        REFERENCES migration.stocks(id)
                         ON DELETE CASCADE,
-                    CONSTRAINT uq_watchlist_user_stock 
+                    CONSTRAINT uq_watchlist_user_stock
                         UNIQUE (client_account_id, engagement_id, user_id, stock_symbol)
                 );
-                
+
                 CREATE INDEX IF NOT EXISTS ix_watchlists_stock_symbol ON migration.watchlists(stock_symbol);
                 CREATE INDEX IF NOT EXISTS ix_watchlists_stock_id ON migration.watchlists(stock_id);
                 CREATE INDEX IF NOT EXISTS ix_watchlists_client_account_id ON migration.watchlists(client_account_id);
@@ -52,12 +53,14 @@ def upgrade() -> None:
                 CREATE INDEX IF NOT EXISTS ix_watchlists_user_id ON migration.watchlists(user_id);
             END IF;
         END $$;
-    """)
+    """
+    )
 
 
 def downgrade() -> None:
     """Drop watchlist table"""
-    op.execute("""
+    op.execute(
+        """
         DROP TABLE IF EXISTS migration.watchlists CASCADE;
-    """)
-
+    """
+    )
