@@ -48,6 +48,10 @@ class StockAnalysisRequest(BaseModel):
     """Request model for stock analysis"""
 
     symbol: str = Field(..., description="Stock symbol to analyze")
+    model: Optional[str] = Field(
+        default=None,
+        description="LLM model to use (gemini, llama4_maverick, gemma3_4b, auto). Defaults to auto selection.",
+    )
 
 
 class StockAnalysisResponse(BaseModel):
@@ -102,7 +106,7 @@ async def analyze_stock(
     """
     try:
         agent = StockAnalysisAgent(db, context)
-        result = await agent.analyze_stock(request.symbol)
+        result = await agent.analyze_stock(request.symbol, model=request.model)
 
         return StockAnalysisResponse(
             success=True,
@@ -598,6 +602,8 @@ async def analyze_stock_all_agents(
     """
     Run all specialized agents concurrently and return comprehensive analysis.
     """
+    logger.info(f"🚀 [ANALYZE ALL] Starting analysis for {request.symbol} with model: {request.model or 'auto'}")
+    
     results = {
         "success": True,
         "symbol": request.symbol,
@@ -626,7 +632,9 @@ async def analyze_stock_all_agents(
                     f"🚀 [ANALYZE ALL] Starting Financials Agent for {request.symbol}"
                 )
                 agent = StockFinancialsAgent(db, context)
-                result = await agent.analyze_financials(request.symbol)
+                result = await agent.analyze_financials(
+                    request.symbol, model=request.model
+                )
                 logger.info(
                     f"🚀 [ANALYZE ALL] ✅ Financials Agent completed for {request.symbol}"
                 )
@@ -649,7 +657,9 @@ async def analyze_stock_all_agents(
                     f"🚀 [ANALYZE ALL] Starting Statistics Agent for {request.symbol}"
                 )
                 agent = StockStatisticsAgent(db, context)
-                result = await agent.analyze_statistics(request.symbol)
+                result = await agent.analyze_statistics(
+                    request.symbol, model=request.model
+                )
                 logger.info(
                     f"🚀 [ANALYZE ALL] ✅ Statistics Agent completed for {request.symbol}"
                 )
@@ -672,7 +682,9 @@ async def analyze_stock_all_agents(
                     f"🚀 [ANALYZE ALL] Starting History Agent for {request.symbol}"
                 )
                 agent = StockHistoryAgent(db, context)
-                result = await agent.analyze_history(request.symbol)
+                result = await agent.analyze_history(
+                    request.symbol, model=request.model
+                )
                 logger.info(
                     f"🚀 [ANALYZE ALL] ✅ History Agent completed for {request.symbol}"
                 )
@@ -699,7 +711,9 @@ async def analyze_stock_all_agents(
                     f"🚀 [ANALYZE ALL] Retrieved {len(news_data) if news_data else 0} news articles"
                 )
                 agent = StockNewsAgent(db, context)
-                result = await agent.analyze_news(request.symbol, news_data or [])
+                result = await agent.analyze_news(
+                    request.symbol, news_data or [], model=request.model
+                )
                 logger.info(
                     f"🚀 [ANALYZE ALL] ✅ News Agent completed for {request.symbol}"
                 )

@@ -123,6 +123,10 @@ DEEPINFRA_API_KEY=your-deepinfra-api-key-here
 OPENAI_API_KEY=your-openai-api-key-here  # Optional
 DEEPINFRA_ASSESSMENT_MODEL=meta-llama/Meta-Llama-3.1-70B-Instruct
 
+# Google Gemini Configuration (Optional - for Gemini model support)
+GOOGLE_GEMINI_API_KEY=your-google-gemini-api-key-here
+GEMINI_MODEL=gemini-1.5-pro
+
 # CrewAI Configuration
 CREWAI_ASSESSMENT_AGENTS_ENABLED=true
 ASSESSMENT_FLOW_ENABLED=true

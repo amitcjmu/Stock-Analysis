@@ -36,6 +36,8 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/migration_db
       - PYTHONUNBUFFERED=1
       - DEEPINFRA_API_KEY=${DEEPINFRA_API_KEY}
+      - GOOGLE_GEMINI_API_KEY=${GOOGLE_GEMINI_API_KEY:-}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-1.5-pro}
       - FRONTEND_URL=http://localhost:3001
       - ENVIRONMENT=development
       - DEBUG=true

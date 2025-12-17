@@ -51,6 +51,8 @@ services:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-migration_db}
       - PYTHONUNBUFFERED=1
       - DEEPINFRA_API_KEY=${DEEPINFRA_API_KEY}
+      - GOOGLE_GEMINI_API_KEY=${GOOGLE_GEMINI_API_KEY:-}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-1.5-pro}
       - FRONTEND_URL=${FRONTEND_URL}
       - ENVIRONMENT=production
       - DEBUG=false

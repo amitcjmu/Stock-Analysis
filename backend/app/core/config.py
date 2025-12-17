@@ -66,6 +66,13 @@ class Settings(BaseSettings):
         env="DEEPINFRA_BASE_URL",
     )
 
+    # Google Gemini API Configuration
+    GOOGLE_GEMINI_API_KEY: str = Field(default="", env="GOOGLE_GEMINI_API_KEY")
+    GEMINI_MODEL: str = Field(
+        default="gemini-2.5-flash",  # Updated to use latest available model (auto-detects if not available)
+        env="GEMINI_MODEL",
+    )
+
     @property
     def deepinfra_model_url(self) -> str:
         """Get the full DeepInfra model URL."""

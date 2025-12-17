@@ -3,13 +3,17 @@ Stock News Agent - Specialized AI agent for news analysis
 """
 
 import logging
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
-from app.services.multi_model_service import multi_model_service, TaskComplexity
+from app.services.multi_model_service import (
+    multi_model_service,
+    TaskComplexity,
+    ModelType,
+)
 from app.services.stock_service import StockService
 
 logger = logging.getLogger(__name__)
@@ -24,11 +28,19 @@ class StockNewsAgent:
         self.stock_service = StockService(db, context)
 
     async def analyze_news(
-        self, stock_symbol: str, news_data: List[Dict[str, Any]]
+        self,
+        stock_symbol: str,
+        news_data: List[Dict[str, Any]],
+        model: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Generate comprehensive news analysis using LLM.
         Returns structured news analysis data.
+        
+        Args:
+            stock_symbol: Stock symbol to analyze
+            news_data: List of news articles
+            model: Optional model name (gemini, llama4_maverick, gemma3_4b, auto)
         """
         logger.info(f"📰 [NEWS AGENT] Starting analysis for {stock_symbol}")
         try:
@@ -58,14 +70,27 @@ class StockNewsAgent:
                     f"📰 [NEWS AGENT] Sample news titles: {[n.get('title', 'N/A')[:50] for n in news_data[:3]]}"
                 )
 
+            # Determine model type
+            model_type = None
+            if model:
+                model_lower = model.lower()
+                if model_lower == "gemini":
+                    model_type = ModelType.GEMINI
+                elif model_lower == "llama4_maverick" or model_lower == "llama":
+                    model_type = ModelType.LLAMA_4_MAVERICK
+                elif model_lower == "gemma3_4b" or model_lower == "gemma":
+                    model_type = ModelType.GEMMA_3_4B
+                # If model is "auto" or None, model_type stays None and auto-selection will be used
+
             # Call LLM for analysis
             logger.info(
-                f"📰 [NEWS AGENT] 🤖 Calling LLM for news analysis of {stock_symbol}"
+                f"📰 [NEWS AGENT] 🤖 Calling LLM for news analysis of {stock_symbol} using model: {model or 'auto'}"
             )
             response_data = await multi_model_service.generate_response(
                 prompt=prompt,
                 task_type="analysis",
                 complexity=TaskComplexity.AGENTIC,
+                model_type=model_type,  # Pass selected model or None for auto
             )
             logger.info("📰 [NEWS AGENT] LLM response received")
             logger.info(f"📰 [NEWS AGENT] Response keys: {list(response_data.keys())}")
@@ -101,7 +126,8 @@ class StockNewsAgent:
 
             # Parse LLM response into structured format
             logger.info("📰 [NEWS AGENT] Parsing LLM response")
-            analysis_data = self._parse_llm_response(response_text, stock_data)
+            model_used = response_data.get("model_used", "auto")
+            analysis_data = self._parse_llm_response(response_text, stock_data, model_used=model_used)
             logger.info("📰 [NEWS AGENT] Analysis data parsed successfully")
             logger.info(
                 f"📰 [NEWS AGENT] Analysis summary: {analysis_data.get('summary', 'N/A')[:100]}..."
@@ -215,7 +241,7 @@ Provide only valid JSON, no additional text.
 """
 
     def _parse_llm_response(
-        self, response: str, stock_data: Dict[str, Any]
+        self, response: str, stock_data: Dict[str, Any], model_used: str = "auto"
     ) -> Dict[str, Any]:
         """Parse LLM response into structured news analysis data"""
         import json
@@ -229,6 +255,11 @@ Provide only valid JSON, no additional text.
                 response_clean = re.sub(r"```\s*$", "", response_clean)
             elif "```" in response_clean:
                 response_clean = re.sub(r"```\s*", "", response_clean)
+
+            # Try to find JSON object in the response (handle cases where there's extra text)
+            json_match = re.search(r'\{.*\}', response_clean, re.DOTALL)
+            if json_match:
+                response_clean = json_match.group(0)
 
             # Parse JSON
             analysis_json = json.loads(response_clean)
@@ -247,7 +278,7 @@ Provide only valid JSON, no additional text.
                     "key_news_themes": analysis_json.get("key_news_themes", []),
                 },
                 "recommendations": analysis_json.get("recommendations", {}),
-                "llm_model": "llama4_maverick",
+                "llm_model": model_used,
                 "llm_prompt": self._create_news_prompt(stock_data, []),
                 "llm_response": analysis_json,
                 "confidence_score": analysis_json.get("recommendations", {}).get(
@@ -271,7 +302,7 @@ Provide only valid JSON, no additional text.
                     "confidence": 0.5,
                     "reasoning": response,
                 },
-                "llm_model": "llama4_maverick",
+                "llm_model": model_used,
                 "llm_prompt": self._create_news_prompt(stock_data, []),
                 "llm_response": {"raw_response": response},
                 "confidence_score": 0.5,

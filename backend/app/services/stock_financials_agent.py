@@ -3,13 +3,17 @@ Stock Financials Agent - Specialized AI agent for financial analysis
 """
 
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
-from app.services.multi_model_service import multi_model_service, TaskComplexity
+from app.services.multi_model_service import (
+    multi_model_service,
+    TaskComplexity,
+    ModelType,
+)
 from app.services.stock_service import StockService
 from app.services.stock_data_api import StockDataAPIService
 
@@ -25,10 +29,16 @@ class StockFinancialsAgent:
         self.stock_service = StockService(db, context)
         self.stock_data_api = StockDataAPIService()
 
-    async def analyze_financials(self, stock_symbol: str) -> Dict[str, Any]:
+    async def analyze_financials(
+        self, stock_symbol: str, model: Optional[str] = None
+    ) -> Dict[str, Any]:
         """
         Generate comprehensive financial analysis using LLM.
         Returns structured financial analysis data.
+        
+        Args:
+            stock_symbol: Stock symbol to analyze
+            model: Optional model name (gemini, llama4_maverick, gemma3_4b, auto)
         """
         logger.info(f"💰 [FINANCIALS AGENT] Starting analysis for {stock_symbol}")
         try:
@@ -62,14 +72,27 @@ class StockFinancialsAgent:
                 f"💰 [FINANCIALS AGENT] Prompt created, length: {len(prompt)} characters"
             )
 
+            # Determine model type
+            model_type = None
+            if model:
+                model_lower = model.lower()
+                if model_lower == "gemini":
+                    model_type = ModelType.GEMINI
+                elif model_lower == "llama4_maverick" or model_lower == "llama":
+                    model_type = ModelType.LLAMA_4_MAVERICK
+                elif model_lower == "gemma3_4b" or model_lower == "gemma":
+                    model_type = ModelType.GEMMA_3_4B
+                # If model is "auto" or None, model_type stays None and auto-selection will be used
+
             # Call LLM for analysis
             logger.info(
-                f"💰 [FINANCIALS AGENT] 🤖 Calling LLM for financials analysis of {stock_symbol}"
+                f"💰 [FINANCIALS AGENT] 🤖 Calling LLM for financials analysis of {stock_symbol} using model: {model or 'auto'}"
             )
             response_data = await multi_model_service.generate_response(
                 prompt=prompt,
                 task_type="analysis",
                 complexity=TaskComplexity.AGENTIC,
+                model_type=model_type,  # Pass selected model or None for auto
             )
             logger.info("💰 [FINANCIALS AGENT] LLM response received")
 
@@ -96,7 +119,8 @@ class StockFinancialsAgent:
 
             # Parse LLM response into structured format
             logger.info("💰 [FINANCIALS AGENT] Parsing LLM response")
-            analysis_data = self._parse_llm_response(response_text, stock_data)
+            model_used = response_data.get("model_used", "auto")
+            analysis_data = self._parse_llm_response(response_text, stock_data, model_used=model_used)
             logger.info("💰 [FINANCIALS AGENT] Analysis data parsed successfully")
 
             # Save analysis to database
@@ -255,7 +279,7 @@ Provide only valid JSON, no additional text.
 """
 
     def _parse_llm_response(
-        self, response: str, stock_data: Dict[str, Any]
+        self, response: str, stock_data: Dict[str, Any], model_used: str = "auto"
     ) -> Dict[str, Any]:
         """Parse LLM response into structured financial analysis data"""
         import json
@@ -269,6 +293,11 @@ Provide only valid JSON, no additional text.
                 response_clean = re.sub(r"```\s*$", "", response_clean)
             elif "```" in response_clean:
                 response_clean = re.sub(r"```\s*", "", response_clean)
+
+            # Try to find JSON object in the response (handle cases where there's extra text)
+            json_match = re.search(r'\{.*\}', response_clean, re.DOTALL)
+            if json_match:
+                response_clean = json_match.group(0)
 
             # Parse JSON
             analysis_json = json.loads(response_clean)
@@ -290,7 +319,7 @@ Provide only valid JSON, no additional text.
                     "risk_factors": analysis_json.get("risk_factors", []),
                 },
                 "recommendations": analysis_json.get("recommendations", {}),
-                "llm_model": "llama4_maverick",
+                "llm_model": model_used,
                 "llm_prompt": self._create_financials_prompt(stock_data),
                 "llm_response": analysis_json,
                 "confidence_score": analysis_json.get("recommendations", {}).get(
@@ -315,7 +344,7 @@ Provide only valid JSON, no additional text.
                     "confidence": 0.5,
                     "reasoning": response,
                 },
-                "llm_model": "llama4_maverick",
+                "llm_model": model_used,
                 "llm_prompt": self._create_financials_prompt(stock_data),
                 "llm_response": {"raw_response": response},
                 "confidence_score": 0.5,

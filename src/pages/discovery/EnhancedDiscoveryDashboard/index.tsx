@@ -12,6 +12,7 @@ import { Badge } from '../../../components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs';
 import { Popover, PopoverContent, PopoverTrigger } from '../../../components/ui/popover';
 import { PriceChart } from '../../../components/stock/PriceChart';
+import { ModelSelector, ModelType } from '../../../components/stock/ModelSelector';
 import { useAuth } from '../../../contexts/AuthContext';
 import { apiCall } from '../../../config/api';
 
@@ -81,6 +82,7 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
   const [isInWatchlist, setIsInWatchlist] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
+  const [selectedModel, setSelectedModel] = useState<ModelType>('auto');
 
   // Autocomplete state
   const [suggestions, setSuggestions] = useState<Stock[]>([]);
@@ -361,6 +363,14 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
     setIsAnalyzing(true);
 
     try {
+      // Prepare request body with model parameter (only include if not 'auto')
+      const requestBody: { symbol: string; model?: string } = {
+        symbol: selectedStock.symbol,
+      };
+      if (selectedModel !== 'auto') {
+        requestBody.model = selectedModel;
+      }
+
       const response = await apiCall(
         '/stock/stocks/analyze',
         {
@@ -369,7 +379,7 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
             ...getAuthHeaders(),
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ symbol: selectedStock.symbol }),
+          body: JSON.stringify(requestBody),
         }
       );
 
@@ -492,68 +502,80 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
                   <CardTitle>Search Stocks</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex gap-2 relative">
-                    <div className="flex-1 relative" ref={searchInputRef}>
-                      <Input
-                        placeholder="Enter stock symbol or company name (e.g., HCLTECH, RELIANCE, AAPL, Apple)"
-                        value={searchQuery}
-                        onChange={(e) => handleInputChange(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        onFocus={() => {
-                          if (suggestions.length > 0) {
-                            setShowSuggestions(true);
-                          }
-                        }}
-                        className="w-full"
+                  <div className="space-y-4">
+                    {/* Model Selector */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-muted-foreground">AI Model:</span>
+                      <ModelSelector
+                        value={selectedModel}
+                        onChange={setSelectedModel}
                       />
-                      {showSuggestions && suggestions.length > 0 && (
-                        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
-                          {isLoadingSuggestions ? (
-                            <div className="p-4 text-center">
-                              <Loader2 className="w-4 h-4 animate-spin mx-auto" />
-                            </div>
-                          ) : (
-                            <ul className="py-1">
-                              {suggestions.map((stock, index) => (
-                                <li
-                                  key={stock.symbol}
-                                  className={`px-4 py-2 cursor-pointer hover:bg-gray-100 ${
-                                    index === selectedSuggestionIndex ? 'bg-gray-100' : ''
-                                  }`}
-                                  onClick={() => handleSelectSuggestion(stock)}
-                                  onMouseEnter={() => setSelectedSuggestionIndex(index)}
-                                >
-                                  <div className="flex items-center justify-between">
-                                    <div>
-                                      <div className="font-semibold text-sm">{stock.symbol}</div>
-                                      <div className="text-xs text-gray-500">{stock.company_name}</div>
-                                    </div>
-                                    {stock.exchange && (
-                                      <Badge variant="outline" className="text-xs">
-                                        {stock.exchange}
-                                      </Badge>
-                                    )}
-                                  </div>
-                                </li>
-                              ))}
-                            </ul>
-                          )}
-                        </div>
-                      )}
                     </div>
-                    <Button onClick={handleSearch} disabled={isSearching || !searchQuery.trim()}>
-                      {isSearching ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Searching...
-                        </>
-                      ) : (
-                        <>
-                          <Search className="w-4 h-4 mr-2" />
-                          Search
-                        </>
-                      )}
-                    </Button>
+                    
+                    {/* Search Input */}
+                    <div className="flex gap-2 relative">
+                      <div className="flex-1 relative" ref={searchInputRef}>
+                        <Input
+                          placeholder="Enter stock symbol or company name (e.g., HCLTECH, RELIANCE, AAPL, Apple)"
+                          value={searchQuery}
+                          onChange={(e) => handleInputChange(e.target.value)}
+                          onKeyDown={handleKeyDown}
+                          onFocus={() => {
+                            if (suggestions.length > 0) {
+                              setShowSuggestions(true);
+                            }
+                          }}
+                          className="w-full"
+                        />
+                        {showSuggestions && suggestions.length > 0 && (
+                          <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
+                            {isLoadingSuggestions ? (
+                              <div className="p-4 text-center">
+                                <Loader2 className="w-4 h-4 animate-spin mx-auto" />
+                              </div>
+                            ) : (
+                              <ul className="py-1">
+                                {suggestions.map((stock, index) => (
+                                  <li
+                                    key={stock.symbol}
+                                    className={`px-4 py-2 cursor-pointer hover:bg-gray-100 ${
+                                      index === selectedSuggestionIndex ? 'bg-gray-100' : ''
+                                    }`}
+                                    onClick={() => handleSelectSuggestion(stock)}
+                                    onMouseEnter={() => setSelectedSuggestionIndex(index)}
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <div>
+                                        <div className="font-semibold text-sm">{stock.symbol}</div>
+                                        <div className="text-xs text-gray-500">{stock.company_name}</div>
+                                      </div>
+                                      {stock.exchange && (
+                                        <Badge variant="outline" className="text-xs">
+                                          {stock.exchange}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      <Button onClick={handleSearch} disabled={isSearching || !searchQuery.trim()}>
+                        {isSearching ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Searching...
+                          </>
+                        ) : (
+                          <>
+                            <Search className="w-4 h-4 mr-2" />
+                            Search
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -690,6 +712,10 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
                   onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                   className="flex-1"
                 />
+                <ModelSelector
+                  value={selectedModel}
+                  onChange={setSelectedModel}
+                />
                 <Button onClick={handleSearch} disabled={isSearching || !searchQuery.trim()} variant="outline" size="sm">
                   {isSearching ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -791,7 +817,11 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
                     <TabsContent value="overview" className="mt-6 space-y-6">
                       {/* AI Analysis Button */}
                       {!analysis && (
-                        <div className="flex justify-end">
+                        <div className="flex justify-between items-center">
+                          <ModelSelector
+                            value={selectedModel}
+                            onChange={setSelectedModel}
+                          />
                           <Button onClick={handleAnalyzeStockWithAI} disabled={isAnalyzing} size="lg">
                             {isAnalyzing ? (
                               <>

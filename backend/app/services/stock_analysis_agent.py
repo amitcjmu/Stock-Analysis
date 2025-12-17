@@ -3,13 +3,17 @@ Stock Analysis Agent - Uses CrewAI and LLM to analyze stocks
 """
 
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
-from app.services.multi_model_service import multi_model_service, TaskComplexity
+from app.services.multi_model_service import (
+    multi_model_service,
+    TaskComplexity,
+    ModelType,
+)
 from app.services.stock_service import StockService
 
 logger = logging.getLogger(__name__)
@@ -23,10 +27,16 @@ class StockAnalysisAgent:
         self.context = context
         self.stock_service = StockService(db, context)
 
-    async def analyze_stock(self, stock_symbol: str) -> Dict[str, Any]:
+    async def analyze_stock(
+        self, stock_symbol: str, model: Optional[str] = None
+    ) -> Dict[str, Any]:
         """
         Generate comprehensive stock analysis using LLM.
         Returns structured analysis data.
+        
+        Args:
+            stock_symbol: Stock symbol to analyze
+            model: Optional model name (gemini, llama4_maverick, gemma3_4b, auto)
         """
         try:
             # Get stock data
@@ -40,12 +50,27 @@ class StockAnalysisAgent:
             # Generate analysis prompt
             prompt = self._create_analysis_prompt(stock_data)
 
+            # Determine model type
+            model_type = None
+            if model:
+                model_lower = model.lower()
+                if model_lower == "gemini":
+                    model_type = ModelType.GEMINI
+                elif model_lower == "llama4_maverick" or model_lower == "llama":
+                    model_type = ModelType.LLAMA_4_MAVERICK
+                elif model_lower == "gemma3_4b" or model_lower == "gemma":
+                    model_type = ModelType.GEMMA_3_4B
+                # If model is "auto" or None, model_type stays None and auto-selection will be used
+
             # Call LLM for analysis
-            logger.info(f"🤖 Generating stock analysis for {stock_symbol} using LLM")
+            logger.info(
+                f"🤖 Generating stock analysis for {stock_symbol} using model: {model or 'auto'}"
+            )
             response_data = await multi_model_service.generate_response(
                 prompt=prompt,
                 task_type="analysis",
                 complexity=TaskComplexity.AGENTIC,  # Use agentic complexity for comprehensive analysis
+                model_type=model_type,  # Pass selected model or None for auto
             )
 
             # Extract the actual response text from the response dict
@@ -197,7 +222,7 @@ Provide only valid JSON, no additional text.
                 "risk_assessment": analysis_json.get("risk_assessment", {}),
                 "recommendations": analysis_json.get("recommendations", {}),
                 "price_targets": analysis_json.get("price_targets", {}),
-                "llm_model": "llama4_maverick",  # Model used
+                "llm_model": response_data.get("model_used", "auto"),  # Model used
                 "llm_prompt": self._create_analysis_prompt(stock_data),
                 "llm_response": analysis_json,
                 "confidence_score": analysis_json.get("recommendations", {}).get(
