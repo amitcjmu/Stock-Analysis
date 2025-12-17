@@ -602,8 +602,10 @@ async def analyze_stock_all_agents(
     """
     Run all specialized agents concurrently and return comprehensive analysis.
     """
-    logger.info(f"🚀 [ANALYZE ALL] Starting analysis for {request.symbol} with model: {request.model or 'auto'}")
-    
+    logger.info(
+        f"🚀 [ANALYZE ALL] Starting analysis for {request.symbol} with model: {request.model or 'auto'}"
+    )
+
     results = {
         "success": True,
         "symbol": request.symbol,

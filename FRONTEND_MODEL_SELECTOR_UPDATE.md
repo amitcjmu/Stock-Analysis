@@ -99,4 +99,3 @@ Once you can see the model selector:
 4. The analysis should use Google Gemini model
 
 Make sure you've set the `GOOGLE_GEMINI_API_KEY` environment variable in your backend!
-

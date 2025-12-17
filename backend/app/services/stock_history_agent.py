@@ -39,7 +39,7 @@ class StockHistoryAgent:
         """
         Generate comprehensive historical price analysis using LLM.
         Returns structured historical analysis data.
-        
+
         Args:
             stock_symbol: Stock symbol to analyze
             period: Time period for historical data
@@ -307,7 +307,7 @@ Provide only valid JSON, no additional text.
                 response_clean = re.sub(r"```\s*", "", response_clean)
 
             # Try to find JSON object in the response (handle cases where there's extra text)
-            json_match = re.search(r'\{.*\}', response_clean, re.DOTALL)
+            json_match = re.search(r"\{.*\}", response_clean, re.DOTALL)
             if json_match:
                 response_clean = json_match.group(0)
 

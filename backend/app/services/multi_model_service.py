@@ -148,27 +148,32 @@ class MultiModelService:
         if GEMINI_AVAILABLE and settings.GOOGLE_GEMINI_API_KEY:
             try:
                 genai.configure(api_key=settings.GOOGLE_GEMINI_API_KEY)
-                
+
                 # Try to list available models to find the correct name
                 try:
                     available_models = list(genai.list_models())
-                    model_names = [m.name for m in available_models if 'generateContent' in m.supported_generation_methods]
+                    model_names = [
+                        m.name
+                        for m in available_models
+                        if "generateContent" in m.supported_generation_methods
+                    ]
                     logger.info(f"Available Gemini models: {model_names}")
-                    
+
                     # Try to find a matching model or use a fallback
                     model_name = settings.GEMINI_MODEL
-                    # Remove 'models/' prefix if present for comparison
-                    model_name_clean = model_name.replace("models/", "")
-                    
+
                     # Check if the configured model is available (with or without prefix)
-                    if model_name not in model_names and f"models/{model_name}" not in model_names:
+                    if (
+                        model_name not in model_names
+                        and f"models/{model_name}" not in model_names
+                    ):
                         # Try common alternatives in order of preference
                         alternatives = [
                             "gemini-2.5-flash",  # Latest fast model
-                            "gemini-2.5-pro",    # Latest pro model
+                            "gemini-2.5-pro",  # Latest pro model
                             "gemini-2.0-flash",  # Stable 2.0 version
-                            "gemini-pro-latest", # Stable pro version
-                            "gemini-flash-latest", # Latest flash
+                            "gemini-pro-latest",  # Stable pro version
+                            "gemini-flash-latest",  # Latest flash
                         ]
                         for alt in alternatives:
                             # Check both with and without models/ prefix
@@ -181,15 +186,21 @@ class MultiModelService:
                             if model_names:
                                 # Remove 'models/' prefix for the model name
                                 model_name = model_names[0].replace("models/", "")
-                                logger.warning(f"Model {settings.GEMINI_MODEL} not found, using: {model_name}")
+                                logger.warning(
+                                    f"Model {settings.GEMINI_MODEL} not found, using: {model_name}"
+                                )
                 except Exception as list_error:
-                    logger.warning(f"Could not list models, using configured name: {list_error}")
+                    logger.warning(
+                        f"Could not list models, using configured name: {list_error}"
+                    )
                     model_name = settings.GEMINI_MODEL
-                
+
                 self.gemini_client = genai.GenerativeModel(model_name)
                 logger.info(f"Initialized Google Gemini client for {model_name}")
             except Exception as e:
-                logger.error(f"Failed to initialize Google Gemini client: {e}", exc_info=True)
+                logger.error(
+                    f"Failed to initialize Google Gemini client: {e}", exc_info=True
+                )
                 self.gemini_client = None
         else:
             if not GEMINI_AVAILABLE:
@@ -209,7 +220,9 @@ class MultiModelService:
         if not available_models:
             logger.warning("Multi-model service initialized in placeholder mode")
         else:
-            logger.info(f"Multi-model service initialized with: {', '.join(available_models)}")
+            logger.info(
+                f"Multi-model service initialized with: {', '.join(available_models)}"
+            )
 
     def select_model(
         self, task_type: str, complexity: TaskComplexity = TaskComplexity.MEDIUM
@@ -262,14 +275,18 @@ class MultiModelService:
         # Select model if not specified
         if model_type is None:
             model_type = self.select_model(task_type, complexity)
-            logger.info(f"🤖 Auto-selected model: {model_type.value} for task_type={task_type}, complexity={complexity.value}")
+            logger.info(
+                f"🤖 Auto-selected model: {model_type.value} for task_type={task_type}, complexity={complexity.value}"
+            )
         else:
             logger.info(f"🤖 Using explicitly selected model: {model_type.value}")
 
         # Get model configuration
         model_config = self.model_configs[model_type]
         interface = model_config["interface"]
-        logger.info(f"🤖 Routing to interface: {interface} for model: {model_type.value}")
+        logger.info(
+            f"🤖 Routing to interface: {interface} for model: {model_type.value}"
+        )
 
         # Route to appropriate interface
         if interface == "openai" and model_type == ModelType.GEMMA_3_4B:
@@ -602,7 +619,7 @@ class MultiModelService:
         """Generate response using Google Gemini API."""
 
         logger.info(f"🔵 [GEMINI] Starting Gemini API call for task: {task_type}")
-        
+
         if not self.gemini_client:
             logger.error("🔵 [GEMINI] Gemini client not available")
             return self._placeholder_response(

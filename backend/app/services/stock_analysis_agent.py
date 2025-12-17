@@ -33,7 +33,7 @@ class StockAnalysisAgent:
         """
         Generate comprehensive stock analysis using LLM.
         Returns structured analysis data.
-        
+
         Args:
             stock_symbol: Stock symbol to analyze
             model: Optional model name (gemini, llama4_maverick, gemma3_4b, auto)
@@ -193,7 +193,7 @@ Provide only valid JSON, no additional text.
 """
 
     def _parse_llm_response(
-        self, response: str, stock_data: Dict[str, Any]
+        self, response: str, stock_data: Dict[str, Any], model_used: str = "auto"
     ) -> Dict[str, Any]:
         """Parse LLM response into structured analysis data"""
         import json
@@ -222,7 +222,7 @@ Provide only valid JSON, no additional text.
                 "risk_assessment": analysis_json.get("risk_assessment", {}),
                 "recommendations": analysis_json.get("recommendations", {}),
                 "price_targets": analysis_json.get("price_targets", {}),
-                "llm_model": response_data.get("model_used", "auto"),  # Model used
+                "llm_model": model_used,  # Model used
                 "llm_prompt": self._create_analysis_prompt(stock_data),
                 "llm_response": analysis_json,
                 "confidence_score": analysis_json.get("recommendations", {}).get(
@@ -249,7 +249,7 @@ Provide only valid JSON, no additional text.
                     "reasoning": response,
                 },
                 "price_targets": {},
-                "llm_model": "llama4_maverick",
+                "llm_model": model_used,
                 "llm_prompt": self._create_analysis_prompt(stock_data),
                 "llm_response": {"raw_response": response},
                 "confidence_score": 0.5,

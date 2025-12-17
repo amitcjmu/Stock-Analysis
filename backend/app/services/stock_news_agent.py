@@ -36,7 +36,7 @@ class StockNewsAgent:
         """
         Generate comprehensive news analysis using LLM.
         Returns structured news analysis data.
-        
+
         Args:
             stock_symbol: Stock symbol to analyze
             news_data: List of news articles
@@ -127,7 +127,9 @@ class StockNewsAgent:
             # Parse LLM response into structured format
             logger.info("📰 [NEWS AGENT] Parsing LLM response")
             model_used = response_data.get("model_used", "auto")
-            analysis_data = self._parse_llm_response(response_text, stock_data, model_used=model_used)
+            analysis_data = self._parse_llm_response(
+                response_text, stock_data, model_used=model_used
+            )
             logger.info("📰 [NEWS AGENT] Analysis data parsed successfully")
             logger.info(
                 f"📰 [NEWS AGENT] Analysis summary: {analysis_data.get('summary', 'N/A')[:100]}..."
@@ -257,7 +259,7 @@ Provide only valid JSON, no additional text.
                 response_clean = re.sub(r"```\s*", "", response_clean)
 
             # Try to find JSON object in the response (handle cases where there's extra text)
-            json_match = re.search(r'\{.*\}', response_clean, re.DOTALL)
+            json_match = re.search(r"\{.*\}", response_clean, re.DOTALL)
             if json_match:
                 response_clean = json_match.group(0)
 

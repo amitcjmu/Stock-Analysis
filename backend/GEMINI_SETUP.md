@@ -126,4 +126,3 @@ For issues with:
 - **API Key**: Contact Google Cloud Support
 - **Integration**: Check backend logs for detailed error messages
 - **Model Selection**: Verify the model name matches available models
-

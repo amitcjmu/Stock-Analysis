@@ -745,7 +745,7 @@ const DiscoveryDashboard: React.FC = () => {
                         onChange={setSelectedModel}
                       />
                     </div>
-                    
+
                     {/* Search Input */}
                     <div className="flex gap-2 relative">
                       <div className="flex-1 relative" ref={searchInputRef}>

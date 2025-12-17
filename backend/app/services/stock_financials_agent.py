@@ -35,7 +35,7 @@ class StockFinancialsAgent:
         """
         Generate comprehensive financial analysis using LLM.
         Returns structured financial analysis data.
-        
+
         Args:
             stock_symbol: Stock symbol to analyze
             model: Optional model name (gemini, llama4_maverick, gemma3_4b, auto)
@@ -86,7 +86,8 @@ class StockFinancialsAgent:
 
             # Call LLM for analysis
             logger.info(
-                f"💰 [FINANCIALS AGENT] 🤖 Calling LLM for financials analysis of {stock_symbol} using model: {model or 'auto'}"
+                f"💰 [FINANCIALS AGENT] 🤖 Calling LLM for financials analysis "
+                f"of {stock_symbol} using model: {model or 'auto'}"
             )
             response_data = await multi_model_service.generate_response(
                 prompt=prompt,
@@ -120,7 +121,9 @@ class StockFinancialsAgent:
             # Parse LLM response into structured format
             logger.info("💰 [FINANCIALS AGENT] Parsing LLM response")
             model_used = response_data.get("model_used", "auto")
-            analysis_data = self._parse_llm_response(response_text, stock_data, model_used=model_used)
+            analysis_data = self._parse_llm_response(
+                response_text, stock_data, model_used=model_used
+            )
             logger.info("💰 [FINANCIALS AGENT] Analysis data parsed successfully")
 
             # Save analysis to database
@@ -295,7 +298,7 @@ Provide only valid JSON, no additional text.
                 response_clean = re.sub(r"```\s*", "", response_clean)
 
             # Try to find JSON object in the response (handle cases where there's extra text)
-            json_match = re.search(r'\{.*\}', response_clean, re.DOTALL)
+            json_match = re.search(r"\{.*\}", response_clean, re.DOTALL)
             if json_match:
                 response_clean = json_match.group(0)
 

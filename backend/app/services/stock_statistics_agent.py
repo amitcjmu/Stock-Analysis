@@ -35,7 +35,7 @@ class StockStatisticsAgent:
         """
         Generate comprehensive statistical analysis using LLM.
         Returns structured statistical analysis data.
-        
+
         Args:
             stock_symbol: Stock symbol to analyze
             model: Optional model name (gemini, llama4_maverick, gemma3_4b, auto)
@@ -90,7 +90,8 @@ class StockStatisticsAgent:
 
             # Call LLM for analysis
             logger.info(
-                f"📊 [STATISTICS AGENT] 🤖 Calling LLM for statistics analysis of {stock_symbol} using model: {model or 'auto'}"
+                f"📊 [STATISTICS AGENT] 🤖 Calling LLM for statistics analysis "
+                f"of {stock_symbol} using model: {model or 'auto'}"
             )
             response_data = await multi_model_service.generate_response(
                 prompt=prompt,
@@ -293,7 +294,11 @@ Provide only valid JSON, no additional text.
 """
 
     def _parse_llm_response(
-        self, response: str, stock_data: Dict[str, Any], statistics: Dict[str, Any], model_used: str = "auto"
+        self,
+        response: str,
+        stock_data: Dict[str, Any],
+        statistics: Dict[str, Any],
+        model_used: str = "auto",
     ) -> Dict[str, Any]:
         """Parse LLM response into structured statistical analysis data"""
         import json
@@ -309,7 +314,7 @@ Provide only valid JSON, no additional text.
                 response_clean = re.sub(r"```\s*", "", response_clean)
 
             # Try to find JSON object in the response (handle cases where there's extra text)
-            json_match = re.search(r'\{.*\}', response_clean, re.DOTALL)
+            json_match = re.search(r"\{.*\}", response_clean, re.DOTALL)
             if json_match:
                 response_clean = json_match.group(0)
 

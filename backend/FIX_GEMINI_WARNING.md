@@ -108,4 +108,3 @@ After fixing the package installation:
 1. Set the `GOOGLE_GEMINI_API_KEY` environment variable (see `GEMINI_SETUP.md`)
 2. Restart the backend
 3. Test by selecting "Google Gemini" from the model dropdown in the UI
-
