@@ -42,7 +42,6 @@ import {
   LazyAttributeMapping,
   LazyTechDebtAnalysis,
   LazyDiscoveryDashboard,
-  LazyStockAnalysis,
   LazyWatchlist,
   LazyFlowStatusMonitor,
   LazyCloudComparison,
@@ -144,8 +143,8 @@ const AuthenticatedApp = (): JSX.Element => {
 
 
       {/* NORMAL PRIORITY - Discovery sub-routes */}
-      <Route path="/discovery" element={<LazyStockAnalysis />} />
-      <Route path="/discovery/stock-analysis" element={<LazyStockAnalysis />} />
+      <Route path="/discovery" element={<LazyDiscoveryDashboard />} />
+      <Route path="/discovery/stock-analysis" element={<LazyDiscoveryDashboard />} />
       <Route path="/discovery/watchlist" element={<LazyWatchlist />} />
       <Route path="/discovery/overview" element={<LazyDiscoveryDashboard />} />
       <Route path="/discovery/dashboard" element={<LazyDiscoveryDashboard />} />

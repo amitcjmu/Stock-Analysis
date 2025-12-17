@@ -651,3 +651,72 @@ class StockDataAPIService:
             )
 
         return prices
+
+    async def get_stock_news(self, symbol: str, limit: int = 20) -> List[Dict[str, Any]]:
+        """
+        Get news articles for a stock.
+        
+        Args:
+            symbol: Stock symbol
+            limit: Maximum number of news articles to return
+        """
+        if not YFINANCE_AVAILABLE:
+            return await self._mock_get_stock_news(symbol, limit)
+
+        try:
+            loop = asyncio.get_event_loop()
+            news = await loop.run_in_executor(
+                None, self._get_stock_news_sync, symbol, limit
+            )
+            return news
+        except Exception as e:
+            logger.error(f"Error getting stock news for {symbol}: {e}")
+            return await self._mock_get_stock_news(symbol, limit)
+
+    def _get_stock_news_sync(self, symbol: str, limit: int) -> List[Dict[str, Any]]:
+        """Synchronous news fetch - supports US and Indian stocks"""
+        try:
+            # Normalize symbol to handle Indian stocks
+            symbol_normalized = self._normalize_symbol(symbol)
+            logger.info(f"Fetching news for '{symbol}' -> '{symbol_normalized}'")
+
+            ticker = yf.Ticker(symbol_normalized)
+            news = ticker.news
+
+            if not news:
+                logger.warning(f"No news found for {symbol_normalized}")
+                return []
+
+            formatted_news = []
+            for article in news[:limit]:
+                formatted_news.append({
+                    "title": article.get("title", "No title"),
+                    "publisher": article.get("publisher", "Unknown"),
+                    "link": article.get("link", ""),
+                    "published_date": article.get("providerPublishTime", 0),
+                    "uuid": article.get("uuid", ""),
+                })
+
+            return formatted_news
+        except Exception as e:
+            logger.error(f"Error fetching news for {symbol}: {e}")
+            return []
+
+    async def _mock_get_stock_news(self, symbol: str, limit: int) -> List[Dict[str, Any]]:
+        """Mock news articles"""
+        return [
+            {
+                "title": f"Latest news about {symbol}",
+                "publisher": "Financial News",
+                "link": f"https://example.com/news/{symbol}",
+                "published_date": 1700000000,
+                "uuid": f"news-{symbol}-1",
+            },
+            {
+                "title": f"Market analysis for {symbol}",
+                "publisher": "Market Watch",
+                "link": f"https://example.com/analysis/{symbol}",
+                "published_date": 1699900000,
+                "uuid": f"news-{symbol}-2",
+            },
+        ][:limit]

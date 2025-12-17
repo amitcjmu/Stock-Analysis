@@ -14,8 +14,13 @@ from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
 from app.services.stock_service import StockService
 from app.services.stock_analysis_agent import StockAnalysisAgent
+from app.services.stock_financials_agent import StockFinancialsAgent
+from app.services.stock_statistics_agent import StockStatisticsAgent
+from app.services.stock_history_agent import StockHistoryAgent
+from app.services.stock_news_agent import StockNewsAgent
 from app.models.watchlist import Watchlist
 from sqlalchemy import select, and_, delete
+import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -419,3 +424,300 @@ async def get_stock_analysis(
         raise HTTPException(
             status_code=500, detail=f"Failed to get stock analysis: {str(e)}"
         )
+
+
+@router.get("/{symbol}/news", response_model=dict)
+async def get_stock_news(
+    symbol: str,
+    limit: int = Query(20, ge=1, le=50, description="Maximum number of news articles"),
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
+):
+    """
+    Get news articles for a stock.
+    """
+    try:
+        stock_service = StockService(db, context)
+        news = await stock_service.get_stock_news(symbol, limit)
+
+        return {
+            "success": True,
+            "symbol": symbol,
+            "news": news,
+            "count": len(news),
+        }
+
+    except Exception as e:
+        logger.error(f"Error getting stock news for {symbol}: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get stock news: {str(e)}"
+        )
+
+
+@router.post("/analyze/financials", response_model=StockAnalysisResponse)
+async def analyze_stock_financials(
+    request: StockAnalysisRequest,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
+):
+    """
+    Generate financial analysis using specialized Financials agent.
+    """
+    try:
+        agent = StockFinancialsAgent(db, context)
+        result = await agent.analyze_financials(request.symbol)
+
+        return StockAnalysisResponse(
+            success=True,
+            stock=result["stock"],
+            analysis=result["analysis"],
+            message=f"Financials analysis completed for {request.symbol}",
+        )
+
+    except ValueError as e:
+        logger.error(f"ValueError analyzing financials for {request.symbol}: {e}", exc_info=True)
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error analyzing financials for {request.symbol}: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500, detail=f"Failed to analyze financials: {str(e)}"
+        )
+
+
+@router.post("/analyze/statistics", response_model=StockAnalysisResponse)
+async def analyze_stock_statistics(
+    request: StockAnalysisRequest,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
+):
+    """
+    Generate statistical analysis using specialized Statistics agent.
+    """
+    try:
+        agent = StockStatisticsAgent(db, context)
+        result = await agent.analyze_statistics(request.symbol)
+
+        return StockAnalysisResponse(
+            success=True,
+            stock=result["stock"],
+            analysis=result["analysis"],
+            message=f"Statistics analysis completed for {request.symbol}",
+        )
+
+    except ValueError as e:
+        logger.error(f"ValueError analyzing statistics for {request.symbol}: {e}", exc_info=True)
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error analyzing statistics for {request.symbol}: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500, detail=f"Failed to analyze statistics: {str(e)}"
+        )
+
+
+@router.post("/analyze/history", response_model=StockAnalysisResponse)
+async def analyze_stock_history(
+    request: StockAnalysisRequest,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
+):
+    """
+    Generate historical price analysis using specialized History agent.
+    """
+    try:
+        agent = StockHistoryAgent(db, context)
+        result = await agent.analyze_history(request.symbol)
+
+        return StockAnalysisResponse(
+            success=True,
+            stock=result["stock"],
+            analysis=result["analysis"],
+            message=f"History analysis completed for {request.symbol}",
+        )
+
+    except ValueError as e:
+        logger.error(f"ValueError analyzing history for {request.symbol}: {e}", exc_info=True)
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error analyzing history for {request.symbol}: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500, detail=f"Failed to analyze history: {str(e)}"
+        )
+
+
+@router.post("/analyze/news", response_model=StockAnalysisResponse)
+async def analyze_stock_news(
+    request: StockAnalysisRequest,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
+):
+    """
+    Generate news sentiment analysis using specialized News agent.
+    """
+    try:
+        stock_service = StockService(db, context)
+        news_data = await stock_service.get_stock_news(request.symbol, limit=20)
+        
+        agent = StockNewsAgent(db, context)
+        result = await agent.analyze_news(request.symbol, news_data or [])
+
+        return StockAnalysisResponse(
+            success=True,
+            stock=result["stock"],
+            analysis=result["analysis"],
+            message=f"News analysis completed for {request.symbol}",
+        )
+
+    except ValueError as e:
+        logger.error(f"ValueError analyzing news for {request.symbol}: {e}", exc_info=True)
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error analyzing news for {request.symbol}: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500, detail=f"Failed to analyze news: {str(e)}"
+        )
+
+
+@router.post("/analyze/all", response_model=dict)
+async def analyze_stock_all_agents(
+    request: StockAnalysisRequest,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
+):
+    """
+    Run all specialized agents concurrently and return comprehensive analysis.
+    """
+    results = {
+        "success": True,
+        "symbol": request.symbol,
+        "stock": None,
+        "financials": None,
+        "statistics": None,
+        "history": None,
+        "news": None,
+        "errors": []
+    }
+    
+    try:
+        stock_service = StockService(db, context)
+        stock_data = await stock_service.get_stock_by_symbol(request.symbol)
+        if not stock_data:
+            raise HTTPException(status_code=404, detail=f"Stock {request.symbol} not found")
+        
+        stock = await stock_service.save_stock(stock_data)
+        results["stock"] = stock.to_dict()
+        
+        async def run_financials():
+            try:
+                logger.info(f"🚀 [ANALYZE ALL] Starting Financials Agent for {request.symbol}")
+                agent = StockFinancialsAgent(db, context)
+                result = await agent.analyze_financials(request.symbol)
+                logger.info(f"🚀 [ANALYZE ALL] ✅ Financials Agent completed for {request.symbol}")
+                if "analysis" in result and result["analysis"] is not None:
+                    return ("financials", result["analysis"])
+                else:
+                    logger.error(f"🚀 [ANALYZE ALL] Financials Agent result missing 'analysis' key or is None")
+                    return ("financials", None)
+            except Exception as e:
+                logger.error(f"🚀 [ANALYZE ALL] ❌ Financials Agent failed: {e}", exc_info=True)
+                return ("financials", None)
+        
+        async def run_statistics():
+            try:
+                logger.info(f"🚀 [ANALYZE ALL] Starting Statistics Agent for {request.symbol}")
+                agent = StockStatisticsAgent(db, context)
+                result = await agent.analyze_statistics(request.symbol)
+                logger.info(f"🚀 [ANALYZE ALL] ✅ Statistics Agent completed for {request.symbol}")
+                if "analysis" in result and result["analysis"] is not None:
+                    return ("statistics", result["analysis"])
+                else:
+                    logger.error(f"🚀 [ANALYZE ALL] Statistics Agent result missing 'analysis' key or is None")
+                    return ("statistics", None)
+            except Exception as e:
+                logger.error(f"🚀 [ANALYZE ALL] ❌ Statistics Agent failed: {e}", exc_info=True)
+                return ("statistics", None)
+        
+        async def run_history():
+            try:
+                logger.info(f"🚀 [ANALYZE ALL] Starting History Agent for {request.symbol}")
+                agent = StockHistoryAgent(db, context)
+                result = await agent.analyze_history(request.symbol)
+                logger.info(f"🚀 [ANALYZE ALL] ✅ History Agent completed for {request.symbol}")
+                if "analysis" in result and result["analysis"] is not None:
+                    return ("history", result["analysis"])
+                else:
+                    logger.error(f"🚀 [ANALYZE ALL] History Agent result missing 'analysis' key or is None")
+                    return ("history", None)
+            except Exception as e:
+                logger.error(f"🚀 [ANALYZE ALL] ❌ History Agent failed: {e}", exc_info=True)
+                return ("history", None)
+        
+        async def run_news():
+            try:
+                logger.info(f"🚀 [ANALYZE ALL] Starting News Agent for {request.symbol}")
+                news_data = await stock_service.get_stock_news(request.symbol, limit=20)
+                logger.info(f"🚀 [ANALYZE ALL] Retrieved {len(news_data) if news_data else 0} news articles")
+                agent = StockNewsAgent(db, context)
+                result = await agent.analyze_news(request.symbol, news_data or [])
+                logger.info(f"🚀 [ANALYZE ALL] ✅ News Agent completed for {request.symbol}")
+                if "analysis" in result:
+                    analysis_data = result["analysis"]
+                    if isinstance(analysis_data, dict):
+                        return ("news", analysis_data)
+                    else:
+                        return ("news", analysis_data.to_dict() if hasattr(analysis_data, 'to_dict') else analysis_data)
+                else:
+                    logger.error(f"🚀 [ANALYZE ALL] News Agent result missing 'analysis' key")
+                    return ("news", None)
+            except Exception as e:
+                logger.error(f"🚀 [ANALYZE ALL] ❌ News Agent failed: {e}", exc_info=True)
+                return ("news", None)
+        
+        # Run all agents concurrently
+        logger.info(f"🚀 [ANALYZE ALL] Running all agents concurrently for {request.symbol}")
+        tasks = [run_financials(), run_statistics(), run_history(), run_news()]
+        agent_results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        # Process results
+        for result in agent_results:
+            if isinstance(result, Exception):
+                logger.error(f"🚀 [ANALYZE ALL] Agent task exception: {result}")
+                results["errors"].append(str(result))
+            elif result:
+                agent_type, analysis_data = result
+                logger.info(f"🚀 [ANALYZE ALL] Processing {agent_type} result: type={type(analysis_data)}, is None={analysis_data is None}, is dict={isinstance(analysis_data, dict)}")
+                if analysis_data is not None:
+                    if isinstance(analysis_data, dict) and len(analysis_data) > 0:
+                        results[agent_type] = analysis_data
+                        logger.info(f"🚀 [ANALYZE ALL] ✅ {agent_type} data added to results")
+                    elif isinstance(analysis_data, dict):
+                        logger.warning(f"🚀 [ANALYZE ALL] ⚠️ {agent_type} returned empty dict")
+                        results["errors"].append(f"{agent_type} agent returned empty data")
+                    else:
+                        logger.warning(f"🚀 [ANALYZE ALL] ⚠️ {agent_type} returned non-dict: {type(analysis_data)}")
+                        results["errors"].append(f"{agent_type} agent returned invalid data type")
+                else:
+                    logger.warning(f"🚀 [ANALYZE ALL] ⚠️ {agent_type} returned None")
+                    results["errors"].append(f"{agent_type} agent returned no data")
+        
+        logger.info(f"🚀 [ANALYZE ALL] ✅ All agents completed for {request.symbol}")
+        logger.info(f"🚀 [ANALYZE ALL] Results: Financials={results['financials'] is not None}, Statistics={results['statistics'] is not None}, History={results['history'] is not None}, News={results['news'] is not None}")
+        
+        # Log detailed results for debugging
+        if results['financials']:
+            logger.info(f"🚀 [ANALYZE ALL] Financials summary: {results['financials'].get('summary', 'N/A')[:100]}")
+        if results['statistics']:
+            logger.info(f"🚀 [ANALYZE ALL] Statistics summary: {results['statistics'].get('summary', 'N/A')[:100]}")
+        if results['history']:
+            logger.info(f"🚀 [ANALYZE ALL] History summary: {results['history'].get('summary', 'N/A')[:100]}")
+        if results['news']:
+            logger.info(f"🚀 [ANALYZE ALL] News summary: {results['news'].get('summary', 'N/A')[:100]}")
+        
+        return results
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"🚀 [ANALYZE ALL] ❌ Error in analyze_all for {request.symbol}: {e}", exc_info=True)
+        results["success"] = False
+        results["errors"].append(str(e))
+        return results

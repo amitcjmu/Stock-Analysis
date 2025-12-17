@@ -194,6 +194,8 @@ const AuthenticatedAppWithGlobalContext = (): JSX.Element => {
         <Route path="/execute" element={<LazyExecute />} />
 
         {/* NORMAL PRIORITY - Discovery sub-routes */}
+        <Route path="/discovery" element={<LazyDiscoveryDashboard />} />
+        <Route path="/discovery/stock-analysis" element={<LazyDiscoveryDashboard />} />
         <Route path="/discovery/overview" element={<LazyDiscoveryDashboard />} />
         <Route path="/discovery/dashboard" element={<LazyDiscoveryDashboard />} />
         <Route path="/discovery/enhanced-dashboard" element={<LazyDiscoveryDashboard />} />

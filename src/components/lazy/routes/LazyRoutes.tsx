@@ -135,13 +135,8 @@ export const LazyTechDebtAnalysis = createLazyRoute(
 );
 
 export const LazyDiscoveryDashboard = createLazyRoute(
-  () => import("@/pages/discovery/EnhancedDiscoveryDashboard"),
+  () => import("@/pages/discovery/DiscoveryDashboard"),
   "Discovery Dashboard",
-);
-
-export const LazyStockAnalysis = createLazyRoute(
-  () => import("@/pages/discovery/StockAnalysis"),
-  "Stock Analysis",
 );
 
 export const LazyWatchlist = createLazyRoute(

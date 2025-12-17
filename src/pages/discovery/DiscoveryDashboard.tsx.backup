@@ -127,6 +127,14 @@ const StockAnalysisPage: React.FC = () => {
   const [showComparison, setShowComparison] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
 
+  // Separate analysis state for each tab
+  const [financialsAnalysis, setFinancialsAnalysis] = useState<StockAnalysis | null>(null);
+  const [statisticsAnalysis, setStatisticsAnalysis] = useState<StockAnalysis | null>(null);
+  const [historyAnalysis, setHistoryAnalysis] = useState<StockAnalysis | null>(null);
+  const [newsAnalysis, setNewsAnalysis] = useState<StockAnalysis | null>(null);
+  const [stockNews, setStockNews] = useState<any[]>([]);
+  const [isLoadingNews, setIsLoadingNews] = useState(false);
+
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
 
@@ -171,13 +179,20 @@ const StockAnalysisPage: React.FC = () => {
   useEffect(() => {
     const stockFromState = location.state?.stock;
     const comparisonStocksFromState = location.state?.comparisonStocks;
+    const activeTabFromState = location.state?.activeTab;
 
     console.log('Navigation effect triggered:', {
       pathname: location.pathname,
       hasStock: !!stockFromState,
       stockSymbol: stockFromState?.symbol,
-      currentSelectedStock: selectedStock?.symbol
+      currentSelectedStock: selectedStock?.symbol,
+      activeTabFromState
     });
+
+    // Set active tab if provided in navigation state
+    if (activeTabFromState) {
+      setActiveTab(activeTabFromState);
+    }
 
     if (stockFromState) {
       // Only load if it's a different stock
@@ -187,6 +202,10 @@ const StockAnalysisPage: React.FC = () => {
         handleAnalyzeStock(stockFromState);
       } else {
         console.log('Stock already selected, skipping load');
+        // Still ensure Overview tab is active if coming from dashboard
+        if (activeTabFromState === 'overview') {
+          setActiveTab('overview');
+        }
       }
     }
 
@@ -197,12 +216,16 @@ const StockAnalysisPage: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname, location.state]);
 
-  // Reset active tab when stock changes
+  // Reset active tab when stock changes (but only if not set from navigation state)
   useEffect(() => {
     if (selectedStock) {
-      setActiveTab('overview');
+      // Only reset to overview if we're not coming from navigation with a specific tab
+      const activeTabFromState = location.state?.activeTab;
+      if (!activeTabFromState) {
+        setActiveTab('overview');
+      }
     }
-  }, [selectedStock]);
+  }, [selectedStock, location.state]);
 
   // Check if stock is in watchlist when selected stock changes
   useEffect(() => {
@@ -212,8 +235,27 @@ const StockAnalysisPage: React.FC = () => {
       );
       setIsInWatchlist(inWatchlist);
       loadHistoricalPrices(selectedStock.symbol);
+      loadStockNews(selectedStock.symbol);
     }
   }, [selectedStock, watchlist]);
+
+  // Load news when news tab is clicked
+  useEffect(() => {
+    if (activeTab === 'news' && selectedStock && stockNews.length === 0 && !isLoadingNews) {
+      loadStockNews(selectedStock.symbol);
+    }
+  }, [activeTab, selectedStock]);
+
+  // Reset analysis states when stock changes
+  useEffect(() => {
+    if (selectedStock) {
+      setFinancialsAnalysis(null);
+      setStatisticsAnalysis(null);
+      setHistoryAnalysis(null);
+      setNewsAnalysis(null);
+      setStockNews([]);
+    }
+  }, [selectedStock]);
 
   const loadWatchlist = async () => {
     try {
@@ -374,8 +416,11 @@ const StockAnalysisPage: React.FC = () => {
     setIsAnalyzing(true);
 
     try {
+      console.log('🚀 Starting comprehensive analysis for', selectedStock.symbol);
+      
+      // Call the analyze/all endpoint that runs all agents
       const response = await apiCall(
-        '/stock/stocks/analyze',
+        '/stock/stocks/analyze/all',
         {
           method: 'POST',
           headers: {
@@ -386,10 +431,54 @@ const StockAnalysisPage: React.FC = () => {
         }
       );
 
-      if (response.success && response.analysis) {
-        setAnalysis(response.analysis);
-        setSelectedStock(response.stock || selectedStock);
+      console.log('🚀 Analysis response received:', response);
+      console.log('🚀 Response keys:', Object.keys(response));
+      console.log('🚀 Financials:', response.financials ? 'Present' : 'Missing');
+      console.log('🚀 Statistics:', response.statistics ? 'Present' : 'Missing');
+      console.log('🚀 History:', response.history ? 'Present' : 'Missing');
+      console.log('🚀 News:', response.news ? 'Present' : 'Missing');
+
+      if (response && response.success !== false) {
+        // Set overview analysis (use financials as overview if available)
+        if (response.financials) {
+          console.log('✅ Setting overview analysis from financials');
+          setAnalysis(response.financials);
+        }
+        
+        // Set individual tab analyses
+        if (response.financials) {
+          console.log('✅ Setting financials analysis');
+          setFinancialsAnalysis(response.financials);
+        }
+        
+        if (response.statistics) {
+          console.log('✅ Setting statistics analysis');
+          setStatisticsAnalysis(response.statistics);
+        }
+        
+        if (response.history) {
+          console.log('✅ Setting history analysis');
+          setHistoryAnalysis(response.history);
+        }
+        
+        if (response.news) {
+          console.log('✅ Setting news analysis');
+          setNewsAnalysis(response.news);
+        }
+        
+        if (response.stock) {
+          console.log('✅ Updating stock data');
+          setSelectedStock(response.stock);
+        }
+        
+        if (response.errors && response.errors.length > 0) {
+          console.warn('⚠️ Some agents had errors:', response.errors);
+          setError(`Some analyses failed: ${response.errors.join(', ')}`);
+        }
+        
+        console.log('✅ All analysis states updated');
       } else {
+        console.error('❌ Analysis failed:', response);
         setError('Failed to generate analysis');
       }
     } catch (err: any) {
@@ -397,6 +486,31 @@ const StockAnalysisPage: React.FC = () => {
       console.error('Analysis error:', err);
     } finally {
       setIsAnalyzing(false);
+    }
+  };
+
+  const loadStockNews = async (symbol: string) => {
+    setIsLoadingNews(true);
+    try {
+      const response = await apiCall(
+        `/stock/stocks/${symbol}/news?limit=20`,
+        {
+          method: 'GET',
+          headers: getAuthHeaders(),
+        }
+      );
+
+      if (response.success) {
+        setStockNews(response.news || []);
+      } else {
+        console.warn('News API returned unsuccessful response:', response);
+        setStockNews([]);
+      }
+    } catch (err) {
+      console.error('Error loading stock news:', err);
+      setStockNews([]);
+    } finally {
+      setIsLoadingNews(false);
     }
   };
 
@@ -728,15 +842,18 @@ const StockAnalysisPage: React.FC = () => {
 
                   {/* Sub-navigation Tabs */}
                   <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                    <TabsList className="grid w-full grid-cols-7">
-                      <TabsTrigger value="overview">Overview</TabsTrigger>
-                      <TabsTrigger value="financials">Financials</TabsTrigger>
-                      <TabsTrigger value="statistics">Statistics</TabsTrigger>
-                      <TabsTrigger value="dividends">Dividends</TabsTrigger>
-                      <TabsTrigger value="history">History</TabsTrigger>
-                      <TabsTrigger value="profile">Profile</TabsTrigger>
-                      <TabsTrigger value="chart">Chart</TabsTrigger>
-                    </TabsList>
+                    <div className="w-full overflow-x-auto mb-4">
+                      <TabsList className="inline-flex h-10 items-center justify-start rounded-md bg-muted p-1 text-muted-foreground">
+                        <TabsTrigger value="overview" className="whitespace-nowrap">Overview</TabsTrigger>
+                        <TabsTrigger value="financials" className="whitespace-nowrap">Financials</TabsTrigger>
+                        <TabsTrigger value="statistics" className="whitespace-nowrap">Statistics</TabsTrigger>
+                        <TabsTrigger value="dividends" className="whitespace-nowrap">Dividends</TabsTrigger>
+                        <TabsTrigger value="history" className="whitespace-nowrap">History</TabsTrigger>
+                        <TabsTrigger value="news" className="whitespace-nowrap">News</TabsTrigger>
+                        <TabsTrigger value="profile" className="whitespace-nowrap">Profile</TabsTrigger>
+                        <TabsTrigger value="chart" className="whitespace-nowrap">Chart</TabsTrigger>
+                      </TabsList>
+                    </div>
 
                     {/* Overview Tab */}
                     <TabsContent value="overview" className="mt-6 space-y-6">
@@ -1177,18 +1294,608 @@ const StockAnalysisPage: React.FC = () => {
                       </div>
                     </TabsContent>
 
-                    {/* Other tabs - placeholder for now */}
-                    <TabsContent value="financials" className="mt-6">
-                      <p className="text-muted-foreground">Financials data coming soon...</p>
+                    {/* Financials Tab */}
+                    <TabsContent value="financials" className="mt-6 space-y-6">
+                      {selectedStock && (
+                        <Card>
+                          <CardHeader>
+                            <CardTitle>Financial Metrics</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              {/* Left Column */}
+                              <div className="space-y-4">
+                                <h3 className="font-semibold text-lg mb-4">Revenue & Income</h3>
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div>
+                                    <div className="text-sm text-muted-foreground">Market Cap</div>
+                                    <div className="font-semibold text-lg">
+                                      {selectedStock.market_cap ? formatNumber(selectedStock.market_cap) : 'N/A'}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <div className="text-sm text-muted-foreground">Revenue (ttm)</div>
+                                    <div className="font-semibold text-lg">
+                                      {selectedStock.metadata?.revenue ? formatNumber(selectedStock.metadata.revenue) : 'N/A'}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <div className="text-sm text-muted-foreground">Net Income (ttm)</div>
+                                    <div className="font-semibold text-lg">
+                                      {selectedStock.metadata?.net_income ? formatNumber(selectedStock.metadata.net_income) : 'N/A'}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <div className="text-sm text-muted-foreground">Shares Outstanding</div>
+                                    <div className="font-semibold text-lg">
+                                      {selectedStock.metadata?.shares_outstanding ? formatNumber(selectedStock.metadata.shares_outstanding) : 'N/A'}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Right Column */}
+                              <div className="space-y-4">
+                                <h3 className="font-semibold text-lg mb-4">Valuation Metrics</h3>
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div>
+                                    <div className="text-sm text-muted-foreground">EPS (ttm)</div>
+                                    <div className="font-semibold text-lg">
+                                      {selectedStock.metadata?.eps ? selectedStock.metadata.eps.toFixed(2) : 'N/A'}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <div className="text-sm text-muted-foreground">P/E Ratio</div>
+                                    <div className="font-semibold text-lg">
+                                      {selectedStock.metadata?.pe_ratio ? selectedStock.metadata.pe_ratio.toFixed(2) : 'N/A'}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <div className="text-sm text-muted-foreground">Forward P/E</div>
+                                    <div className="font-semibold text-lg">
+                                      {selectedStock.metadata?.forward_pe ? selectedStock.metadata.forward_pe.toFixed(2) : 'N/A'}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <div className="text-sm text-muted-foreground">Dividend Yield</div>
+                                    <div className="font-semibold text-lg">
+                                      {selectedStock.metadata?.dividend_yield 
+                                        ? `${(selectedStock.metadata.dividend_yield * 100).toFixed(2)}%` 
+                                        : 'N/A'}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <div className="text-sm text-muted-foreground">Ex-Dividend Date</div>
+                                    <div className="font-semibold text-lg">
+                                      {selectedStock.metadata?.ex_dividend_date || 'N/A'}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <div className="text-sm text-muted-foreground">Earnings Date</div>
+                                    <div className="font-semibold text-lg">
+                                      {selectedStock.metadata?.earnings_date || 'N/A'}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
+
+                      {financialsAnalysis && (
+                        <Card>
+                          <CardHeader>
+                            <CardTitle>AI-Powered Financials Analysis</CardTitle>
+                            {financialsAnalysis.confidence_score !== undefined && financialsAnalysis.confidence_score !== null && !isNaN(financialsAnalysis.confidence_score) && (
+                              <p className="text-sm text-muted-foreground">
+                                Confidence: {(financialsAnalysis.confidence_score * 100).toFixed(0)}%
+                              </p>
+                            )}
+                          </CardHeader>
+                          <CardContent className="space-y-4">
+                            {financialsAnalysis.summary && (
+                              <div>
+                                <h3 className="font-semibold mb-2">Summary</h3>
+                                <p className="text-muted-foreground">{financialsAnalysis.summary}</p>
+                              </div>
+                            )}
+                            {financialsAnalysis.key_insights && financialsAnalysis.key_insights.length > 0 && (
+                              <div>
+                                <h3 className="font-semibold mb-2">Key Insights</h3>
+                                <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                                  {financialsAnalysis.key_insights.map((insight, idx) => (
+                                    <li key={idx}>{insight}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            {financialsAnalysis.fundamental_analysis && (
+                              <div className="space-y-4">
+                                {Object.entries(financialsAnalysis.fundamental_analysis).map(([key, value]) => (
+                                  <div key={key}>
+                                    <h3 className="font-semibold mb-2 capitalize">{key.replace(/_/g, ' ')}</h3>
+                                    {typeof value === 'object' && value !== null ? (
+                                      <div className="space-y-2">
+                                        {Object.entries(value as any).map(([subKey, subValue]) => (
+                                          <div key={subKey} className="flex items-center gap-2">
+                                            <span className="text-sm text-muted-foreground capitalize">{subKey.replace(/_/g, ' ')}:</span>
+                                            <Badge variant="outline">{String(subValue)}</Badge>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <Badge variant="outline">{String(value)}</Badge>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            {financialsAnalysis.recommendations && (
+                              <div>
+                                <h3 className="font-semibold mb-2">Recommendation</h3>
+                                <Badge variant={getRecommendationColor(financialsAnalysis.recommendations.action)}>
+                                  {financialsAnalysis.recommendations.action?.toUpperCase()}
+                                </Badge>
+                                {financialsAnalysis.recommendations.reasoning && (
+                                  <p className="text-muted-foreground mt-2">{financialsAnalysis.recommendations.reasoning}</p>
+                                )}
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      )}
                     </TabsContent>
-                    <TabsContent value="statistics" className="mt-6">
-                      <p className="text-muted-foreground">Statistics data coming soon...</p>
+
+                    {/* Statistics Tab */}
+                    <TabsContent value="statistics" className="mt-6 space-y-6">
+                      {selectedStock && (
+                        <Card>
+                          <CardHeader>
+                            <CardTitle>Statistical Metrics</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              {/* Left Column */}
+                              <div className="space-y-4">
+                                <h3 className="font-semibold text-lg mb-4">Trading Statistics</h3>
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div>
+                                    <div className="text-sm text-muted-foreground">Volume</div>
+                                    <div className="font-semibold text-lg">
+                                      {selectedStock.volume ? formatNumber(selectedStock.volume) : 'N/A'}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <div className="text-sm text-muted-foreground">Average Volume</div>
+                                    <div className="font-semibold text-lg">
+                                      {selectedStock.metadata?.average_volume ? formatNumber(selectedStock.metadata.average_volume) : 'N/A'}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <div className="text-sm text-muted-foreground">Day's Range</div>
+                                    <div className="font-semibold text-lg">
+                                      {selectedStock.metadata?.day_high && selectedStock.metadata?.day_low
+                                        ? `${formatCurrency(selectedStock.metadata.day_low)} - ${formatCurrency(selectedStock.metadata.day_high)}`
+                                        : 'N/A'}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <div className="text-sm text-muted-foreground">Previous Close</div>
+                                    <div className="font-semibold text-lg">
+                                      {selectedStock.previous_close ? formatCurrency(selectedStock.previous_close) : 'N/A'}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Right Column */}
+                              <div className="space-y-4">
+                                <h3 className="font-semibold text-lg mb-4">Volatility & Momentum</h3>
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div>
+                                    <div className="text-sm text-muted-foreground">52-Week Range</div>
+                                    <div className="font-semibold text-lg">
+                                      {selectedStock.metadata?.['52_week_high'] && selectedStock.metadata?.['52_week_low']
+                                        ? `${formatCurrency(selectedStock.metadata['52_week_low'])} - ${formatCurrency(selectedStock.metadata['52_week_high'])}`
+                                        : 'N/A'}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <div className="text-sm text-muted-foreground">Beta</div>
+                                    <div className="font-semibold text-lg">
+                                      {selectedStock.metadata?.beta ? selectedStock.metadata.beta.toFixed(2) : 'N/A'}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <div className="text-sm text-muted-foreground">RSI</div>
+                                    <div className="font-semibold text-lg">
+                                      {selectedStock.metadata?.rsi ? selectedStock.metadata.rsi.toFixed(2) : 'N/A'}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <div className="text-sm text-muted-foreground">Price vs 52W High</div>
+                                    <div className="font-semibold text-lg">
+                                      {selectedStock.current_price && selectedStock.metadata?.['52_week_high']
+                                        ? `${((selectedStock.current_price / selectedStock.metadata['52_week_high']) * 100).toFixed(2)}%`
+                                        : 'N/A'}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
+
+                      {statisticsAnalysis && (
+                        <Card>
+                          <CardHeader>
+                            <CardTitle>AI-Powered Statistics Analysis</CardTitle>
+                            {statisticsAnalysis.confidence_score !== undefined && statisticsAnalysis.confidence_score !== null && !isNaN(statisticsAnalysis.confidence_score) && (
+                              <p className="text-sm text-muted-foreground">
+                                Confidence: {(statisticsAnalysis.confidence_score * 100).toFixed(0)}%
+                              </p>
+                            )}
+                          </CardHeader>
+                          <CardContent className="space-y-4">
+                            {statisticsAnalysis.summary && (
+                              <div>
+                                <h3 className="font-semibold mb-2">Summary</h3>
+                                <p className="text-muted-foreground">{statisticsAnalysis.summary}</p>
+                              </div>
+                            )}
+                            {statisticsAnalysis.key_insights && statisticsAnalysis.key_insights.length > 0 && (
+                              <div>
+                                <h3 className="font-semibold mb-2">Key Insights</h3>
+                                <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                                  {statisticsAnalysis.key_insights.map((insight, idx) => (
+                                    <li key={idx}>{insight}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            {statisticsAnalysis.technical_analysis && (
+                              <div className="space-y-4">
+                                {Object.entries(statisticsAnalysis.technical_analysis).map(([key, value]) => (
+                                  <div key={key}>
+                                    <h3 className="font-semibold mb-2 capitalize">{key.replace(/_/g, ' ')}</h3>
+                                    {typeof value === 'object' && value !== null ? (
+                                      <div className="space-y-2">
+                                        {Object.entries(value as any).map(([subKey, subValue]) => (
+                                          <div key={subKey} className="flex items-center gap-2">
+                                            <span className="text-sm text-muted-foreground capitalize">{subKey.replace(/_/g, ' ')}:</span>
+                                            <Badge variant="outline">{String(subValue)}</Badge>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <Badge variant="outline">{String(value)}</Badge>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            {statisticsAnalysis.recommendations && (
+                              <div>
+                                <h3 className="font-semibold mb-2">Recommendation</h3>
+                                <Badge variant={getRecommendationColor(statisticsAnalysis.recommendations.action)}>
+                                  {statisticsAnalysis.recommendations.action?.toUpperCase()}
+                                </Badge>
+                                {statisticsAnalysis.recommendations.reasoning && (
+                                  <p className="text-muted-foreground mt-2">{statisticsAnalysis.recommendations.reasoning}</p>
+                                )}
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      )}
                     </TabsContent>
+
                     <TabsContent value="dividends" className="mt-6">
                       <p className="text-muted-foreground">Dividends data coming soon...</p>
                     </TabsContent>
-                    <TabsContent value="history" className="mt-6">
-                      <p className="text-muted-foreground">History data coming soon...</p>
+
+                    {/* History Tab */}
+                    <TabsContent value="history" className="mt-6 space-y-6">
+                      {/* Historical Price Chart */}
+                      {selectedStock && (
+                        <Card>
+                          <CardHeader>
+                            <div className="flex items-center justify-between">
+                              <CardTitle>Price History</CardTitle>
+                              <div className="flex gap-2 flex-wrap">
+                                {['1d', '5d', '1mo', 'ytd', '1y', '5y', 'max'].map((period) => (
+                                  <Button
+                                    key={period}
+                                    variant={pricePeriod === period ? 'default' : 'outline'}
+                                    size="sm"
+                                    onClick={() => setPricePeriod(period)}
+                                  >
+                                    {period === '1d' ? '1 Day' :
+                                     period === '5d' ? '5 Days' :
+                                     period === '1mo' ? '1 Month' :
+                                     period === 'ytd' ? 'YTD' :
+                                     period === '1y' ? '1 Year' :
+                                     period === '5y' ? '5 Years' : 'Max'}
+                                  </Button>
+                                ))}
+                              </div>
+                            </div>
+                          </CardHeader>
+                          <CardContent>
+                            {isLoadingPrices ? (
+                              <div className="flex items-center justify-center h-96">
+                                <Loader2 className="w-8 h-8 animate-spin" />
+                              </div>
+                            ) : (
+                              <div className="h-96">
+                                <PriceChart
+                                  data={historicalPrices}
+                                  symbol={selectedStock.symbol}
+                                  period={pricePeriod}
+                                />
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      )}
+
+                      {/* Historical Price Data Table */}
+                      {historicalPrices.length > 0 && (
+                        <Card>
+                          <CardHeader>
+                            <CardTitle>Historical Price Data</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-sm">
+                                <thead>
+                                  <tr className="border-b">
+                                    <th className="text-left p-2">Date</th>
+                                    <th className="text-right p-2">Open</th>
+                                    <th className="text-right p-2">High</th>
+                                    <th className="text-right p-2">Low</th>
+                                    <th className="text-right p-2">Close</th>
+                                    <th className="text-right p-2">Volume</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {historicalPrices.slice(-20).reverse().map((price, idx) => (
+                                    <tr key={idx} className="border-b hover:bg-gray-50">
+                                      <td className="p-2">{price.date}</td>
+                                      <td className="p-2 text-right">{formatCurrency(price.open)}</td>
+                                      <td className="p-2 text-right">{formatCurrency(price.high)}</td>
+                                      <td className="p-2 text-right">{formatCurrency(price.low)}</td>
+                                      <td className="p-2 text-right font-semibold">{formatCurrency(price.close)}</td>
+                                      <td className="p-2 text-right">{price.volume ? formatNumber(price.volume) : 'N/A'}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
+
+                      {historyAnalysis && (
+                        <Card>
+                          <CardHeader>
+                            <CardTitle>AI-Powered History Analysis</CardTitle>
+                            {historyAnalysis.confidence_score !== undefined && historyAnalysis.confidence_score !== null && !isNaN(historyAnalysis.confidence_score) && (
+                              <p className="text-sm text-muted-foreground">
+                                Confidence: {(historyAnalysis.confidence_score * 100).toFixed(0)}%
+                              </p>
+                            )}
+                          </CardHeader>
+                          <CardContent className="space-y-4">
+                            {historyAnalysis.summary && (
+                              <div>
+                                <h3 className="font-semibold mb-2">Summary</h3>
+                                <p className="text-muted-foreground">{historyAnalysis.summary}</p>
+                              </div>
+                            )}
+                            {historyAnalysis.key_insights && historyAnalysis.key_insights.length > 0 && (
+                              <div>
+                                <h3 className="font-semibold mb-2">Key Insights</h3>
+                                <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                                  {historyAnalysis.key_insights.map((insight, idx) => (
+                                    <li key={idx}>{insight}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            {historyAnalysis.technical_analysis && (
+                              <div className="space-y-4">
+                                {Object.entries(historyAnalysis.technical_analysis).map(([key, value]) => (
+                                  <div key={key}>
+                                    <h3 className="font-semibold mb-2 capitalize">{key.replace(/_/g, ' ')}</h3>
+                                    {typeof value === 'object' && value !== null ? (
+                                      <div className="space-y-2">
+                                        {Object.entries(value as any).map(([subKey, subValue]) => (
+                                          <div key={subKey} className="flex items-center gap-2">
+                                            <span className="text-sm text-muted-foreground capitalize">{subKey.replace(/_/g, ' ')}:</span>
+                                            <Badge variant="outline">{String(subValue)}</Badge>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <Badge variant="outline">{String(value)}</Badge>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            {historyAnalysis.price_targets && (
+                              <div>
+                                <h3 className="font-semibold mb-2">Price Targets</h3>
+                                <div className="grid grid-cols-3 gap-4">
+                                  {historyAnalysis.price_targets.short_term_1m && (
+                                    <div>
+                                      <div className="text-sm text-muted-foreground">1 Month</div>
+                                      <div className="font-semibold">
+                                        {typeof historyAnalysis.price_targets.short_term_1m === 'number' 
+                                          ? formatCurrency(historyAnalysis.price_targets.short_term_1m)
+                                          : historyAnalysis.price_targets.short_term_1m}
+                                      </div>
+                                    </div>
+                                  )}
+                                  {historyAnalysis.price_targets.medium_term_3m && (
+                                    <div>
+                                      <div className="text-sm text-muted-foreground">3 Months</div>
+                                      <div className="font-semibold">
+                                        {typeof historyAnalysis.price_targets.medium_term_3m === 'number'
+                                          ? formatCurrency(historyAnalysis.price_targets.medium_term_3m)
+                                          : historyAnalysis.price_targets.medium_term_3m}
+                                      </div>
+                                    </div>
+                                  )}
+                                  {historyAnalysis.price_targets.long_term_12m && (
+                                    <div>
+                                      <div className="text-sm text-muted-foreground">12 Months</div>
+                                      <div className="font-semibold">
+                                        {typeof historyAnalysis.price_targets.long_term_12m === 'number'
+                                          ? formatCurrency(historyAnalysis.price_targets.long_term_12m)
+                                          : historyAnalysis.price_targets.long_term_12m}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                                {historyAnalysis.price_targets.target_basis && (
+                                  <p className="text-sm text-muted-foreground mt-2">
+                                    {historyAnalysis.price_targets.target_basis}
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                            {historyAnalysis.recommendations && (
+                              <div>
+                                <h3 className="font-semibold mb-2">Recommendation</h3>
+                                <Badge variant={getRecommendationColor(historyAnalysis.recommendations.action)}>
+                                  {historyAnalysis.recommendations.action?.toUpperCase()}
+                                </Badge>
+                                {historyAnalysis.recommendations.reasoning && (
+                                  <p className="text-muted-foreground mt-2">{historyAnalysis.recommendations.reasoning}</p>
+                                )}
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      )}
+                    </TabsContent>
+
+                    {/* Stock News Tab */}
+                    <TabsContent value="news" className="mt-6 space-y-6">
+                      {/* News Articles List */}
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Recent News Articles</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          {isLoadingNews ? (
+                            <div className="flex items-center justify-center py-8">
+                              <Loader2 className="w-8 h-8 animate-spin" />
+                            </div>
+                          ) : stockNews.length > 0 ? (
+                            <div className="space-y-4">
+                              {stockNews.map((article, idx) => (
+                                <div key={idx} className="border-b pb-4 last:border-0">
+                                  <h4 className="font-semibold mb-1">{article.title}</h4>
+                                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                    <span>{article.publisher}</span>
+                                    {article.published_date && (
+                                      <span>
+                                        {new Date(article.published_date * 1000).toLocaleDateString()}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {article.link && (
+                                    <a
+                                      href={article.link}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-sm text-blue-600 hover:underline mt-2 inline-block"
+                                    >
+                                      Read more →
+                                    </a>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-muted-foreground text-center py-8">No news articles available</p>
+                          )}
+                        </CardContent>
+                      </Card>
+
+                      {newsAnalysis && (
+                        <Card>
+                          <CardHeader>
+                            <CardTitle>AI-Powered News Analysis</CardTitle>
+                            {newsAnalysis.confidence_score !== undefined && newsAnalysis.confidence_score !== null && !isNaN(newsAnalysis.confidence_score) && (
+                              <p className="text-sm text-muted-foreground">
+                                Confidence: {(newsAnalysis.confidence_score * 100).toFixed(0)}%
+                              </p>
+                            )}
+                          </CardHeader>
+                          <CardContent className="space-y-4">
+                            {newsAnalysis.summary && (
+                              <div>
+                                <h3 className="font-semibold mb-2">Summary</h3>
+                                <p className="text-muted-foreground">{newsAnalysis.summary}</p>
+                              </div>
+                            )}
+                            {newsAnalysis.key_insights && newsAnalysis.key_insights.length > 0 && (
+                              <div>
+                                <h3 className="font-semibold mb-2">Key Insights</h3>
+                                <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                                  {newsAnalysis.key_insights.map((insight, idx) => (
+                                    <li key={idx}>{insight}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            {newsAnalysis.risk_assessment && (
+                              <div className="space-y-4">
+                                {Object.entries(newsAnalysis.risk_assessment).map(([key, value]) => (
+                                  <div key={key}>
+                                    <h3 className="font-semibold mb-2 capitalize">{key.replace(/_/g, ' ')}</h3>
+                                    {Array.isArray(value) ? (
+                                      <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                                        {value.map((item, idx) => (
+                                          <li key={idx}>{item}</li>
+                                        ))}
+                                      </ul>
+                                    ) : typeof value === 'object' && value !== null ? (
+                                      <div className="space-y-2">
+                                        {Object.entries(value as any).map(([subKey, subValue]) => (
+                                          <div key={subKey} className="flex items-center gap-2">
+                                            <span className="text-sm text-muted-foreground capitalize">{subKey.replace(/_/g, ' ')}:</span>
+                                            <Badge variant="outline">{String(subValue)}</Badge>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <Badge variant="outline">{String(value)}</Badge>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            {newsAnalysis.recommendations && (
+                              <div>
+                                <h3 className="font-semibold mb-2">Recommendation</h3>
+                                <Badge variant={getRecommendationColor(newsAnalysis.recommendations.action)}>
+                                  {newsAnalysis.recommendations.action?.toUpperCase()}
+                                </Badge>
+                                {newsAnalysis.recommendations.reasoning && (
+                                  <p className="text-muted-foreground mt-2">{newsAnalysis.recommendations.reasoning}</p>
+                                )}
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      )}
                     </TabsContent>
                     <TabsContent value="profile" className="mt-6">
                       <div className="space-y-4">
