@@ -652,10 +652,12 @@ class StockDataAPIService:
 
         return prices
 
-    async def get_stock_news(self, symbol: str, limit: int = 20) -> List[Dict[str, Any]]:
+    async def get_stock_news(
+        self, symbol: str, limit: int = 20
+    ) -> List[Dict[str, Any]]:
         """
         Get news articles for a stock.
-        
+
         Args:
             symbol: Stock symbol
             limit: Maximum number of news articles to return
@@ -689,20 +691,24 @@ class StockDataAPIService:
 
             formatted_news = []
             for article in news[:limit]:
-                formatted_news.append({
-                    "title": article.get("title", "No title"),
-                    "publisher": article.get("publisher", "Unknown"),
-                    "link": article.get("link", ""),
-                    "published_date": article.get("providerPublishTime", 0),
-                    "uuid": article.get("uuid", ""),
-                })
+                formatted_news.append(
+                    {
+                        "title": article.get("title", "No title"),
+                        "publisher": article.get("publisher", "Unknown"),
+                        "link": article.get("link", ""),
+                        "published_date": article.get("providerPublishTime", 0),
+                        "uuid": article.get("uuid", ""),
+                    }
+                )
 
             return formatted_news
         except Exception as e:
             logger.error(f"Error fetching news for {symbol}: {e}")
             return []
 
-    async def _mock_get_stock_news(self, symbol: str, limit: int) -> List[Dict[str, Any]]:
+    async def _mock_get_stock_news(
+        self, symbol: str, limit: int
+    ) -> List[Dict[str, Any]]:
         """Mock news articles"""
         return [
             {

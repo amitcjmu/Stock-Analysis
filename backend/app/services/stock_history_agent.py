@@ -41,35 +41,49 @@ class StockHistoryAgent:
                 logger.error(f"📈 [HISTORY AGENT] Stock {stock_symbol} not found")
                 raise ValueError(f"Stock {stock_symbol} not found")
 
-            logger.info(f"📈 [HISTORY AGENT] Stock data retrieved: {stock_data.get('company_name', 'N/A')}")
+            logger.info(
+                f"📈 [HISTORY AGENT] Stock data retrieved: {stock_data.get('company_name', 'N/A')}"
+            )
 
             # Get historical price data
-            logger.info(f"📈 [HISTORY AGENT] Fetching historical prices for period: {period}")
+            logger.info(
+                f"📈 [HISTORY AGENT] Fetching historical prices for period: {period}"
+            )
             historical_data = await self.stock_data_api.get_historical_prices(
                 stock_symbol, period, interval
             )
             if not historical_data:
-                logger.warning(f"📈 [HISTORY AGENT] No historical data available for {stock_symbol}")
+                logger.warning(
+                    f"📈 [HISTORY AGENT] No historical data available for {stock_symbol}"
+                )
                 historical_data = []
 
-            logger.info(f"📈 [HISTORY AGENT] Retrieved {len(historical_data)} historical data points")
+            logger.info(
+                f"📈 [HISTORY AGENT] Retrieved {len(historical_data)} historical data points"
+            )
 
             # Save stock to database if not already saved
             stock = await self.stock_service.save_stock(stock_data)
-            logger.info(f"📈 [HISTORY AGENT] Stock saved to database with ID: {stock.id}")
+            logger.info(
+                f"📈 [HISTORY AGENT] Stock saved to database with ID: {stock.id}"
+            )
 
             # Generate history analysis prompt
             prompt = self._create_history_prompt(stock_data, historical_data, period)
-            logger.info(f"📈 [HISTORY AGENT] Prompt created, length: {len(prompt)} characters")
+            logger.info(
+                f"📈 [HISTORY AGENT] Prompt created, length: {len(prompt)} characters"
+            )
 
             # Call LLM for analysis
-            logger.info(f"📈 [HISTORY AGENT] 🤖 Calling LLM for history analysis of {stock_symbol}")
+            logger.info(
+                f"📈 [HISTORY AGENT] 🤖 Calling LLM for history analysis of {stock_symbol}"
+            )
             response_data = await multi_model_service.generate_response(
                 prompt=prompt,
                 task_type="analysis",
                 complexity=TaskComplexity.AGENTIC,
             )
-            logger.info(f"📈 [HISTORY AGENT] LLM response received")
+            logger.info("📈 [HISTORY AGENT] LLM response received")
 
             # Check for errors in response
             if response_data.get("status") == "error":
@@ -83,27 +97,39 @@ class StockHistoryAgent:
             )
 
             if not response_text:
-                logger.error(f"📈 [HISTORY AGENT] Empty response from LLM for {stock_symbol}")
+                logger.error(
+                    f"📈 [HISTORY AGENT] Empty response from LLM for {stock_symbol}"
+                )
                 raise ValueError(f"Empty response from LLM for {stock_symbol}")
 
-            logger.info(f"📈 [HISTORY AGENT] Response text length: {len(response_text)} characters")
+            logger.info(
+                f"📈 [HISTORY AGENT] Response text length: {len(response_text)} characters"
+            )
 
             # Parse LLM response into structured format
-            logger.info(f"📈 [HISTORY AGENT] Parsing LLM response")
-            analysis_data = self._parse_llm_response(response_text, stock_data, historical_data)
-            logger.info(f"📈 [HISTORY AGENT] Analysis data parsed successfully")
+            logger.info("📈 [HISTORY AGENT] Parsing LLM response")
+            analysis_data = self._parse_llm_response(
+                response_text, stock_data, historical_data
+            )
+            logger.info("📈 [HISTORY AGENT] Analysis data parsed successfully")
 
             # Save analysis to database
             analysis = await self.stock_service.save_stock_analysis(
                 UUID(str(stock.id)), analysis_data
             )
-            logger.info(f"📈 [HISTORY AGENT] Analysis saved to database with ID: {analysis.id}")
+            logger.info(
+                f"📈 [HISTORY AGENT] Analysis saved to database with ID: {analysis.id}"
+            )
 
-            logger.info(f"📈 [HISTORY AGENT] ✅ History analysis completed successfully for {stock_symbol}")
+            logger.info(
+                f"📈 [HISTORY AGENT] ✅ History analysis completed successfully for {stock_symbol}"
+            )
 
             # Safely convert to dict
-            stock_dict = stock.to_dict() if hasattr(stock, 'to_dict') else stock
-            analysis_dict = analysis.to_dict() if hasattr(analysis, 'to_dict') else analysis
+            stock_dict = stock.to_dict() if hasattr(stock, "to_dict") else stock
+            analysis_dict = (
+                analysis.to_dict() if hasattr(analysis, "to_dict") else analysis
+            )
 
             return {
                 "stock": stock_dict,
@@ -111,31 +137,45 @@ class StockHistoryAgent:
             }
 
         except Exception as e:
-            logger.error(f"📈 [HISTORY AGENT] ❌ Error analyzing history for {stock_symbol}: {e}", exc_info=True)
+            logger.error(
+                f"📈 [HISTORY AGENT] ❌ Error analyzing history for {stock_symbol}: {e}",
+                exc_info=True,
+            )
             raise
 
     def _create_history_prompt(
-        self, stock_data: Dict[str, Any], historical_data: List[Dict[str, Any]], period: str
+        self,
+        stock_data: Dict[str, Any],
+        historical_data: List[Dict[str, Any]],
+        period: str,
     ) -> str:
         """Create specialized prompt for historical price analysis"""
         # Calculate key statistics from historical data
         if historical_data:
             prices = [d.get("close", 0) for d in historical_data if d.get("close")]
             volumes = [d.get("volume", 0) for d in historical_data if d.get("volume")]
-            
+
             if prices:
                 min_price = min(prices)
                 max_price = max(prices)
                 avg_price = sum(prices) / len(prices)
-                current_price = prices[-1] if prices else stock_data.get("current_price", 0)
+                current_price = (
+                    prices[-1] if prices else stock_data.get("current_price", 0)
+                )
                 price_change = current_price - prices[0] if len(prices) > 1 else 0
-                price_change_pct = (price_change / prices[0] * 100) if prices[0] > 0 else 0
-                
+                price_change_pct = (
+                    (price_change / prices[0] * 100) if prices[0] > 0 else 0
+                )
+
                 avg_volume = sum(volumes) / len(volumes) if volumes else 0
             else:
-                min_price = max_price = avg_price = current_price = price_change = price_change_pct = avg_volume = 0
+                min_price = max_price = avg_price = current_price = price_change = (
+                    price_change_pct
+                ) = avg_volume = 0
         else:
-            min_price = max_price = avg_price = current_price = price_change = price_change_pct = avg_volume = 0
+            min_price = max_price = avg_price = current_price = price_change = (
+                price_change_pct
+            ) = avg_volume = 0
 
         # Format historical summary
         history_summary = ""
@@ -145,11 +185,17 @@ class StockHistoryAgent:
             history_summary += f"- Price Range: ${min_price:.2f} - ${max_price:.2f}\n"
             history_summary += f"- Average Price: ${avg_price:.2f}\n"
             history_summary += f"- Current Price: ${current_price:.2f}\n"
-            history_summary += f"- Price Change: ${price_change:.2f} ({price_change_pct:.2f}%)\n"
+            history_summary += (
+                f"- Price Change: ${price_change:.2f} ({price_change_pct:.2f}%)\n"
+            )
             history_summary += f"- Average Volume: {avg_volume:,.0f}\n"
             if len(historical_data) > 0:
-                history_summary += f"- First Date: {historical_data[0].get('date', 'N/A')}\n"
-                history_summary += f"- Last Date: {historical_data[-1].get('date', 'N/A')}\n"
+                history_summary += (
+                    f"- First Date: {historical_data[0].get('date', 'N/A')}\n"
+                )
+                history_summary += (
+                    f"- Last Date: {historical_data[-1].get('date', 'N/A')}\n"
+                )
         else:
             history_summary = "\nNo historical price data available."
 
@@ -213,7 +259,10 @@ Provide only valid JSON, no additional text.
 """
 
     def _parse_llm_response(
-        self, response: str, stock_data: Dict[str, Any], historical_data: List[Dict[str, Any]]
+        self,
+        response: str,
+        stock_data: Dict[str, Any],
+        historical_data: List[Dict[str, Any]],
     ) -> Dict[str, Any]:
         """Parse LLM response into structured historical analysis data"""
         import json
@@ -240,12 +289,16 @@ Provide only valid JSON, no additional text.
                     "price_trends": analysis_json.get("price_trends", {}),
                     "key_price_levels": analysis_json.get("key_price_levels", {}),
                     "volume_analysis": analysis_json.get("volume_analysis", {}),
-                    "time_period_analysis": analysis_json.get("time_period_analysis", {}),
+                    "time_period_analysis": analysis_json.get(
+                        "time_period_analysis", {}
+                    ),
                 },
                 "price_targets": analysis_json.get("price_forecast", {}),
                 "recommendations": analysis_json.get("recommendations", {}),
                 "llm_model": "llama4_maverick",
-                "llm_prompt": self._create_history_prompt(stock_data, historical_data, "1y"),
+                "llm_prompt": self._create_history_prompt(
+                    stock_data, historical_data, "1y"
+                ),
                 "llm_response": analysis_json,
                 "confidence_score": analysis_json.get("recommendations", {}).get(
                     "confidence", 0.5
@@ -270,8 +323,9 @@ Provide only valid JSON, no additional text.
                     "reasoning": response,
                 },
                 "llm_model": "llama4_maverick",
-                "llm_prompt": self._create_history_prompt(stock_data, historical_data, "1y"),
+                "llm_prompt": self._create_history_prompt(
+                    stock_data, historical_data, "1y"
+                ),
                 "llm_response": {"raw_response": response},
                 "confidence_score": 0.5,
             }
-

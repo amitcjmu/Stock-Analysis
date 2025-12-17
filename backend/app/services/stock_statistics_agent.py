@@ -39,33 +39,43 @@ class StockStatisticsAgent:
                 logger.error(f"📊 [STATISTICS AGENT] Stock {stock_symbol} not found")
                 raise ValueError(f"Stock {stock_symbol} not found")
 
-            logger.info(f"📊 [STATISTICS AGENT] Stock data retrieved: {stock_data.get('company_name', 'N/A')}")
+            logger.info(
+                f"📊 [STATISTICS AGENT] Stock data retrieved: {stock_data.get('company_name', 'N/A')}"
+            )
 
             # Get historical data for statistical calculations
-            logger.info(f"📊 [STATISTICS AGENT] Fetching historical data for statistical analysis")
+            logger.info(
+                "📊 [STATISTICS AGENT] Fetching historical data for statistical analysis"
+            )
             historical_data = await self.stock_data_api.get_historical_prices(
                 stock_symbol, "1y", "1d"
             )
-            
+
             # Calculate statistics
             statistics = self._calculate_statistics(stock_data, historical_data or [])
 
             # Save stock to database if not already saved
             stock = await self.stock_service.save_stock(stock_data)
-            logger.info(f"📊 [STATISTICS AGENT] Stock saved to database with ID: {stock.id}")
+            logger.info(
+                f"📊 [STATISTICS AGENT] Stock saved to database with ID: {stock.id}"
+            )
 
             # Generate statistics analysis prompt
             prompt = self._create_statistics_prompt(stock_data, statistics)
-            logger.info(f"📊 [STATISTICS AGENT] Prompt created, length: {len(prompt)} characters")
+            logger.info(
+                f"📊 [STATISTICS AGENT] Prompt created, length: {len(prompt)} characters"
+            )
 
             # Call LLM for analysis
-            logger.info(f"📊 [STATISTICS AGENT] 🤖 Calling LLM for statistics analysis of {stock_symbol}")
+            logger.info(
+                f"📊 [STATISTICS AGENT] 🤖 Calling LLM for statistics analysis of {stock_symbol}"
+            )
             response_data = await multi_model_service.generate_response(
                 prompt=prompt,
                 task_type="analysis",
                 complexity=TaskComplexity.AGENTIC,
             )
-            logger.info(f"📊 [STATISTICS AGENT] LLM response received")
+            logger.info("📊 [STATISTICS AGENT] LLM response received")
 
             # Check for errors in response
             if response_data.get("status") == "error":
@@ -79,27 +89,39 @@ class StockStatisticsAgent:
             )
 
             if not response_text:
-                logger.error(f"📊 [STATISTICS AGENT] Empty response from LLM for {stock_symbol}")
+                logger.error(
+                    f"📊 [STATISTICS AGENT] Empty response from LLM for {stock_symbol}"
+                )
                 raise ValueError(f"Empty response from LLM for {stock_symbol}")
 
-            logger.info(f"📊 [STATISTICS AGENT] Response text length: {len(response_text)} characters")
+            logger.info(
+                f"📊 [STATISTICS AGENT] Response text length: {len(response_text)} characters"
+            )
 
             # Parse LLM response into structured format
-            logger.info(f"📊 [STATISTICS AGENT] Parsing LLM response")
-            analysis_data = self._parse_llm_response(response_text, stock_data, statistics)
-            logger.info(f"📊 [STATISTICS AGENT] Analysis data parsed successfully")
+            logger.info("📊 [STATISTICS AGENT] Parsing LLM response")
+            analysis_data = self._parse_llm_response(
+                response_text, stock_data, statistics
+            )
+            logger.info("📊 [STATISTICS AGENT] Analysis data parsed successfully")
 
             # Save analysis to database
             analysis = await self.stock_service.save_stock_analysis(
                 UUID(str(stock.id)), analysis_data
             )
-            logger.info(f"📊 [STATISTICS AGENT] Analysis saved to database with ID: {analysis.id}")
+            logger.info(
+                f"📊 [STATISTICS AGENT] Analysis saved to database with ID: {analysis.id}"
+            )
 
-            logger.info(f"📊 [STATISTICS AGENT] ✅ Statistics analysis completed successfully for {stock_symbol}")
+            logger.info(
+                f"📊 [STATISTICS AGENT] ✅ Statistics analysis completed successfully for {stock_symbol}"
+            )
 
             # Safely convert to dict
-            stock_dict = stock.to_dict() if hasattr(stock, 'to_dict') else stock
-            analysis_dict = analysis.to_dict() if hasattr(analysis, 'to_dict') else analysis
+            stock_dict = stock.to_dict() if hasattr(stock, "to_dict") else stock
+            analysis_dict = (
+                analysis.to_dict() if hasattr(analysis, "to_dict") else analysis
+            )
 
             return {
                 "stock": stock_dict,
@@ -107,7 +129,10 @@ class StockStatisticsAgent:
             }
 
         except Exception as e:
-            logger.error(f"📊 [STATISTICS AGENT] ❌ Error analyzing statistics for {stock_symbol}: {e}", exc_info=True)
+            logger.error(
+                f"📊 [STATISTICS AGENT] ❌ Error analyzing statistics for {stock_symbol}: {e}",
+                exc_info=True,
+            )
             raise
 
     def _calculate_statistics(
@@ -127,6 +152,7 @@ class StockStatisticsAgent:
 
             if prices:
                 import statistics
+
                 stats["price_statistics"] = {
                     "mean": statistics.mean(prices),
                     "median": statistics.median(prices),
@@ -134,22 +160,27 @@ class StockStatisticsAgent:
                     "max": max(prices),
                     "std_dev": statistics.stdev(prices) if len(prices) > 1 else 0,
                 }
-                
+
                 # Calculate returns
                 returns = []
                 for i in range(1, len(prices)):
-                    if prices[i-1] > 0:
-                        returns.append((prices[i] - prices[i-1]) / prices[i-1])
-                
+                    if prices[i - 1] > 0:
+                        returns.append((prices[i] - prices[i - 1]) / prices[i - 1])
+
                 if returns:
                     stats["performance_metrics"] = {
                         "average_return": statistics.mean(returns),
-                        "volatility": statistics.stdev(returns) if len(returns) > 1 else 0,
-                        "total_return": (prices[-1] - prices[0]) / prices[0] if prices[0] > 0 else 0,
+                        "volatility": (
+                            statistics.stdev(returns) if len(returns) > 1 else 0
+                        ),
+                        "total_return": (
+                            (prices[-1] - prices[0]) / prices[0] if prices[0] > 0 else 0
+                        ),
                     }
 
             if volumes:
                 import statistics
+
                 stats["volume_statistics"] = {
                     "mean": statistics.mean(volumes),
                     "median": statistics.median(volumes),
@@ -264,10 +295,14 @@ Provide only valid JSON, no additional text.
                 "risk_assessment": {
                     "volatility_analysis": analysis_json.get("volatility_analysis", {}),
                     "risk_metrics": analysis_json.get("risk_metrics", {}),
-                    "distribution_analysis": analysis_json.get("distribution_analysis", {}),
+                    "distribution_analysis": analysis_json.get(
+                        "distribution_analysis", {}
+                    ),
                 },
                 "technical_analysis": {
-                    "performance_statistics": analysis_json.get("performance_statistics", {}),
+                    "performance_statistics": analysis_json.get(
+                        "performance_statistics", {}
+                    ),
                 },
                 "recommendations": analysis_json.get("recommendations", {}),
                 "llm_model": "llama4_maverick",
@@ -300,4 +335,3 @@ Provide only valid JSON, no additional text.
                 "llm_response": {"raw_response": response},
                 "confidence_score": 0.5,
             }
-

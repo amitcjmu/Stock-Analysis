@@ -23,7 +23,9 @@ class StockNewsAgent:
         self.context = context
         self.stock_service = StockService(db, context)
 
-    async def analyze_news(self, stock_symbol: str, news_data: List[Dict[str, Any]]) -> Dict[str, Any]:
+    async def analyze_news(
+        self, stock_symbol: str, news_data: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
         """
         Generate comprehensive news analysis using LLM.
         Returns structured news analysis data.
@@ -37,7 +39,9 @@ class StockNewsAgent:
                 logger.error(f"📰 [NEWS AGENT] Stock {stock_symbol} not found")
                 raise ValueError(f"Stock {stock_symbol} not found")
 
-            logger.info(f"📰 [NEWS AGENT] Stock data retrieved: {stock_data.get('company_name', 'N/A')}")
+            logger.info(
+                f"📰 [NEWS AGENT] Stock data retrieved: {stock_data.get('company_name', 'N/A')}"
+            )
             logger.info(f"📰 [NEWS AGENT] Processing {len(news_data)} news articles")
 
             # Save stock to database if not already saved
@@ -46,20 +50,28 @@ class StockNewsAgent:
 
             # Generate news analysis prompt
             prompt = self._create_news_prompt(stock_data, news_data)
-            logger.info(f"📰 [NEWS AGENT] Prompt created, length: {len(prompt)} characters")
+            logger.info(
+                f"📰 [NEWS AGENT] Prompt created, length: {len(prompt)} characters"
+            )
             if news_data:
-                logger.info(f"📰 [NEWS AGENT] Sample news titles: {[n.get('title', 'N/A')[:50] for n in news_data[:3]]}")
+                logger.info(
+                    f"📰 [NEWS AGENT] Sample news titles: {[n.get('title', 'N/A')[:50] for n in news_data[:3]]}"
+                )
 
             # Call LLM for analysis
-            logger.info(f"📰 [NEWS AGENT] 🤖 Calling LLM for news analysis of {stock_symbol}")
+            logger.info(
+                f"📰 [NEWS AGENT] 🤖 Calling LLM for news analysis of {stock_symbol}"
+            )
             response_data = await multi_model_service.generate_response(
                 prompt=prompt,
                 task_type="analysis",
                 complexity=TaskComplexity.AGENTIC,
             )
-            logger.info(f"📰 [NEWS AGENT] LLM response received")
+            logger.info("📰 [NEWS AGENT] LLM response received")
             logger.info(f"📰 [NEWS AGENT] Response keys: {list(response_data.keys())}")
-            logger.info(f"📰 [NEWS AGENT] Response status: {response_data.get('status', 'N/A')}")
+            logger.info(
+                f"📰 [NEWS AGENT] Response status: {response_data.get('status', 'N/A')}"
+            )
 
             # Check for errors in response
             if response_data.get("status") == "error":
@@ -73,33 +85,52 @@ class StockNewsAgent:
             )
 
             if not response_text:
-                logger.error(f"📰 [NEWS AGENT] Empty response from LLM for {stock_symbol}")
+                logger.error(
+                    f"📰 [NEWS AGENT] Empty response from LLM for {stock_symbol}"
+                )
                 logger.error(f"📰 [NEWS AGENT] Full response_data: {response_data}")
-                raise ValueError(f"Empty response from LLM for {stock_symbol}. Response status: {response_data.get('status', 'unknown')}")
+                raise ValueError(
+                    f"Empty response from LLM for {stock_symbol}. "
+                    f"Response status: {response_data.get('status', 'unknown')}"
+                )
 
-            logger.info(f"📰 [NEWS AGENT] Response text length: {len(response_text)} characters")
+            logger.info(
+                f"📰 [NEWS AGENT] Response text length: {len(response_text)} characters"
+            )
             logger.info(f"📰 [NEWS AGENT] Response preview: {response_text[:200]}...")
 
             # Parse LLM response into structured format
-            logger.info(f"📰 [NEWS AGENT] Parsing LLM response")
+            logger.info("📰 [NEWS AGENT] Parsing LLM response")
             analysis_data = self._parse_llm_response(response_text, stock_data)
-            logger.info(f"📰 [NEWS AGENT] Analysis data parsed successfully")
-            logger.info(f"📰 [NEWS AGENT] Analysis summary: {analysis_data.get('summary', 'N/A')[:100]}...")
+            logger.info("📰 [NEWS AGENT] Analysis data parsed successfully")
+            logger.info(
+                f"📰 [NEWS AGENT] Analysis summary: {analysis_data.get('summary', 'N/A')[:100]}..."
+            )
 
             # Save analysis to database
             analysis = await self.stock_service.save_stock_analysis(
                 UUID(str(stock.id)), analysis_data
             )
-            logger.info(f"📰 [NEWS AGENT] Analysis saved to database with ID: {analysis.id}")
+            logger.info(
+                f"📰 [NEWS AGENT] Analysis saved to database with ID: {analysis.id}"
+            )
 
-            logger.info(f"📰 [NEWS AGENT] ✅ News analysis completed successfully for {stock_symbol}")
+            logger.info(
+                f"📰 [NEWS AGENT] ✅ News analysis completed successfully for {stock_symbol}"
+            )
 
             # Safely convert to dict - check if already a dict
-            stock_dict = stock.to_dict() if hasattr(stock, 'to_dict') else stock
-            analysis_dict = analysis.to_dict() if hasattr(analysis, 'to_dict') else analysis
-            
-            logger.info(f"📰 [NEWS AGENT] Stock type: {type(stock)}, Analysis type: {type(analysis)}")
-            logger.info(f"📰 [NEWS AGENT] Stock dict type: {type(stock_dict)}, Analysis dict type: {type(analysis_dict)}")
+            stock_dict = stock.to_dict() if hasattr(stock, "to_dict") else stock
+            analysis_dict = (
+                analysis.to_dict() if hasattr(analysis, "to_dict") else analysis
+            )
+
+            logger.info(
+                f"📰 [NEWS AGENT] Stock type: {type(stock)}, Analysis type: {type(analysis)}"
+            )
+            logger.info(
+                f"📰 [NEWS AGENT] Stock dict type: {type(stock_dict)}, Analysis dict type: {type(analysis_dict)}"
+            )
 
             return {
                 "stock": stock_dict,
@@ -107,7 +138,10 @@ class StockNewsAgent:
             }
 
         except Exception as e:
-            logger.error(f"📰 [NEWS AGENT] ❌ Error analyzing news for {stock_symbol}: {e}", exc_info=True)
+            logger.error(
+                f"📰 [NEWS AGENT] ❌ Error analyzing news for {stock_symbol}: {e}",
+                exc_info=True,
+            )
             raise
 
     def _create_news_prompt(
@@ -206,7 +240,9 @@ Provide only valid JSON, no additional text.
                 "key_insights": analysis_json.get("news_insights", []),
                 "risk_assessment": {
                     "news_sentiment": analysis_json.get("news_sentiment", {}),
-                    "news_impact_analysis": analysis_json.get("news_impact_analysis", {}),
+                    "news_impact_analysis": analysis_json.get(
+                        "news_impact_analysis", {}
+                    ),
                     "market_sentiment": analysis_json.get("market_sentiment", {}),
                     "key_news_themes": analysis_json.get("key_news_themes", []),
                 },
@@ -240,4 +276,3 @@ Provide only valid JSON, no additional text.
                 "llm_response": {"raw_response": response},
                 "confidence_score": 0.5,
             }
-

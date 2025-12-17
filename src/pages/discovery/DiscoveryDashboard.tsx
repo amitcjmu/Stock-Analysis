@@ -507,7 +507,7 @@ const DiscoveryDashboard: React.FC = () => {
 
     try {
       console.log('🚀 Starting comprehensive analysis for', selectedStock.symbol);
-      
+
       // Call the analyze/all endpoint that runs all agents
       const response = await apiCall(
         '/stock/stocks/analyze/all',
@@ -534,38 +534,38 @@ const DiscoveryDashboard: React.FC = () => {
           console.log('✅ Setting overview analysis from financials');
           setAnalysis(response.financials);
         }
-        
+
         // Set individual tab analyses
         if (response.financials) {
           console.log('✅ Setting financials analysis');
           setFinancialsAnalysis(response.financials);
         }
-        
+
         if (response.statistics) {
           console.log('✅ Setting statistics analysis');
           setStatisticsAnalysis(response.statistics);
         }
-        
+
         if (response.history) {
           console.log('✅ Setting history analysis');
           setHistoryAnalysis(response.history);
         }
-        
+
         if (response.news) {
           console.log('✅ Setting news analysis');
           setNewsAnalysis(response.news);
         }
-        
+
         if (response.stock) {
           console.log('✅ Updating stock data');
           setSelectedStock(response.stock);
         }
-        
+
         if (response.errors && response.errors.length > 0) {
           console.warn('⚠️ Some agents had errors:', response.errors);
           setError(`Some analyses failed: ${response.errors.join(', ')}`);
         }
-        
+
         console.log('✅ All analysis states updated');
       } else {
         console.error('❌ Analysis failed:', response);
@@ -1157,7 +1157,7 @@ const DiscoveryDashboard: React.FC = () => {
                                                         <div key={nestedKey} className="flex items-center gap-2">
                                                           <span className="text-xs text-muted-foreground capitalize">{nestedKey.replace(/_/g, ' ')}:</span>
                                                           <Badge variant="outline" className="text-xs">
-                                                            {Array.isArray(nestedValue) 
+                                                            {Array.isArray(nestedValue)
                                                               ? nestedValue.join(', ')
                                                               : typeof nestedValue === 'object' && nestedValue !== null
                                                               ? JSON.stringify(nestedValue)
@@ -1565,8 +1565,8 @@ const DiscoveryDashboard: React.FC = () => {
                                   <div>
                                     <div className="text-sm text-muted-foreground">Dividend Yield</div>
                                     <div className="font-semibold text-lg">
-                                      {selectedStock.metadata?.dividend_yield 
-                                        ? `${(selectedStock.metadata.dividend_yield * 100).toFixed(2)}%` 
+                                      {selectedStock.metadata?.dividend_yield
+                                        ? `${(selectedStock.metadata.dividend_yield * 100).toFixed(2)}%`
                                         : 'N/A'}
                                     </div>
                                   </div>
@@ -1634,7 +1634,7 @@ const DiscoveryDashboard: React.FC = () => {
                                                     <div key={nestedKey} className="flex items-center gap-2">
                                                       <span className="text-xs text-muted-foreground capitalize">{nestedKey.replace(/_/g, ' ')}:</span>
                                                       <Badge variant="outline" className="text-xs">
-                                                        {Array.isArray(nestedValue) 
+                                                        {Array.isArray(nestedValue)
                                                           ? nestedValue.join(', ')
                                                           : typeof nestedValue === 'object' && nestedValue !== null
                                                           ? JSON.stringify(nestedValue)
@@ -1822,7 +1822,7 @@ const DiscoveryDashboard: React.FC = () => {
                                                     <div key={nestedKey} className="flex items-center gap-2">
                                                       <span className="text-xs text-muted-foreground capitalize">{nestedKey.replace(/_/g, ' ')}:</span>
                                                       <Badge variant="outline" className="text-xs">
-                                                        {Array.isArray(nestedValue) 
+                                                        {Array.isArray(nestedValue)
                                                           ? nestedValue.join(', ')
                                                           : typeof nestedValue === 'object' && nestedValue !== null
                                                           ? JSON.stringify(nestedValue)
@@ -2013,7 +2013,7 @@ const DiscoveryDashboard: React.FC = () => {
                                                     <div key={nestedKey} className="flex items-center gap-2">
                                                       <span className="text-xs text-muted-foreground capitalize">{nestedKey.replace(/_/g, ' ')}:</span>
                                                       <Badge variant="outline" className="text-xs">
-                                                        {Array.isArray(nestedValue) 
+                                                        {Array.isArray(nestedValue)
                                                           ? nestedValue.join(', ')
                                                           : typeof nestedValue === 'object' && nestedValue !== null
                                                           ? JSON.stringify(nestedValue)
@@ -2066,7 +2066,7 @@ const DiscoveryDashboard: React.FC = () => {
                                     <div>
                                       <div className="text-sm text-muted-foreground">1 Month</div>
                                       <div className="font-semibold">
-                                        {typeof historyAnalysis.price_targets.short_term_1m === 'number' 
+                                        {typeof historyAnalysis.price_targets.short_term_1m === 'number'
                                           ? formatCurrency(historyAnalysis.price_targets.short_term_1m)
                                           : historyAnalysis.price_targets.short_term_1m}
                                       </div>
@@ -2210,7 +2210,7 @@ const DiscoveryDashboard: React.FC = () => {
                                                     <div key={nestedKey} className="flex items-center gap-2">
                                                       <span className="text-xs text-muted-foreground capitalize">{nestedKey.replace(/_/g, ' ')}:</span>
                                                       <Badge variant="outline" className="text-xs">
-                                                        {Array.isArray(nestedValue) 
+                                                        {Array.isArray(nestedValue)
                                                           ? nestedValue.join(', ')
                                                           : typeof nestedValue === 'object' && nestedValue !== null
                                                           ? JSON.stringify(nestedValue)

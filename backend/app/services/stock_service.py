@@ -242,7 +242,9 @@ class StockService:
             await self.db.rollback()
             raise
 
-    async def get_stock_news(self, symbol: str, limit: int = 20) -> List[Dict[str, Any]]:
+    async def get_stock_news(
+        self, symbol: str, limit: int = 20
+    ) -> List[Dict[str, Any]]:
         """Get news articles for a stock"""
         try:
             news = await self.stock_data_api.get_stock_news(symbol, limit)

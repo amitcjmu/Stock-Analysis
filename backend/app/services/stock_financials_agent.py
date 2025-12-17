@@ -39,10 +39,12 @@ class StockFinancialsAgent:
                 logger.error(f"💰 [FINANCIALS AGENT] Stock {stock_symbol} not found")
                 raise ValueError(f"Stock {stock_symbol} not found")
 
-            logger.info(f"💰 [FINANCIALS AGENT] Stock data retrieved: {stock_data.get('company_name', 'N/A')}")
+            logger.info(
+                f"💰 [FINANCIALS AGENT] Stock data retrieved: {stock_data.get('company_name', 'N/A')}"
+            )
 
             # Get detailed financial data
-            logger.info(f"💰 [FINANCIALS AGENT] Fetching detailed financial data")
+            logger.info("💰 [FINANCIALS AGENT] Fetching detailed financial data")
             detailed_data = await self.stock_data_api.get_stock_data(stock_symbol)
             if detailed_data:
                 # Merge financial metrics into stock_data
@@ -50,20 +52,26 @@ class StockFinancialsAgent:
 
             # Save stock to database if not already saved
             stock = await self.stock_service.save_stock(stock_data)
-            logger.info(f"💰 [FINANCIALS AGENT] Stock saved to database with ID: {stock.id}")
+            logger.info(
+                f"💰 [FINANCIALS AGENT] Stock saved to database with ID: {stock.id}"
+            )
 
             # Generate financials analysis prompt
             prompt = self._create_financials_prompt(stock_data)
-            logger.info(f"💰 [FINANCIALS AGENT] Prompt created, length: {len(prompt)} characters")
+            logger.info(
+                f"💰 [FINANCIALS AGENT] Prompt created, length: {len(prompt)} characters"
+            )
 
             # Call LLM for analysis
-            logger.info(f"💰 [FINANCIALS AGENT] 🤖 Calling LLM for financials analysis of {stock_symbol}")
+            logger.info(
+                f"💰 [FINANCIALS AGENT] 🤖 Calling LLM for financials analysis of {stock_symbol}"
+            )
             response_data = await multi_model_service.generate_response(
                 prompt=prompt,
                 task_type="analysis",
                 complexity=TaskComplexity.AGENTIC,
             )
-            logger.info(f"💰 [FINANCIALS AGENT] LLM response received")
+            logger.info("💰 [FINANCIALS AGENT] LLM response received")
 
             # Check for errors in response
             if response_data.get("status") == "error":
@@ -77,27 +85,37 @@ class StockFinancialsAgent:
             )
 
             if not response_text:
-                logger.error(f"💰 [FINANCIALS AGENT] Empty response from LLM for {stock_symbol}")
+                logger.error(
+                    f"💰 [FINANCIALS AGENT] Empty response from LLM for {stock_symbol}"
+                )
                 raise ValueError(f"Empty response from LLM for {stock_symbol}")
 
-            logger.info(f"💰 [FINANCIALS AGENT] Response text length: {len(response_text)} characters")
+            logger.info(
+                f"💰 [FINANCIALS AGENT] Response text length: {len(response_text)} characters"
+            )
 
             # Parse LLM response into structured format
-            logger.info(f"💰 [FINANCIALS AGENT] Parsing LLM response")
+            logger.info("💰 [FINANCIALS AGENT] Parsing LLM response")
             analysis_data = self._parse_llm_response(response_text, stock_data)
-            logger.info(f"💰 [FINANCIALS AGENT] Analysis data parsed successfully")
+            logger.info("💰 [FINANCIALS AGENT] Analysis data parsed successfully")
 
             # Save analysis to database
             analysis = await self.stock_service.save_stock_analysis(
                 UUID(str(stock.id)), analysis_data
             )
-            logger.info(f"💰 [FINANCIALS AGENT] Analysis saved to database with ID: {analysis.id}")
+            logger.info(
+                f"💰 [FINANCIALS AGENT] Analysis saved to database with ID: {analysis.id}"
+            )
 
-            logger.info(f"💰 [FINANCIALS AGENT] ✅ Financials analysis completed successfully for {stock_symbol}")
+            logger.info(
+                f"💰 [FINANCIALS AGENT] ✅ Financials analysis completed successfully for {stock_symbol}"
+            )
 
             # Safely convert to dict
-            stock_dict = stock.to_dict() if hasattr(stock, 'to_dict') else stock
-            analysis_dict = analysis.to_dict() if hasattr(analysis, 'to_dict') else analysis
+            stock_dict = stock.to_dict() if hasattr(stock, "to_dict") else stock
+            analysis_dict = (
+                analysis.to_dict() if hasattr(analysis, "to_dict") else analysis
+            )
 
             return {
                 "stock": stock_dict,
@@ -105,21 +123,36 @@ class StockFinancialsAgent:
             }
 
         except Exception as e:
-            logger.error(f"💰 [FINANCIALS AGENT] ❌ Error analyzing financials for {stock_symbol}: {e}", exc_info=True)
+            logger.error(
+                f"💰 [FINANCIALS AGENT] ❌ Error analyzing financials for {stock_symbol}: {e}",
+                exc_info=True,
+            )
             raise
 
     def _create_financials_prompt(self, stock_data: Dict[str, Any]) -> str:
         """Create specialized prompt for financial analysis"""
         # Extract key financial metrics
         market_cap = stock_data.get("market_cap", 0)
-        pe_ratio = stock_data.get("trailingPE") or stock_data.get("forwardPE") or stock_data.get("pe_ratio")
+        pe_ratio = (
+            stock_data.get("trailingPE")
+            or stock_data.get("forwardPE")
+            or stock_data.get("pe_ratio")
+        )
         eps = stock_data.get("trailingEps") or stock_data.get("eps")
         revenue = stock_data.get("totalRevenue") or stock_data.get("revenue")
-        profit_margin = stock_data.get("profitMargins") or stock_data.get("profit_margin")
+        profit_margin = stock_data.get("profitMargins") or stock_data.get(
+            "profit_margin"
+        )
         roe = stock_data.get("returnOnEquity") or stock_data.get("roe")
-        debt_to_equity = stock_data.get("debtToEquity") or stock_data.get("debt_to_equity")
-        current_ratio = stock_data.get("currentRatio") or stock_data.get("current_ratio")
-        dividend_yield = stock_data.get("dividendYield") or stock_data.get("dividend_yield")
+        debt_to_equity = stock_data.get("debtToEquity") or stock_data.get(
+            "debt_to_equity"
+        )
+        current_ratio = stock_data.get("currentRatio") or stock_data.get(
+            "current_ratio"
+        )
+        dividend_yield = stock_data.get("dividendYield") or stock_data.get(
+            "dividend_yield"
+        )
         book_value = stock_data.get("bookValue") or stock_data.get("book_value")
         price_to_book = stock_data.get("priceToBook") or stock_data.get("price_to_book")
 
@@ -135,7 +168,7 @@ class StockFinancialsAgent:
         dividend_yield_str = f"{dividend_yield:.2%}" if dividend_yield else "N/A"
         book_value_str = f"${book_value:.2f}" if book_value else "N/A"
         price_to_book_str = f"{price_to_book:.2f}" if price_to_book else "N/A"
-        
+
         financial_metrics = f"""
 Financial Metrics:
 - Market Cap: {market_cap_str}
@@ -248,7 +281,9 @@ Provide only valid JSON, no additional text.
                 "fundamental_analysis": {
                     "valuation_analysis": analysis_json.get("valuation_analysis", {}),
                     "financial_health": analysis_json.get("financial_health", {}),
-                    "key_financial_ratios": analysis_json.get("key_financial_ratios", {}),
+                    "key_financial_ratios": analysis_json.get(
+                        "key_financial_ratios", {}
+                    ),
                     "growth_analysis": analysis_json.get("growth_analysis", {}),
                 },
                 "risk_assessment": {
@@ -285,4 +320,3 @@ Provide only valid JSON, no additional text.
                 "llm_response": {"raw_response": response},
                 "confidence_score": 0.5,
             }
-
