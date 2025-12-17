@@ -127,7 +127,7 @@ class EmailService:
         <p style="font-size: 16px; margin-bottom: 20px;">{greeting}</p>
 
         <p style="font-size: 16px; margin-bottom: 20px;">
-            We received a request to reset your password for your AIForce Assess Modernize Platform account.
+            We received a request to reset your password for your AI Stock Assess Platform account.
             Click the button below to create a new password:
         </p>
 
@@ -157,7 +157,7 @@ class EmailService:
     </div>
 
     <div style="text-align: center; padding: 20px; color: #9ca3af; font-size: 12px;">
-        <p style="margin: 0;">AIForce Assess Modernize Platform</p>
+        <p style="margin: 0;">AI Stock Assess Platform</p>
         <p style="margin: 5px 0 0 0;">This is an automated message. Please do not reply.</p>
     </div>
 </body>
@@ -167,7 +167,7 @@ class EmailService:
         text_content = f"""
 {greeting}
 
-We received a request to reset your password for your AIForce Assess Modernize Platform account.
+We received a request to reset your password for your AI Stock Assess Platform account.
 
 Click the link below to create a new password:
 {reset_url}
@@ -178,11 +178,11 @@ If you didn't request a password reset, you can safely ignore this email.
 Your password will remain unchanged.
 
 ---
-AIForce Assess Modernize Platform
+AI Stock Assess Platform
 This is an automated message. Please do not reply.
 """
 
-        subject = "Reset Your Password - AIForce Assess Modernize Platform"
+        subject = "Reset Your Password - AI Stock Assess Platform"
 
         return await self._send_via_brevo(to_email, subject, html_content, text_content)
 

@@ -1,5 +1,5 @@
 """
-LLM Configuration Service for AI Modernize Migration Platform
+LLM Configuration Service for AI Stock Assess Platform
 Configures multiple DeepInfra models according to CrewAI best practices.
 
 Following CrewAI LLM Connection Documentation:

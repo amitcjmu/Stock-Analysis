@@ -1,5 +1,5 @@
 """
-Cache Invalidation Service for AI Force Migration Platform
+Cache Invalidation Service for AI Stock Assess Platform
 
 This service provides high-level cache invalidation operations with WebSocket events,
 cascade invalidation, and integration with the MasterFlowOrchestrator patterns.

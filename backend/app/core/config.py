@@ -1,5 +1,5 @@
 """
-Configuration settings for the AI Modernize Migration Platform.
+Configuration settings for the AI Stock Assess Platform.
 Supports both local development and Railway.app deployment.
 """
 
@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     """Application settings with environment variable support."""
 
     # Application settings
-    APP_NAME: str = "AI Modernize Migration Platform"
+    APP_NAME: str = "AI Stock Assess Platform"
     VERSION: str = "1.0.0"
     ENVIRONMENT: str = Field(default="development", env="ENVIRONMENT")
     DEBUG: bool = Field(default=True, env="DEBUG")
@@ -97,7 +97,7 @@ class Settings(BaseSettings):
         default="noreply@aimodernize.com", env="EMAIL_FROM_ADDRESS"
     )
     EMAIL_FROM_NAME: str = Field(
-        default="AIForce Assess Modernize Platform", env="EMAIL_FROM_NAME"
+        default="AI Stock Assess Platform", env="EMAIL_FROM_NAME"
     )
     PASSWORD_RESET_TOKEN_EXPIRE_MINUTES: int = Field(
         default=15, env="PASSWORD_RESET_TOKEN_EXPIRE_MINUTES"

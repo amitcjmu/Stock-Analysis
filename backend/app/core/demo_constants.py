@@ -1,5 +1,5 @@
 """
-Demo Data Constants for AI Modernize Migration Platform
+Demo Data Constants for AI Stock Assess Platform
 
 These constants define the standard UUIDs used for demo data across the platform.
 Using fixed UUIDs allows us to easily identify demo/mock data without database queries.

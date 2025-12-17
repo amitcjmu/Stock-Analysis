@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Data Import API provides endpoints for uploading, storing, and managing CSV data imports for the AI Modernize Migration Platform. These endpoints handle the initial data ingestion phase of the discovery flow process.
+The Data Import API provides endpoints for uploading, storing, and managing CSV data imports for the AI Stock Assess Platform. These endpoints handle the initial data ingestion phase of the discovery flow process.
 
 ## Base URL
 

@@ -1,5 +1,5 @@
 """
-Agents package for the AI Modernize Migration Platform.
+Agents package for the AI Stock Assess Platform.
 Contains specialized agents for discovery, analysis, and orchestration.
 """
 

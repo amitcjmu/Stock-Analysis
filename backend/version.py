@@ -1,15 +1,15 @@
 """
-AI Modernize Migration Platform - Version Information
+AI Stock Assess Platform - Version Information
 """
 
 __version__ = "0.2.0"
-__title__ = "AI Modernize Migration Platform"
+__title__ = "AI Stock Assess Platform"
 __description__ = (
     "AI-powered cloud migration management platform with intelligent automation"
 )
 __author__ = "AI Modernize Migration Team"
 __license__ = "MIT"
-__copyright__ = "Copyright 2025 AI Modernize Migration Platform"
+__copyright__ = "Copyright 2025 AI Stock Assess Platform"
 
 # Release Information
 RELEASE_NAME = "Sprint 1 Complete - Backend & Docker"

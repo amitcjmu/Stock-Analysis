@@ -1,5 +1,5 @@
 /**
- * Platform Types - CC type definitions for the migration platform
+ * Platform Types - CC type definitions for the stock analysis platform
  */
 
 // Module type references

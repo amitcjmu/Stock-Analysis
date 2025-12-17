@@ -1,5 +1,5 @@
 """
-Caching services for the AI Modernize Migration Platform.
+Caching services for the AI Stock Assess Platform.
 
 This module provides Redis-based caching for:
 - Flow state management

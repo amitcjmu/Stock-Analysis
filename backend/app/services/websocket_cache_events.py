@@ -1,5 +1,5 @@
 """
-WebSocket Cache Events System for AI Force Migration Platform
+WebSocket Cache Events System for AI Stock Assess Platform
 
 This system provides real-time cache invalidation events via WebSocket connections,
 enabling immediate cache synchronization across multiple clients and browser tabs.

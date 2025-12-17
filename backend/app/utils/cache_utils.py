@@ -1,5 +1,5 @@
 """
-Cache Utilities for AI Force Migration Platform
+Cache Utilities for AI Stock Assess Platform
 
 This module provides reusable utilities for cache operations including:
 - ETag generation and validation

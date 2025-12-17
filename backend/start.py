@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-AI Modernize Migration Platform - Railway Startup Script
+AI Stock Assess Platform - Railway Startup Script
 This script handles environment variable expansion and starts the FastAPI server.
 """
 
@@ -41,7 +41,7 @@ def run_migrations():
 
 def main():
     """Start the FastAPI application with proper environment handling."""
-    print("🚀 Starting AI Modernize Migration Platform API...")
+    print("🚀 Starting AI Stock Assess Platform API...")
 
     # Migrations are handled by entrypoint.sh/railway_setup.py
     print("📋 Database migrations handled by deployment scripts")

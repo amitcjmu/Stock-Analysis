@@ -1,6 +1,6 @@
 """
-AI Modernize Migration Platform - Backend Application Package
+AI Stock Assess Platform - Backend Application Package
 """
 
 __version__ = "1.0.0"
-__author__ = "AI Modernize Migration Team"
+__author__ = "AI Stock Assess Team"

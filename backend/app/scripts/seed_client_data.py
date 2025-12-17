@@ -53,7 +53,7 @@ async def seed_client_data():
                 company_size = "Medium"  # Default company size
 
                 # Set specific values based on client name patterns
-                if "AI Modernize" in client.name or "Platform" in client.name:
+                if "AI Stock Assess" in client.name or "Platform" in client.name:
                     company_size = "Enterprise"
                 elif "Test" in client.name or "Demo" in client.name:
                     company_size = "Medium"
@@ -97,10 +97,10 @@ async def create_default_clients_if_missing():
 
             print("🔧 Creating default client accounts...")
 
-            # Create AI Modernize Platform client
+            # Create AI Stock Assess Platform client
             ai_force_client = ClientAccount(
                 id=uuid.uuid4(),
-                name="AI Modernize Platform",
+                name="AI Stock Assess Platform",
                 industry="Technology",
                 company_size="Enterprise",
                 description="Platform administration client account",
@@ -137,7 +137,7 @@ async def create_default_clients_if_missing():
             session.add(test_client)
             await session.commit()
 
-            print("  ✅ Created 'AI Modernize Platform' client")
+            print("  ✅ Created 'AI Stock Assess Platform' client")
             print("  ✅ Created 'Test Corporation' client")
             print("🎉 Successfully created default client accounts")
 

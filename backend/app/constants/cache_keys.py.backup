@@ -1,5 +1,5 @@
 """
-Cache Key Strategy for AI Force Migration Platform
+Cache Key Strategy for AI Stock Assess Platform
 
 This module provides a centralized, versioned cache key generation system with
 multi-tenant isolation and coherence support. All cache keys include tenant context

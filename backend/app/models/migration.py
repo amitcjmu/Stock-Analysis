@@ -1,5 +1,5 @@
 """
-Migration models for the AI Modernize Migration Platform.
+Stock analysis models for the AI Stock Assess Platform.
 Defines database schema for migration projects and related entities.
 """
 

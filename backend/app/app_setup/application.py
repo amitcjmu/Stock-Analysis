@@ -50,7 +50,7 @@ def create_app():  # factory to assemble app
     from app.app_setup.lifecycle import get_lifespan
 
     app = FastAPI(
-        title="AI Modernize Migration Platform API",
+        title="AI Stock Assess Platform API",
         description="AI-powered cloud migration management platform",
         version=os.getenv("API_VERSION", "0.2.0"),
         docs_url="/docs",

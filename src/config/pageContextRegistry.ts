@@ -1536,7 +1536,7 @@ export const PAGE_CONTEXT_REGISTRY: Record<string, PageContext> = {
     route: '/',
     route_pattern: '/',
     flow_type: 'general',
-    description: 'Welcome to the AI Force Assess platform - your intelligent migration assistant.',
+    description: 'Welcome to the AI Stock Assess platform - your intelligent stock analysis assistant.',
     features: [
       'Quick navigation',
       'Recent activity',
@@ -1666,7 +1666,7 @@ export function getPageContext(route: string): PageContext | null {
     route: route,
     route_pattern: route,
     flow_type: 'general',
-    description: 'This page is part of the AI Force Assess migration platform.',
+    description: 'This page is part of the AI Stock Assess platform.',
     features: [],
     actions: [],
     help_topics: ['migration', 'platform'],

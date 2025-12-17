@@ -153,7 +153,7 @@ export type AssetType = typeof ASSET_TYPES[keyof typeof ASSET_TYPES];
 // Six R Strategy constants - Standardized to 6 canonical strategies (October 2025)
 // Note: "replace" consolidates both COTS replacement (formerly "repurchase")
 // and custom rewrites (formerly "rewrite")
-// "retain" is out of scope for migration platform
+// "retain" is out of scope for stock analysis platform
 export const SIX_R_STRATEGIES = {
   REHOST: 'rehost',
   REPLATFORM: 'replatform',

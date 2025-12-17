@@ -4,7 +4,7 @@
  * This client removes custom caching and relies on backend Redis caching
  * while maintaining request deduplication for optimal performance.
  *
- * CC Generated API Client for AI Force Migration Platform
+ * CC Generated API Client for AI Stock Assess Platform
  */
 
 import { isCacheFeatureEnabled } from '@/constants/features';

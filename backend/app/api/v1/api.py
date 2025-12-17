@@ -1,5 +1,5 @@
 """
-Main API router for the AI Modernize Migration Platform.
+Main API router for the AI Stock Assess Platform.
 Simplified version with modularized components.
 """
 

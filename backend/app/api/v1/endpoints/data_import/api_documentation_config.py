@@ -19,9 +19,9 @@ def configure_api_documentation(app: FastAPI) -> None:
     """
 
     # Custom API metadata
-    app.title = "AI Modernize Migration Platform - Data Import API"
+    app.title = "AI Stock Assess Platform - Data Import API"
     app.description = """
-## AI Modernize Migration Platform Data Import API
+## AI Stock Assess Platform Data Import API
 
 The Data Import API provides comprehensive endpoints for managing CSV data imports
 as part of the discovery flow process. This API handles:

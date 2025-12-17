@@ -1,4 +1,4 @@
-# AI Modernize Migration Platform - API Reference
+# AI Stock Assess Platform - API Reference
 
 ## Table of Contents
 
@@ -13,7 +13,7 @@
 
 ## Overview
 
-The AI Modernize Migration Platform API provides comprehensive endpoints for managing cloud migration discovery, assessment, planning, and execution flows.
+The AI Stock Assess Platform API provides comprehensive endpoints for managing stock analysis, discovery, assessment, and reporting flows.
 
 ### Base URL
 ```

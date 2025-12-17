@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `UniversalProcessingStatus` component is a comprehensive, reusable React component that provides real-time updates for any processing operation in the AI Modernize Migration Platform. It replaces static "Upload & Validation Status" sections with live, interactive monitoring of agentic backend processes.
+The `UniversalProcessingStatus` component is a comprehensive, reusable React component that provides real-time updates for any processing operation in the AI Stock Assess Platform. It replaces static "Upload & Validation Status" sections with live, interactive monitoring of agentic backend processes.
 
 ## Key Features
 

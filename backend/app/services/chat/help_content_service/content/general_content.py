@@ -147,7 +147,7 @@ Track AI usage costs including:
     {
         "title": "Common Troubleshooting",
         "slug": "troubleshooting-common",
-        "content": """Solutions to common issues in the AI Force Assess platform.
+        "content": """Solutions to common issues in the AI Stock Assess platform.
 
 **Data Import Issues:**
 - **Upload fails**: Check file format (CSV/Excel), size (<50MB), and encoding (UTF-8)

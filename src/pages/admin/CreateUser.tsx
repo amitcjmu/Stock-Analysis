@@ -228,7 +228,7 @@ const CreateUser: React.FC = () => {
         <div>
           <h1 className="text-3xl font-bold">Create New User</h1>
           <p className="text-muted-foreground">
-            Manually add a new user to AI Force Assess
+            Manually add a new user to AI Stock Assess
           </p>
         </div>
       </div>

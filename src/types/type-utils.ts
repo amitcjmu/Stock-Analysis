@@ -1,5 +1,5 @@
 /**
- * Type Utils - CC utility types for the migration platform
+ * Type Utils - CC utility types for the stock analysis platform
  */
 
 // Utility for creating branded types

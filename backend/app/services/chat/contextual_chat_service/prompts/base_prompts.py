@@ -8,7 +8,7 @@ Milestone: Contextual AI Chat Assistant
 """
 
 # Base system prompt for all pages
-BASE_SYSTEM_PROMPT = """You are an AI assistant for the AI Force Assess platform - an enterprise IT migration solution.
+BASE_SYSTEM_PROMPT = """You are an AI assistant for the AI Stock Assess platform - an enterprise stock analysis solution.
 You help users navigate the platform, understand features, and complete migration-related tasks.
 
 RULES:

@@ -2,7 +2,7 @@
 
 ## Overview
 
-The admin component system has been modularized to promote code reuse, maintainability, and consistency across admin dashboard interfaces. This document outlines the architecture and usage patterns for admin components in the AI Modernize Migration Platform.
+The admin component system has been modularized to promote code reuse, maintainability, and consistency across admin dashboard interfaces. This document outlines the architecture and usage patterns for admin components in the AI Stock Assess Platform.
 
 ## Architecture Overview
 

@@ -119,7 +119,7 @@ const ForgotPassword: React.FC = () => {
           <div className="mx-auto w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center mb-4">
             <Shield className="w-6 h-6 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-blue-600 mb-2">AI Force Assess</h1>
+          <h1 className="text-2xl font-bold text-blue-600 mb-2">AI Stock Assess</h1>
           <CardTitle className="text-gray-900">Forgot Password?</CardTitle>
           <CardDescription>
             Enter your email address and we'll send you a link to reset your password.

@@ -1,5 +1,5 @@
 """
-Logging Configuration for AI Modernize Migration Platform
+Logging Configuration for AI Stock Assess Platform
 Suppresses verbose LLM library logs while keeping application logs visible.
 """
 

@@ -242,7 +242,7 @@ const Login: React.FC = () => {
       await login(loginData.email, loginData.password);
       toast({
         title: "Login Successful",
-        description: "Welcome to AI Force Assess",
+        description: "Welcome to AI Stock Assess",
       });
     } catch (err) {
       setError((err as Error).message);
@@ -345,14 +345,14 @@ const Login: React.FC = () => {
           <div className="mx-auto w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center mb-4">
             <Shield className="w-6 h-6 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-blue-600 mb-2">AI Force Assess</h1>
+          <h1 className="text-2xl font-bold text-blue-600 mb-2">AI Stock Assess</h1>
           <CardTitle className="text-gray-900">
             {isLogin ? 'Sign In' : 'Request Access'}
           </CardTitle>
           <CardDescription>
             {isLogin
               ? 'Cloud Migration Assessment Platform'
-              : 'Request access to AI Force Assess'
+              : 'Request access to AI Stock Assess'
             }
           </CardDescription>
         </CardHeader>
