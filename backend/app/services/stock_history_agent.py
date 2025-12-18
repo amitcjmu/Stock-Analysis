@@ -159,6 +159,27 @@ class StockHistoryAgent:
                 analysis.to_dict() if hasattr(analysis, "to_dict") else analysis
             )
 
+            # Log return structure details
+            logger.info(
+                f"📈 [HISTORY AGENT] Returning result with keys: {list({'stock': stock_dict, 'analysis': analysis_dict}.keys())}"
+            )
+            if isinstance(analysis_dict, dict):
+                logger.info(
+                    f"📈 [HISTORY AGENT] Analysis keys: {list(analysis_dict.keys())}"
+                )
+                logger.info(
+                    f"📈 [HISTORY AGENT] Analysis summary: {analysis_dict.get('summary', 'N/A')[:200]}..."
+                )
+                logger.info(
+                    f"📈 [HISTORY AGENT] Analysis type: {analysis_dict.get('analysis_type', 'N/A')}"
+                )
+                logger.info(
+                    f"📈 [HISTORY AGENT] Model used: {analysis_dict.get('llm_model', 'N/A')}"
+                )
+                logger.info(
+                    f"📈 [HISTORY AGENT] Confidence score: {analysis_dict.get('confidence_score', 'N/A')}"
+                )
+
             return {
                 "stock": stock_dict,
                 "analysis": analysis_dict,
@@ -300,16 +321,32 @@ Provide only valid JSON, no additional text.
         try:
             # Try to extract JSON from response
             response_clean = response.strip()
+            
+            # Remove markdown code blocks more thoroughly
             if "```json" in response_clean:
-                response_clean = re.sub(r"```json\s*", "", response_clean)
-                response_clean = re.sub(r"```\s*$", "", response_clean)
+                # Extract content between ```json and ```
+                json_match = re.search(r"```json\s*(.*?)\s*```", response_clean, re.DOTALL)
+                if json_match:
+                    response_clean = json_match.group(1).strip()
+                else:
+                    # Fallback: remove markers
+                    response_clean = re.sub(r"```json\s*", "", response_clean)
+                    response_clean = re.sub(r"```\s*$", "", response_clean)
             elif "```" in response_clean:
-                response_clean = re.sub(r"```\s*", "", response_clean)
+                # Extract content between ``` and ```
+                json_match = re.search(r"```\s*(.*?)\s*```", response_clean, re.DOTALL)
+                if json_match:
+                    response_clean = json_match.group(1).strip()
+                else:
+                    response_clean = re.sub(r"```\s*", "", response_clean)
 
             # Try to find JSON object in the response (handle cases where there's extra text)
             json_match = re.search(r"\{.*\}", response_clean, re.DOTALL)
             if json_match:
                 response_clean = json_match.group(0)
+            
+            # Log cleaned response for debugging
+            logger.debug(f"Cleaned response (first 200 chars): {response_clean[:200]}")
 
             # Parse JSON
             analysis_json = json.loads(response_clean)
@@ -341,10 +378,31 @@ Provide only valid JSON, no additional text.
 
         except json.JSONDecodeError as e:
             logger.warning(f"Failed to parse LLM response as JSON: {e}")
+            logger.warning(f"Response text (first 500 chars): {response[:500]}")
+            
+            # Try to extract summary from raw response even if JSON parsing fails
+            summary_text = ""
+            # Try to find summary in the response text
+            summary_match = re.search(r'"summary"\s*:\s*"([^"]+)"', response, re.DOTALL)
+            if summary_match:
+                summary_text = summary_match.group(1)
+            else:
+                # If no JSON summary found, try to extract first meaningful sentence
+                # Remove markdown code blocks
+                clean_text = re.sub(r"```json\s*", "", response)
+                clean_text = re.sub(r"```\s*", "", clean_text)
+                # Try to find text after "summary"
+                summary_match = re.search(r'summary["\']?\s*:\s*["\']?([^"\']+)', clean_text, re.IGNORECASE)
+                if summary_match:
+                    summary_text = summary_match.group(1).strip()[:500]
+                else:
+                    # Last resort: use first 500 chars of cleaned text
+                    summary_text = clean_text.strip()[:500]
+            
             # Fallback: create basic analysis from response text
             return {
                 "analysis_type": "history",
-                "summary": response[:500] if len(response) > 500 else response,
+                "summary": summary_text if summary_text else "Analysis completed but response format was invalid.",
                 "key_insights": [
                     response[i : i + 200]
                     for i in range(0, min(600, len(response)), 200)
@@ -354,7 +412,7 @@ Provide only valid JSON, no additional text.
                 "recommendations": {
                     "action": "hold",
                     "confidence": 0.5,
-                    "reasoning": response,
+                    "reasoning": "Unable to parse full analysis due to response format issues.",
                 },
                 "llm_model": model_used,
                 "llm_prompt": self._create_history_prompt(

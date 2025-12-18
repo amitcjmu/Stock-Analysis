@@ -10,7 +10,7 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Badge } from '../../components/ui/badge';
 import { Alert, AlertDescription } from '../../components/ui/alert';
-import { Loader2, Search, TrendingUp, TrendingDown, DollarSign, BarChart3, AlertTriangle, CheckCircle, Star, StarOff, Plus, X, GitCompare } from 'lucide-react';
+import { Loader2, Search, TrendingUp, TrendingDown, DollarSign, BarChart3, AlertTriangle, CheckCircle, Star, StarOff, Plus, X, GitCompare, Brain } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { PriceChart } from '../../components/stock/PriceChart';
 import { ModelSelector, ModelType } from '../../components/stock/ModelSelector';
@@ -539,9 +539,12 @@ const DiscoveryDashboard: React.FC = () => {
       console.log('🚀 News:', response.news ? 'Present' : 'Missing');
 
       if (response && response.success !== false) {
-        // Set overview analysis (use financials as overview if available)
-        if (response.financials) {
-          console.log('✅ Setting overview analysis from financials');
+        // Set overview analysis (use comprehensive analysis if available, otherwise use financials)
+        if (response.analysis) {
+          console.log('✅ Setting overview analysis from comprehensive analysis');
+          setAnalysis(response.analysis);
+        } else if (response.financials) {
+          console.log('✅ Setting overview analysis from financials (fallback)');
           setAnalysis(response.financials);
         }
 
@@ -592,8 +595,10 @@ const DiscoveryDashboard: React.FC = () => {
   const loadStockNews = async (symbol: string) => {
     setIsLoadingNews(true);
     try {
+      // Include LLM-generated news insights along with Yahoo Finance news
+      const url = `/stock/stocks/${symbol}/news?limit=20&include_llm_news=true${selectedModel !== 'auto' ? `&model=${selectedModel}` : ''}`;
       const response = await apiCall(
-        `/stock/stocks/${symbol}/news?limit=20`,
+        url,
         {
           method: 'GET',
           headers: getAuthHeaders(),
@@ -601,7 +606,17 @@ const DiscoveryDashboard: React.FC = () => {
       );
 
       if (response.success) {
-        setStockNews(response.news || []);
+        // Filter out invalid articles (no title, unknown publisher, etc.)
+        // But allow LLM-generated articles even if publisher is "AI Analysis"
+        const validNews = (response.news || []).filter(
+          (article: any) =>
+            article.title &&
+            article.title !== "No title" &&
+            article.title.trim() !== "" &&
+            (article.is_llm_generated || (article.publisher && article.publisher !== "Unknown"))
+        );
+        console.log(`Loaded ${validNews.length} valid news articles (${response.llm_count || 0} AI-generated, ${response.yfinance_count || 0} from Yahoo Finance) out of ${response.news?.length || 0} total`);
+        setStockNews(validNews);
       } else {
         console.warn('News API returned unsuccessful response:', response);
         setStockNews([]);
@@ -1133,7 +1148,7 @@ const DiscoveryDashboard: React.FC = () => {
                               </TabsContent>
 
                               <TabsContent value="technical" className="space-y-4 mt-4">
-                                {analysis.technical_analysis && (
+                                {analysis.technical_analysis && Object.keys(analysis.technical_analysis).length > 0 ? (
                                   <div className="space-y-4">
                                     {analysis.technical_analysis.trend && (
                                       <div>
@@ -1165,77 +1180,221 @@ const DiscoveryDashboard: React.FC = () => {
                                         </div>
                                       </div>
                                     )}
+                                    {/* Display any other technical analysis fields */}
+                                    {Object.entries(analysis.technical_analysis).map(([key, value]) => {
+                                      if (['trend', 'support_levels', 'resistance_levels'].includes(key)) return null;
+                                      return (
+                                        <div key={key}>
+                                          <h3 className="font-semibold mb-2 capitalize">{key.replace(/_/g, ' ')}</h3>
+                                          {typeof value === 'string' ? (
+                                            <p className="text-muted-foreground">{value}</p>
+                                          ) : Array.isArray(value) ? (
+                                            <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                                              {value.map((item: any, idx: number) => (
+                                                <li key={idx}>{String(item)}</li>
+                                              ))}
+                                            </ul>
+                                          ) : typeof value === 'object' && value !== null ? (
+                                            <div className="space-y-2">
+                                              {Object.entries(value as any).map(([subKey, subValue]) => (
+                                                <div key={subKey} className="flex items-center gap-2">
+                                                  <span className="text-sm text-muted-foreground capitalize">{subKey.replace(/_/g, ' ')}:</span>
+                                                  <Badge variant="outline">{String(subValue)}</Badge>
+                                                </div>
+                                              ))}
+                                            </div>
+                                          ) : (
+                                            <Badge variant="outline">{String(value)}</Badge>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                ) : (
+                                  <div className="text-center py-8 text-muted-foreground">
+                                    <p>Technical analysis data is being generated. Please try again in a moment.</p>
                                   </div>
                                 )}
                               </TabsContent>
 
                               <TabsContent value="fundamental" className="space-y-4 mt-4">
-                                {analysis.fundamental_analysis && (
-                                  <div className="space-y-4">
-                                    {Object.entries(analysis.fundamental_analysis).map(([key, value]) => (
-                                      <div key={key}>
-                                        <h3 className="font-semibold mb-2 capitalize">{key.replace(/_/g, ' ')}</h3>
-                                        {typeof value === 'object' && value !== null && !Array.isArray(value) ? (
-                                          <div className="space-y-2">
-                                            {Object.entries(value as any).map(([subKey, subValue]) => {
-                                              if (typeof subValue === 'object' && subValue !== null && !Array.isArray(subValue)) {
-                                                return (
-                                                  <div key={subKey} className="space-y-1">
-                                                    <span className="text-sm font-medium text-muted-foreground capitalize">{subKey.replace(/_/g, ' ')}:</span>
-                                                    <div className="ml-4 space-y-1">
-                                                      {Object.entries(subValue as any).map(([nestedKey, nestedValue]) => (
-                                                        <div key={nestedKey} className="flex items-center gap-2">
-                                                          <span className="text-xs text-muted-foreground capitalize">{nestedKey.replace(/_/g, ' ')}:</span>
-                                                          <Badge variant="outline" className="text-xs">
-                                                            {Array.isArray(nestedValue)
-                                                              ? nestedValue.join(', ')
-                                                              : typeof nestedValue === 'object' && nestedValue !== null
-                                                              ? JSON.stringify(nestedValue)
-                                                              : String(nestedValue)}
-                                                          </Badge>
-                                                        </div>
-                                                      ))}
-                                                    </div>
-                                                  </div>
-                                                );
-                                              }
-                                              if (Array.isArray(subValue)) {
-                                                return (
-                                                  <div key={subKey} className="flex items-center gap-2">
-                                                    <span className="text-sm text-muted-foreground capitalize">{subKey.replace(/_/g, ' ')}:</span>
-                                                    <div className="flex flex-wrap gap-2">
-                                                      {subValue.map((item: any, idx: number) => (
-                                                        <Badge key={idx} variant="outline">{String(item)}</Badge>
-                                                      ))}
-                                                    </div>
-                                                  </div>
-                                                );
-                                              }
-                                              return (
-                                                <div key={subKey} className="flex items-center gap-2">
-                                                  <span className="text-sm text-muted-foreground capitalize">{subKey.replace(/_/g, ' ')}:</span>
-                                                  <Badge variant="outline">{String(subValue)}</Badge>
-                                                </div>
-                                              );
-                                            })}
-                                          </div>
-                                        ) : Array.isArray(value) ? (
-                                          <div className="flex flex-wrap gap-2">
-                                            {value.map((item: any, idx: number) => (
-                                              <Badge key={idx} variant="outline">{String(item)}</Badge>
-                                            ))}
-                                          </div>
-                                        ) : (
-                                          <Badge variant="outline">{String(value)}</Badge>
-                                        )}
+                                {analysis.fundamental_analysis && Object.keys(analysis.fundamental_analysis).length > 0 ? (
+                                  <div className="space-y-6">
+                                    {/* Valuation Analysis */}
+                                    {analysis.fundamental_analysis.valuation_analysis && (
+                                      <div className="border rounded-lg p-4">
+                                        <h3 className="font-semibold mb-3 text-lg">Valuation Analysis</h3>
+                                        <div className="space-y-2">
+                                          {analysis.fundamental_analysis.valuation_analysis.valuation && (
+                                            <div className="flex items-center justify-between">
+                                              <span className="text-sm text-muted-foreground">Valuation:</span>
+                                              <Badge variant={analysis.fundamental_analysis.valuation_analysis.valuation === 'overvalued' ? 'destructive' : analysis.fundamental_analysis.valuation_analysis.valuation === 'undervalued' ? 'default' : 'secondary'}>
+                                                {String(analysis.fundamental_analysis.valuation_analysis.valuation).toUpperCase()}
+                                              </Badge>
+                                            </div>
+                                          )}
+                                          {analysis.fundamental_analysis.valuation_analysis.valuation_basis && (
+                                            <div>
+                                              <span className="text-sm text-muted-foreground">Valuation Basis:</span>
+                                              <p className="text-sm mt-1">{String(analysis.fundamental_analysis.valuation_analysis.valuation_basis)}</p>
+                                            </div>
+                                          )}
+                                          {analysis.fundamental_analysis.valuation_analysis.price_target && (
+                                            <div className="flex items-center justify-between">
+                                              <span className="text-sm text-muted-foreground">Price Target:</span>
+                                              <span className="font-semibold">{formatCurrency(analysis.fundamental_analysis.valuation_analysis.price_target)}</span>
+                                            </div>
+                                          )}
+                                          {analysis.fundamental_analysis.valuation_analysis.upside_potential !== undefined && analysis.fundamental_analysis.valuation_analysis.upside_potential !== null && (
+                                            <div className="flex items-center justify-between">
+                                              <span className="text-sm text-muted-foreground">Upside Potential:</span>
+                                              <Badge variant={Number(analysis.fundamental_analysis.valuation_analysis.upside_potential) > 0 ? 'default' : 'secondary'}>
+                                                {Number(analysis.fundamental_analysis.valuation_analysis.upside_potential).toFixed(2)}%
+                                              </Badge>
+                                            </div>
+                                          )}
+                                        </div>
                                       </div>
-                                    ))}
+                                    )}
+
+                                    {/* Financial Health */}
+                                    {analysis.fundamental_analysis.financial_health && (
+                                      <div className="border rounded-lg p-4">
+                                        <h3 className="font-semibold mb-3 text-lg">Financial Health</h3>
+                                        <div className="grid grid-cols-2 gap-3">
+                                          {Object.entries(analysis.fundamental_analysis.financial_health).map(([key, value]) => (
+                                            <div key={key} className="flex items-center justify-between">
+                                              <span className="text-sm text-muted-foreground capitalize">{key.replace(/_/g, ' ')}:</span>
+                                              <Badge variant="outline">{String(value)}</Badge>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* Key Financial Ratios */}
+                                    {analysis.fundamental_analysis.key_financial_ratios && (
+                                      <div className="border rounded-lg p-4">
+                                        <h3 className="font-semibold mb-3 text-lg">Key Financial Ratios</h3>
+                                        <div className="space-y-4">
+                                          {/* Profitability Ratios */}
+                                          {analysis.fundamental_analysis.key_financial_ratios.profitability_ratios && (
+                                            <div>
+                                              <h4 className="font-medium mb-2 text-sm">Profitability Ratios</h4>
+                                              <div className="grid grid-cols-3 gap-2">
+                                                {Object.entries(analysis.fundamental_analysis.key_financial_ratios.profitability_ratios).map(([key, value]) => (
+                                                  <div key={key} className="flex flex-col">
+                                                    <span className="text-xs text-muted-foreground capitalize">{key.replace(/_/g, ' ')}:</span>
+                                                    <span className="font-semibold text-sm">{String(value)}</span>
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            </div>
+                                          )}
+                                          {/* Liquidity Ratios */}
+                                          {analysis.fundamental_analysis.key_financial_ratios.liquidity_ratios && (
+                                            <div>
+                                              <h4 className="font-medium mb-2 text-sm">Liquidity Ratios</h4>
+                                              <div className="grid grid-cols-2 gap-2">
+                                                {Object.entries(analysis.fundamental_analysis.key_financial_ratios.liquidity_ratios).map(([key, value]) => (
+                                                  <div key={key} className="flex flex-col">
+                                                    <span className="text-xs text-muted-foreground capitalize">{key.replace(/_/g, ' ')}:</span>
+                                                    <span className="font-semibold text-sm">{String(value)}</span>
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            </div>
+                                          )}
+                                          {/* Leverage Ratios */}
+                                          {analysis.fundamental_analysis.key_financial_ratios.leverage_ratios && (
+                                            <div>
+                                              <h4 className="font-medium mb-2 text-sm">Leverage Ratios</h4>
+                                              <div className="grid grid-cols-2 gap-2">
+                                                {Object.entries(analysis.fundamental_analysis.key_financial_ratios.leverage_ratios).map(([key, value]) => (
+                                                  <div key={key} className="flex flex-col">
+                                                    <span className="text-xs text-muted-foreground capitalize">{key.replace(/_/g, ' ')}:</span>
+                                                    <span className="font-semibold text-sm">{String(value)}</span>
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            </div>
+                                          )}
+                                          {/* Valuation Ratios */}
+                                          {analysis.fundamental_analysis.key_financial_ratios.valuation_ratios && (
+                                            <div>
+                                              <h4 className="font-medium mb-2 text-sm">Valuation Ratios</h4>
+                                              <div className="grid grid-cols-3 gap-2">
+                                                {Object.entries(analysis.fundamental_analysis.key_financial_ratios.valuation_ratios).map(([key, value]) => (
+                                                  <div key={key} className="flex flex-col">
+                                                    <span className="text-xs text-muted-foreground capitalize">{key.replace(/_/g, ' ')}:</span>
+                                                    <span className="font-semibold text-sm">{String(value)}</span>
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* Growth Analysis */}
+                                    {analysis.fundamental_analysis.growth_analysis && (
+                                      <div className="border rounded-lg p-4">
+                                        <h3 className="font-semibold mb-3 text-lg">Growth Analysis</h3>
+                                        <div className="grid grid-cols-3 gap-3">
+                                          {Object.entries(analysis.fundamental_analysis.growth_analysis).map(([key, value]) => (
+                                            <div key={key} className="flex flex-col">
+                                              <span className="text-sm text-muted-foreground capitalize">{key.replace(/_/g, ' ')}:</span>
+                                              <Badge variant="outline" className="mt-1 w-fit">{String(value)}</Badge>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* Fallback: Display any other fields (excluding fallback fields) */}
+                                    {Object.entries(analysis.fundamental_analysis).map(([key, value]) => {
+                                      // Skip structured fields and fallback fields
+                                      if (['valuation_analysis', 'financial_health', 'key_financial_ratios', 'growth_analysis', 'financial_summary', 'financial_insights'].includes(key)) {
+                                        return null;
+                                      }
+                                      // Handle string values that might be JSON
+                                      if (typeof value === 'string' && value.trim().startsWith('{')) {
+                                        try {
+                                          const parsed = JSON.parse(value);
+                                          return (
+                                            <div key={key} className="border rounded-lg p-4">
+                                              <h3 className="font-semibold mb-2 capitalize">{key.replace(/_/g, ' ')}</h3>
+                                              <pre className="text-xs overflow-auto">{JSON.stringify(parsed, null, 2)}</pre>
+                                            </div>
+                                          );
+                                        } catch (e) {
+                                          // Not valid JSON, display as text
+                                          return (
+                                            <div key={key} className="border rounded-lg p-4">
+                                              <h3 className="font-semibold mb-2 capitalize">{key.replace(/_/g, ' ')}</h3>
+                                              <p className="text-sm text-muted-foreground">{String(value)}</p>
+                                            </div>
+                                          );
+                                        }
+                                      }
+                                      return (
+                                        <div key={key} className="border rounded-lg p-4">
+                                          <h3 className="font-semibold mb-2 capitalize">{key.replace(/_/g, ' ')}</h3>
+                                          <p className="text-sm text-muted-foreground">{String(value)}</p>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                ) : (
+                                  <div className="text-center py-8 text-muted-foreground">
+                                    <p>Fundamental analysis data is being generated. Please try again in a moment.</p>
                                   </div>
                                 )}
                               </TabsContent>
 
                               <TabsContent value="risks" className="space-y-4 mt-4">
-                                {analysis.risk_assessment && (
+                                {analysis.risk_assessment && Object.keys(analysis.risk_assessment).length > 0 ? (
                                   <div className="space-y-4">
                                     {analysis.risk_assessment.overall_risk && (
                                       <div>
@@ -1253,6 +1412,10 @@ const DiscoveryDashboard: React.FC = () => {
                                         </ul>
                                       </div>
                                     )}
+                                  </div>
+                                ) : (
+                                  <div className="text-center py-8 text-muted-foreground">
+                                    <p>Risk assessment data is being generated. Please try again in a moment.</p>
                                   </div>
                                 )}
                               </TabsContent>
@@ -2160,17 +2323,48 @@ const DiscoveryDashboard: React.FC = () => {
                             </div>
                           ) : stockNews.length > 0 ? (
                             <div className="space-y-4">
-                              {stockNews.map((article, idx) => (
+                              {stockNews
+                                .filter((article) => 
+                                  article.title && 
+                                  article.title !== "No title" && 
+                                  article.title.trim() !== "" &&
+                                  (article.is_llm_generated || (article.publisher && article.publisher !== "Unknown"))
+                                )
+                                .map((article, idx) => (
                                 <div key={idx} className="border-b pb-4 last:border-0">
-                                  <h4 className="font-semibold mb-1">{article.title}</h4>
+                                  <div className="flex items-start justify-between gap-2 mb-1">
+                                    <h4 className="font-semibold flex-1">{article.title || "Untitled Article"}</h4>
+                                    {article.is_llm_generated && (
+                                      <Badge variant="secondary" className="text-xs">
+                                        <Brain className="h-3 w-3 mr-1" />
+                                        AI Generated
+                                      </Badge>
+                                    )}
+                                    {article.impact && article.impact !== "neutral" && (
+                                      <Badge 
+                                        variant={article.impact === "positive" ? "default" : "destructive"}
+                                        className="text-xs"
+                                      >
+                                        {article.impact === "positive" ? "↑" : "↓"} {article.impact}
+                                      </Badge>
+                                    )}
+                                  </div>
                                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                    <span>{article.publisher}</span>
-                                    {article.published_date && (
+                                    <span>{article.publisher && article.publisher !== "Unknown" ? article.publisher : "Unknown Publisher"}</span>
+                                    {article.published_date && article.published_date > 0 && (
                                       <span>
                                         {new Date(article.published_date * 1000).toLocaleDateString()}
                                       </span>
                                     )}
+                                    {article.category && (
+                                      <Badge variant="outline" className="text-xs">
+                                        {article.category.replace(/_/g, ' ')}
+                                      </Badge>
+                                    )}
                                   </div>
+                                  {article.summary && (
+                                    <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{article.summary}</p>
+                                  )}
                                   {article.link && (
                                     <a
                                       href={article.link}

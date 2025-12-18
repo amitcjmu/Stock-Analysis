@@ -93,10 +93,12 @@ class StockDataAPIService:
             "LARSEN AND TOUBRO": "LT.NS",
             "L&T": "LT.NS",
             # Additional Indian Companies
-            # Note: Apollo Micro Systems may not be available in Yahoo Finance
             "APOLLO TYRES": "APOLLOTYRE.NS",
             "APOLLO HOSPITALS": "APOLLOHOSP.NS",
-            "APOLLO": "APOLLOHOSP.NS",  # Default to Apollo Hospitals if ambiguous
+            "APOLLO": "APOLLO.NS",  # Default to Apollo Micro Systems Ltd
+            "APOLLO MICRO SYSTEMS": "APOLLO.NS",
+            "APOLLO MICRO": "APOLLO.NS",
+            "APOLLO MICRO SYSTEMS LTD": "APOLLO.NS",
             "INDUSIND BANK": "INDUSINDBK.NS",
             "KOTAK MAHINDRA": "KOTAKBANK.NS",
             "KOTAK BANK": "KOTAKBANK.NS",
@@ -131,6 +133,10 @@ class StockDataAPIService:
             "UNION BANK": "UNIONBANK.NS",
             "IDBI BANK": "IDBI.NS",
             "YES BANK": "YESBANK.NS",
+            "VA TECH WABAG": "WABAG.NS",
+            "VA TECH": "WABAG.NS",
+            "WABAG": "WABAG.NS",
+            "VA TECH WABAG LTD": "WABAG.NS",
             "FEDERAL BANK": "FEDERALBNK.NS",
             "RBL BANK": "RBLBANK.NS",
             "BANDHAN BANK": "BANDHANBNK.NS",
@@ -478,6 +484,7 @@ class StockDataAPIService:
             currency = info.get("currency", "INR" if is_indian else "USD")
             country = info.get("country", "India" if is_indian else "United States")
 
+            # Extract all financial metrics from Yahoo Finance info
             return {
                 "symbol": symbol_raw.upper(),
                 "company_name": info.get("longName")
@@ -489,6 +496,7 @@ class StockDataAPIService:
                 "current_price": float(current_price) if current_price else None,
                 "previous_close": float(previous_close) if previous_close else None,
                 "market_cap": info.get("marketCap"),
+                "marketCap": info.get("marketCap"),  # Also include with different casing
                 "volume": info.get("volume") or info.get("regularMarketVolume"),
                 "price_change": (
                     float(price_change) if price_change is not None else None
@@ -499,14 +507,52 @@ class StockDataAPIService:
                     else None
                 ),
                 "currency": currency,
+                # Financial Ratios
+                "trailingPE": info.get("trailingPE"),
+                "forwardPE": info.get("forwardPE"),
+                "trailingEps": info.get("trailingEps"),
+                "forwardEps": info.get("forwardEps"),
+                "priceToBook": info.get("priceToBook"),
+                "priceToSalesTrailing12Months": info.get("priceToSalesTrailing12Months"),
+                # Revenue and Earnings
+                "totalRevenue": info.get("totalRevenue"),
+                "revenue": info.get("totalRevenue"),  # Alias
+                "revenuePerShare": info.get("revenuePerShare"),
+                "earningsQuarterlyGrowth": info.get("earningsQuarterlyGrowth"),
+                # Profitability
+                "profitMargins": info.get("profitMargins"),
+                "grossMargins": info.get("grossMargins"),
+                "operatingMargins": info.get("operatingMargins"),
+                "netProfitMargin": info.get("netProfitMargin"),
+                "ebitda": info.get("ebitda"),
+                "ebitdaMargins": info.get("ebitdaMargins"),
+                # Returns
+                "returnOnEquity": info.get("returnOnEquity"),
+                "returnOnAssets": info.get("returnOnAssets"),
+                # Balance Sheet
+                "bookValue": info.get("bookValue"),
+                "totalCash": info.get("totalCash"),
+                "totalCashPerShare": info.get("totalCashPerShare"),
+                "totalDebt": info.get("totalDebt"),
+                "debtToEquity": info.get("debtToEquity"),
+                "debtToAssets": info.get("debtToAssets"),
+                "currentRatio": info.get("currentRatio"),
+                "quickRatio": info.get("quickRatio"),
+                # Dividends
+                "dividendYield": info.get("dividendYield"),
+                "dividendRate": info.get("dividendRate"),
+                "payoutRatio": info.get("payoutRatio"),
+                # Growth
+                "revenueGrowth": info.get("revenueGrowth"),
+                "earningsGrowth": info.get("earningsGrowth"),
+                "earningsQuarterlyGrowth": info.get("earningsQuarterlyGrowth"),
+                # Additional metadata
                 "metadata": {
                     "currency": currency,
                     "country": country,
                     "website": info.get("website"),
                     "description": info.get("longBusinessSummary"),
                     "employees": info.get("fullTimeEmployees"),
-                    "dividend_yield": info.get("dividendYield"),
-                    "pe_ratio": info.get("trailingPE"),
                     "52_week_high": info.get("fiftyTwoWeekHigh"),
                     "52_week_low": info.get("fiftyTwoWeekLow"),
                     "is_indian_stock": is_indian,
@@ -689,18 +735,65 @@ class StockDataAPIService:
                 logger.warning(f"No news found for {symbol_normalized}")
                 return []
 
+            logger.info(f"Retrieved {len(news)} news articles from Yahoo Finance for {symbol_normalized}")
+            if len(news) > 0:
+                logger.info(f"Sample article keys: {list(news[0].keys()) if isinstance(news[0], dict) else 'N/A'}")
+                logger.info(f"Sample article: {str(news[0])[:200]}...")
+
             formatted_news = []
             for article in news[:limit]:
-                formatted_news.append(
-                    {
-                        "title": article.get("title", "No title"),
-                        "publisher": article.get("publisher", "Unknown"),
-                        "link": article.get("link", ""),
-                        "published_date": article.get("providerPublishTime", 0),
-                        "uuid": article.get("uuid", ""),
-                    }
+                # Log article structure for debugging
+                logger.debug(f"News article keys: {list(article.keys()) if isinstance(article, dict) else 'N/A'}")
+                
+                # Try multiple field names for title
+                title = (
+                    article.get("title")
+                    or article.get("headline")
+                    or article.get("summary")
+                    or ""
                 )
+                
+                # Try multiple field names for publisher
+                publisher = (
+                    article.get("publisher")
+                    or article.get("source")
+                    or article.get("provider")
+                    or "Unknown"
+                )
+                
+                # Try multiple field names for link
+                link = (
+                    article.get("link")
+                    or article.get("url")
+                    or article.get("webUrl")
+                    or ""
+                )
+                
+                # Try multiple field names for published date
+                published_date = (
+                    article.get("providerPublishTime")
+                    or article.get("publishTime")
+                    or article.get("publishedAt")
+                    or article.get("timestamp")
+                    or 0
+                )
+                
+                # Only include articles with at least a title or summary
+                if title or article.get("summary"):
+                    formatted_news.append(
+                        {
+                            "title": title or article.get("summary", "No title")[:200],  # Limit title length
+                            "publisher": publisher,
+                            "link": link,
+                            "published_date": published_date,
+                            "uuid": article.get("uuid", ""),
+                            "summary": article.get("summary", ""),  # Include summary if available
+                        }
+                    )
+                else:
+                    logger.warning(f"Skipping article with no title or summary: {article}")
 
+            logger.info(f"Formatted {len(formatted_news)} valid news articles out of {len(news[:limit])} total")
             return formatted_news
         except Exception as e:
             logger.error(f"Error fetching news for {symbol}: {e}")
