@@ -2324,9 +2324,9 @@ const DiscoveryDashboard: React.FC = () => {
                           ) : stockNews.length > 0 ? (
                             <div className="space-y-4">
                               {stockNews
-                                .filter((article) => 
-                                  article.title && 
-                                  article.title !== "No title" && 
+                                .filter((article) =>
+                                  article.title &&
+                                  article.title !== "No title" &&
                                   article.title.trim() !== "" &&
                                   (article.is_llm_generated || (article.publisher && article.publisher !== "Unknown"))
                                 )
@@ -2341,7 +2341,7 @@ const DiscoveryDashboard: React.FC = () => {
                                       </Badge>
                                     )}
                                     {article.impact && article.impact !== "neutral" && (
-                                      <Badge 
+                                      <Badge
                                         variant={article.impact === "positive" ? "default" : "destructive"}
                                         className="text-xs"
                                       >

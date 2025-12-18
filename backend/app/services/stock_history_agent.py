@@ -321,11 +321,13 @@ Provide only valid JSON, no additional text.
         try:
             # Try to extract JSON from response
             response_clean = response.strip()
-            
+
             # Remove markdown code blocks more thoroughly
             if "```json" in response_clean:
                 # Extract content between ```json and ```
-                json_match = re.search(r"```json\s*(.*?)\s*```", response_clean, re.DOTALL)
+                json_match = re.search(
+                    r"```json\s*(.*?)\s*```", response_clean, re.DOTALL
+                )
                 if json_match:
                     response_clean = json_match.group(1).strip()
                 else:
@@ -344,7 +346,7 @@ Provide only valid JSON, no additional text.
             json_match = re.search(r"\{.*\}", response_clean, re.DOTALL)
             if json_match:
                 response_clean = json_match.group(0)
-            
+
             # Log cleaned response for debugging
             logger.debug(f"Cleaned response (first 200 chars): {response_clean[:200]}")
 
@@ -379,7 +381,7 @@ Provide only valid JSON, no additional text.
         except json.JSONDecodeError as e:
             logger.warning(f"Failed to parse LLM response as JSON: {e}")
             logger.warning(f"Response text (first 500 chars): {response[:500]}")
-            
+
             # Try to extract summary from raw response even if JSON parsing fails
             summary_text = ""
             # Try to find summary in the response text
@@ -392,17 +394,23 @@ Provide only valid JSON, no additional text.
                 clean_text = re.sub(r"```json\s*", "", response)
                 clean_text = re.sub(r"```\s*", "", clean_text)
                 # Try to find text after "summary"
-                summary_match = re.search(r'summary["\']?\s*:\s*["\']?([^"\']+)', clean_text, re.IGNORECASE)
+                summary_match = re.search(
+                    r'summary["\']?\s*:\s*["\']?([^"\']+)', clean_text, re.IGNORECASE
+                )
                 if summary_match:
                     summary_text = summary_match.group(1).strip()[:500]
                 else:
                     # Last resort: use first 500 chars of cleaned text
                     summary_text = clean_text.strip()[:500]
-            
+
             # Fallback: create basic analysis from response text
             return {
                 "analysis_type": "history",
-                "summary": summary_text if summary_text else "Analysis completed but response format was invalid.",
+                "summary": (
+                    summary_text
+                    if summary_text
+                    else "Analysis completed but response format was invalid."
+                ),
                 "key_insights": [
                     response[i : i + 200]
                     for i in range(0, min(600, len(response)), 200)
