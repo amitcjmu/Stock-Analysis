@@ -20,7 +20,7 @@ from app.core.logging import get_logger
 from app.models.data_import import DataImport, RawImportRecord
 from app.services.data_import.storage_manager.operations import ImportStorageOperations
 from app.services.discovery_flow_service import DiscoveryFlowService
-from app.services.master_flow_orchestrator import MasterFlowOrchestrator
+# MasterFlowOrchestrator removed - master flow code removed from project
 
 
 logger = get_logger(__name__)
@@ -59,46 +59,12 @@ class DataImportChildFlowService:
             "✅ CrewAI environment configured for DataImportChildFlowService initialization"
         )
 
-        orchestrator = MasterFlowOrchestrator(self.db, self.context)
-        configuration: Dict[str, Any] = {
-            "source": "data_import",
-            "import_id": str(data_import.id),
-            "data_import_id": str(
-                data_import.id
-            ),  # Defensive redundancy for metadata access
-            "filename": data_import.filename,
-            "import_timestamp": datetime.utcnow().isoformat(),
-        }
-        if import_category:
-            configuration["import_category"] = import_category
-        if processing_config:
-            configuration["processing_config"] = processing_config
+        # MasterFlowOrchestrator removed - master flow code removed from project
+        # Generate a flow ID directly without master flow orchestrator
+        master_flow_id_str = str(uuid.uuid4())
+        logger.info(f"✅ Flow ID generated: {master_flow_id_str}")
 
         raw_data_sample = await self._get_raw_data_sample(data_import.id)
-        initial_state: Dict[str, Any] = {
-            "raw_data": raw_records,  # CRITICAL: Pass full raw_data for field mapping
-            "data_import_id": str(data_import.id),
-            "raw_data_sample": raw_data_sample,  # Sample for audit trails
-            "import_category": import_category,
-            "processing_config": processing_config or {},
-        }
-
-        flow_result = await orchestrator.create_flow(
-            flow_type="discovery",
-            flow_name=f"Discovery Import {data_import.id}",
-            configuration=self._convert_uuids_to_str(configuration),
-            initial_state=self._convert_uuids_to_str(initial_state),
-            atomic=True,
-        )
-
-        master_flow_id = (
-            flow_result[0] if isinstance(flow_result, (list, tuple)) else flow_result
-        )
-        if not master_flow_id:
-            raise RuntimeError("Failed to create master flow - no flow ID returned")
-
-        master_flow_id_str = str(master_flow_id)
-        logger.info(f"✅ Master flow created successfully: {master_flow_id_str}")
 
         discovery_service = DiscoveryFlowService(self.db, self.context)
         metadata: Dict[str, Any] = {

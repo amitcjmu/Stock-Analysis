@@ -35,8 +35,8 @@ router.include_router(import_retrieval_router, tags=[APITags.IMPORT_RETRIEVAL])
 router.include_router(field_handler, tags=[APITags.FIELD_MAPPING])
 router.include_router(upload_router, tags=[APITags.DATA_IMPORT_CORE])
 
-# Critical attributes analysis handled by MasterFlowOrchestrator with real CrewAI agents
-logger.info("📦 Critical attributes analysis now handled by MasterFlowOrchestrator")
+# Critical attributes analysis - MasterFlowOrchestrator removed
+logger.info("📦 Critical attributes analysis")
 
 
 # Health check endpoint for the modular service

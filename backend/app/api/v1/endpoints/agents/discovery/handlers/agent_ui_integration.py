@@ -20,7 +20,7 @@ from app.core.database import get_db
 from app.services.agent_ui_bridge import agent_ui_bridge
 from app.services.agents.agent_communication_protocol import get_communication_protocol
 from app.services.confidence.confidence_manager import ConfidenceManager
-from app.services.master_flow_orchestrator import MasterFlowOrchestrator
+# MasterFlowOrchestrator removed - master flow code removed from project
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -55,19 +55,14 @@ class PonderRequest(BaseModel):
 confidence_manager = ConfidenceManager()
 
 
-# Dependency injection for MasterFlowOrchestrator
-async def get_orchestrator(
-    db: AsyncSession = Depends(get_db),
-    context: RequestContext = Depends(get_request_context_dependency),
-) -> MasterFlowOrchestrator:
-    """Get MasterFlowOrchestrator instance with proper context"""
-    return MasterFlowOrchestrator(db, context)
+# MasterFlowOrchestrator removed - master flow code removed from project
+# Dependency injection removed
 
 
 @router.get("/agent-status")
 async def get_agent_status(
     context: RequestContext = Depends(get_request_context_dependency),
-    master_orchestrator: MasterFlowOrchestrator = Depends(get_orchestrator),
+    # master_orchestrator removed - master flow code removed from project
 ):
     """Get current agent status for the UI monitor panel - scoped by client/engagement for multi-tenant security."""
     try:
@@ -349,20 +344,16 @@ async def perform_insight_action(
 async def agent_think(
     request: ThinkRequest,
     context: RequestContext = Depends(get_request_context_dependency),
-    master_orchestrator: MasterFlowOrchestrator = Depends(get_orchestrator),
+    # master_orchestrator removed - master flow code removed from project
 ):
     """Trigger 'Think' button functionality for progressive intelligence."""
     try:
-        # Use master orchestrator to trigger deeper analysis
-        result = await master_orchestrator.execute_flow_phase(
-            flow_type="discovery",
-            phase_name="agent_thinking",
-            context={
-                "agent_id": request.agent_id,
-                "request_context": request.context,
-                "complexity_level": request.complexity_level,
-            },
-        )
+        # MasterFlowOrchestrator removed - return error
+        result = {
+            "success": False,
+            "error": "MasterFlowOrchestrator removed - think functionality not available",
+            "error_code": "MFO_REMOVED"
+        }
 
         # Send thinking request through communication protocol
         comm_protocol = get_communication_protocol()
@@ -395,20 +386,16 @@ async def agent_think(
 async def agent_ponder_more(
     request: PonderRequest,
     context: RequestContext = Depends(get_request_context_dependency),
-    master_orchestrator: MasterFlowOrchestrator = Depends(get_orchestrator),
+    # master_orchestrator removed - master flow code removed from project
 ):
     """Trigger 'Ponder More' button functionality for crew collaboration."""
     try:
-        # Use master orchestrator to trigger crew collaboration
-        result = await master_orchestrator.execute_flow_phase(
-            flow_type="discovery",
-            phase_name="crew_collaboration",
-            context={
-                "agent_id": request.agent_id,
-                "request_context": request.context,
-                "collaboration_type": request.collaboration_type,
-            },
-        )
+        # MasterFlowOrchestrator removed - return error
+        result = {
+            "success": False,
+            "error": "MasterFlowOrchestrator removed - ponder functionality not available",
+            "error_code": "MFO_REMOVED"
+        }
 
         # Send pondering request through communication protocol
         comm_protocol = get_communication_protocol()

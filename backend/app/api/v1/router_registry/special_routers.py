@@ -39,13 +39,7 @@ def register_special_routers(api_router: APIRouter):
     else:
         logger.warning("⚠️ Agent Events router not available")
 
-    # Master Flows
-    if routers_with_flags.get("MASTER_FLOWS", (False, None))[0]:
-        master_flows_router = routers_with_flags["MASTER_FLOWS"][1]
-        api_router.include_router(master_flows_router, prefix="/master-flows")
-        logger.info("✅ Master Flows router included")
-    else:
-        logger.warning("⚠️ Master Flows router not available")
+    # Master Flows - REMOVED
 
     # FinOps
     if routers_with_flags.get("FINOPS", (False, None))[0]:

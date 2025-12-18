@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.discovery_flow import DiscoveryFlow
 from app.core.context import RequestContext
-from app.services.master_flow_orchestrator import MasterFlowOrchestrator
+# MasterFlowOrchestrator removed - master flow code removed from project
 from app.core.security.secure_logging import safe_log_format
 from app.services.flow_type_registry_helpers import get_flow_config
 from .flow_state_helpers import load_flow_state_for_phase
@@ -320,8 +320,7 @@ async def execute_flow_phase(
             )
         )
         try:
-            orchestrator = MasterFlowOrchestrator(db, context)
-
+            # MasterFlowOrchestrator removed - master flow code removed from project
             # Load flow state data for asset_inventory phase
             phase_input = await load_flow_state_for_phase(
                 db, context, flow_id, "asset_inventory"
@@ -334,10 +333,12 @@ async def execute_flow_phase(
                 )
             )
 
-            # Pass asset_inventory as the phase to execute with populated data
-            result = await orchestrator.execute_phase(
-                flow_id, "asset_inventory", phase_input
-            )
+            # MasterFlowOrchestrator removed - return error
+            result = {
+                "success": False,
+                "error": "MasterFlowOrchestrator removed - asset_inventory phase not available",
+                "error_code": "MFO_REMOVED"
+            }
 
             # Check for CLEANSING_REQUIRED error
             if result.get("error_code") == "CLEANSING_REQUIRED":
@@ -390,10 +391,9 @@ async def execute_flow_phase(
                 "phase": "asset_inventory",
             }
 
-    # Try Master Flow Orchestrator as fallback or for other phases
+    # Master Flow Orchestrator removed - return error
     try:
-        orchestrator = MasterFlowOrchestrator(db, context)
-
+        # MasterFlowOrchestrator removed - master flow code removed from project
         # Load flow state data for the phase
         phase_input = await load_flow_state_for_phase(
             db, context, flow_id, phase_to_execute
@@ -406,9 +406,13 @@ async def execute_flow_phase(
             )
         )
 
-        result = await orchestrator.execute_phase(
-            flow_id, phase_to_execute, phase_input
-        )
+        # MasterFlowOrchestrator removed - return error
+        result = {
+            "success": False,
+            "error": "MasterFlowOrchestrator removed - phase execution not available",
+            "error_code": "MFO_REMOVED",
+            "phase": phase_to_execute
+        }
 
         # Persist phase completion after successful execution
         if result.get("status") != "failed":

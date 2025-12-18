@@ -30,7 +30,7 @@ def register_core_routers(api_router: APIRouter):
         field_mapping_router,
         monitoring_router,
         context_establishment_router,
-        flow_sync_debug_router,
+        # flow_sync_debug_router removed - was master flow related
     )
     from app.api.v1.endpoints.flow_metadata import router as flow_metadata_router
 
@@ -81,7 +81,7 @@ def register_core_routers(api_router: APIRouter):
         field_mapping_router
     )  # Uses /field-mapping prefix from router
     api_router.include_router(monitoring_router, prefix="/monitoring")
-    api_router.include_router(flow_sync_debug_router, prefix="/flow-sync-debug")
+    # flow_sync_debug router removed - was master flow related
     logger.info("✅ Data and monitoring routers registered")
 
     # Flow Metadata (for FlowTypeConfig pattern per ADR-027)

@@ -6,9 +6,6 @@ Contains specialized agents for discovery, analysis, and orchestration.
 # Import key agent classes for easier access
 try:
     # Import from the modular agent_service_layer package
-    # Import the MasterFlowOrchestrator for unified flow management
-    from ..master_flow_orchestrator import MasterFlowOrchestrator  # noqa: F401
-
     # Import communication and integration layers
     from .agent_communication_protocol import AgentCommunicationProtocol  # noqa: F401
     from .agent_integration_layer import AgentIntegrationLayer  # noqa: F401
@@ -41,8 +38,6 @@ try:
         # Communication and integration
         "AgentCommunicationProtocol",
         "AgentIntegrationLayer",
-        # Master Flow Orchestrator for unified flow management
-        "MasterFlowOrchestrator",
         # Gap Analysis agents
         "GapPrioritizationAgent",
         # Manual Collection agents

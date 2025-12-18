@@ -41,7 +41,8 @@ from app.api.v1.endpoints.asset_data_audit import (
 from app.api.v1.endpoints.context_establishment import (
     router as context_establishment_router,
 )
-from app.api.v1.endpoints.flow_sync_debug import router as flow_sync_debug_router
+# flow_sync_debug removed - was master flow related
+flow_sync_debug_router = None
 
 # Analysis endpoints (including queues)
 analysis_queues_router: Optional[APIRouter]
@@ -271,12 +272,8 @@ try:
 except ImportError:
     routers_with_flags["ADMIN_USER_ACCESS"] = (False, None)
 
-try:
-    from app.api.v1.master_flows import router as master_flows_router
-
-    routers_with_flags["MASTER_FLOWS"] = (True, master_flows_router)
-except ImportError:
-    routers_with_flags["MASTER_FLOWS"] = (False, None)
+# Master Flows - REMOVED
+routers_with_flags["MASTER_FLOWS"] = (False, None)
 
 try:
     from app.api.v1.endpoints.simple_admin import simple_admin_router
@@ -349,7 +346,7 @@ __all__ = [
     "monitoring_router",
     # "sixr_router",  # Removed - replaced by Assessment Flow with MFO integration (Phase 4, Issue #840)
     "context_establishment_router",
-    "flow_sync_debug_router",
+    # "flow_sync_debug_router",  # Removed - was master flow related
     # Conditional routers with availability flags
     "ANALYSIS_QUEUES_AVAILABLE",
     "analysis_queues_router",
