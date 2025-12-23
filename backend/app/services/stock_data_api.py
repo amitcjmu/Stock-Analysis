@@ -77,6 +77,8 @@ class StockDataAPIService:
             "ASIAN PAINTS": "ASIANPAINT.NS",
             "HCL TECH": "HCLTECH.NS",
             "HCL TECHNOLOGIES": "HCLTECH.NS",
+            "HCLTECH": "HCLTECH.NS",
+            "HCL": "HCLTECH.NS",
             "M&M": "M&M.NS",
             "MAHINDRA": "M&M.NS",
             "MAHINDRA AND MAHINDRA": "M&M.NS",
@@ -165,13 +167,10 @@ class StockDataAPIService:
             "BANK NIFTY": "^NSEBANK",
         }
 
-    def _normalize_symbol(self, symbol: str) -> str:
-        """Normalize symbol to handle Indian stocks and company names"""
-        symbol_upper = symbol.upper().strip()
-
-        # Remove common suffixes like "LIMITED", "LTD", "INC", "CORPORATION", etc.
-        cleaned_symbol = symbol_upper
-        for suffix in [
+    def _clean_symbol_suffixes(self, symbol: str) -> str:
+        """Remove common company suffixes from symbol"""
+        cleaned = symbol
+        suffixes = [
             " LIMITED",
             " LTD",
             " INC",
@@ -179,42 +178,95 @@ class StockDataAPIService:
             " CORP",
             " COMPANY",
             " CO",
-        ]:
-            if cleaned_symbol.endswith(suffix):
-                cleaned_symbol = cleaned_symbol[: -len(suffix)].strip()
+        ]
+        for suffix in suffixes:
+            if cleaned.endswith(suffix):
+                cleaned = cleaned[: -len(suffix)].strip()
+        return cleaned
+
+    def _has_exchange_suffix(self, symbol: str) -> bool:
+        """Check if symbol already has exchange suffix (.NS or .BO)"""
+        return symbol.endswith(".NS") or symbol.endswith(".BO")
+
+    def _check_indian_indices(self, symbol: str, cleaned: str) -> Optional[str]:
+        """Check if symbol matches Indian indices"""
+        if symbol in self.indian_indices:
+            return self.indian_indices[symbol]
+        if cleaned in self.indian_indices:
+            return self.indian_indices[cleaned]
+        return None
+
+    def _check_exact_company_match(self, symbol: str, cleaned: str) -> Optional[str]:
+        """Check for exact match in Indian companies mapping"""
+        if symbol in self.indian_companies:
+            return self.indian_companies[symbol]
+        if cleaned in self.indian_companies:
+            return self.indian_companies[cleaned]
+        return None
+
+    def _calculate_match_score(self, query: str, company_name: str) -> Optional[int]:
+        """Calculate match score between query and company name"""
+        # Skip very short company names to avoid false matches
+        if len(company_name) < 3:
+            return None
+
+        # Check if there's any overlap
+        if query not in company_name and company_name not in query:
+            return None
+
+        # Base score is length of company name (prefer longer matches)
+        score = len(company_name)
+
+        # Boost score for exact and word-boundary matches
+        if query == company_name:
+            score += 1000  # Exact match gets highest priority
+        elif query.startswith(company_name) or query.endswith(company_name):
+            score += 100  # Word boundary match
+        elif company_name.startswith(query) or company_name.endswith(query):
+            score += 50  # Partial word match
+
+        return score
+
+    def _find_partial_company_match(self, cleaned_symbol: str) -> Optional[str]:
+        """Find best partial match in Indian companies"""
+        best_match = None
+        best_score = 0
+
+        for company_name, ticker in self.indian_companies.items():
+            score = self._calculate_match_score(cleaned_symbol, company_name)
+            if score and score > best_score:
+                best_match = ticker
+                best_score = score
+
+        if best_match:
+            logger.info(
+                f"Matched '{cleaned_symbol}' to '{best_match}' via partial match (score: {best_score})"
+            )
+        return best_match
+
+    def _normalize_symbol(self, symbol: str) -> str:
+        """Normalize symbol to handle Indian stocks and company names"""
+        symbol_upper = symbol.upper().strip()
+        cleaned_symbol = self._clean_symbol_suffixes(symbol_upper)
 
         # Check if already has exchange suffix
-        if symbol_upper.endswith(".NS") or symbol_upper.endswith(".BO"):
+        if self._has_exchange_suffix(symbol_upper):
             return symbol_upper
 
         # Check Indian indices
-        if symbol_upper in self.indian_indices:
-            return self.indian_indices[symbol_upper]
-        if cleaned_symbol in self.indian_indices:
-            return self.indian_indices[cleaned_symbol]
+        index_match = self._check_indian_indices(symbol_upper, cleaned_symbol)
+        if index_match:
+            return index_match
 
-        # Check Indian companies (exact match first)
-        if symbol_upper in self.indian_companies:
-            return self.indian_companies[symbol_upper]
-        if cleaned_symbol in self.indian_companies:
-            return self.indian_companies[cleaned_symbol]
+        # Check exact company match
+        exact_match = self._check_exact_company_match(symbol_upper, cleaned_symbol)
+        if exact_match:
+            return exact_match
 
-        # Check for partial matches (more flexible matching)
-        # Try to find the best match by checking if query contains company name or vice versa
-        best_match = None
-        best_match_length = 0
-
-        for company_name, ticker in self.indian_companies.items():
-            # Check if query is contained in company name or company name is contained in query
-            if cleaned_symbol in company_name or company_name in cleaned_symbol:
-                # Prefer longer matches (more specific)
-                if len(company_name) > best_match_length:
-                    best_match = ticker
-                    best_match_length = len(company_name)
-
-        if best_match:
-            logger.info(f"Matched '{symbol_upper}' to '{best_match}' via partial match")
-            return best_match
+        # Check for partial matches
+        partial_match = self._find_partial_company_match(cleaned_symbol)
+        if partial_match:
+            return partial_match
 
         # Default: assume US stock or return as-is
         return symbol_upper
