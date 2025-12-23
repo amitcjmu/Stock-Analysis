@@ -132,6 +132,16 @@ repos:
   # Lightweight security checks (faster versions)
   - repo: local
     hooks:
+      # Code Review Check - Pattern-based and AI-powered review
+      - id: code-review-check
+        name: Code Review Check (Pattern-based)
+        entry: scripts/code-review-pre-commit.sh
+        language: system
+        files: '\.(py|ts|tsx|js|jsx)$'
+        pass_filenames: false
+        stages: [pre-commit]
+        description: "Review code against common patterns and best practices before commit"
+
       # Check for API tag violations in endpoint files
       - id: check-api-tags
         name: Check API tag violations
