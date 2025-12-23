@@ -73,6 +73,9 @@ class Settings(BaseSettings):
         env="GEMINI_MODEL",
     )
 
+    # NewsAPI.org Configuration (optional, for enhanced news fetching)
+    NEWSAPI_KEY: str = Field(default="", env="NEWSAPI_KEY")
+
     @property
     def deepinfra_model_url(self) -> str:
         """Get the full DeepInfra model URL."""

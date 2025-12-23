@@ -813,27 +813,45 @@ class StockDataAPIService:
         return prices
 
     async def get_stock_news(
-        self, symbol: str, limit: int = 20
+        self,
+        symbol: str,
+        limit: int = 20,
+        company_name: Optional[str] = None,
+        months_back: int = 6,
     ) -> List[Dict[str, Any]]:
         """
-        Get news articles for a stock.
+        Get news articles for a stock from leading Indian economic newspapers.
+        Uses Indian News Service instead of yfinance for better coverage of Indian stocks.
 
         Args:
             symbol: Stock symbol
             limit: Maximum number of news articles to return
+            company_name: Company name for better search results
+            months_back: Number of months to look back (default 6)
         """
-        if not YFINANCE_AVAILABLE:
-            return await self._mock_get_stock_news(symbol, limit)
-
         try:
-            loop = asyncio.get_event_loop()
-            news = await loop.run_in_executor(
-                None, self._get_stock_news_sync, symbol, limit
+            # Use Indian News Service for fetching news from Times Group and Hindustan Times Group
+            from app.services.indian_news_service import IndianNewsService
+
+            indian_news_service = IndianNewsService()
+            news = await indian_news_service.get_stock_news(
+                symbol=symbol,
+                company_name=company_name,
+                limit=limit,
+                months_back=months_back,
             )
+
+            logger.info(
+                f"Retrieved {len(news)} news articles from Indian news sources for {symbol}"
+            )
+
             return news
         except Exception as e:
-            logger.error(f"Error getting stock news for {symbol}: {e}")
-            return await self._mock_get_stock_news(symbol, limit)
+            logger.error(
+                f"Error getting stock news from Indian sources for {symbol}: {e}"
+            )
+            # Fallback to empty list instead of mock data
+            return []
 
     def _get_stock_news_sync(self, symbol: str, limit: int) -> List[Dict[str, Any]]:
         """Synchronous news fetch - supports US and Indian stocks"""

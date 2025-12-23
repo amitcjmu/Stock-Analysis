@@ -557,6 +557,9 @@ async def get_stock_analysis(
 async def get_stock_news(
     symbol: str,
     limit: int = Query(20, ge=1, le=50, description="Maximum number of news articles"),
+    months_back: int = Query(
+        6, ge=1, le=12, description="Number of months to look back for news"
+    ),
     model: Optional[str] = Query(
         None,
         description="LLM model to use for news generation (gemini, llama4_maverick, gemma3_4b, auto)",
@@ -568,15 +571,19 @@ async def get_stock_news(
     context: RequestContext = Depends(get_current_context),
 ):
     """
-    Get news articles for a stock from Yahoo Finance and LLM-generated insights.
+    Get news articles for a stock from leading Indian economic newspapers
+    (Times Group, Hindustan Times Group) and LLM-generated insights.
+    Fetches news from the past 6 months by default.
     """
     try:
         stock_service = StockService(db, context)
 
-        # Get Yahoo Finance news
-        yfinance_news = await stock_service.get_stock_news(symbol, limit)
+        # Get news from Indian economic newspapers (Times Group, Hindustan Times Group)
+        indian_news = await stock_service.get_stock_news(
+            symbol, limit, months_back=months_back
+        )
         logger.info(
-            f"Retrieved {len(yfinance_news)} news articles from Yahoo Finance for {symbol}"
+            f"Retrieved {len(indian_news)} news articles from Indian news sources for {symbol}"
         )
 
         # Get LLM-generated news insights if requested
@@ -674,16 +681,16 @@ Provide only valid JSON array, no additional text.
                 logger.error(f"Error generating LLM news insights: {e}", exc_info=True)
                 # Continue without LLM news if it fails
 
-        # Combine Yahoo Finance news and LLM insights
-        # Put LLM insights first, then Yahoo Finance news
-        combined_news = llm_news_insights + yfinance_news
+        # Combine Indian news sources and LLM insights
+        # Put LLM insights first, then Indian news
+        combined_news = llm_news_insights + indian_news
 
         return {
             "success": True,
             "symbol": symbol,
             "news": combined_news,
             "count": len(combined_news),
-            "yfinance_count": len(yfinance_news),
+            "indian_news_count": len(indian_news),
             "llm_count": len(llm_news_insights),
         }
 
@@ -807,7 +814,10 @@ async def analyze_stock_news(
     """
     try:
         stock_service = StockService(db, context)
-        news_data = await stock_service.get_stock_news(request.symbol, limit=20)
+        # Fetch news from past 6 months from Indian news sources
+        news_data = await stock_service.get_stock_news(
+            request.symbol, limit=50, months_back=6
+        )
 
         agent = StockNewsAgent(db, context)
         result = await agent.analyze_news(request.symbol, news_data or [])
@@ -859,9 +869,7 @@ async def _run_agent(
             logger.error(
                 f"🚀 [ANALYZE ALL] {agent_name} Agent result missing 'analysis' key or is None"
             )
-            result_keys = (
-                list(result.keys()) if isinstance(result, dict) else "N/A"
-            )
+            result_keys = list(result.keys()) if isinstance(result, dict) else "N/A"
             logger.error(
                 f"🚀 [ANALYZE ALL] {agent_name} Agent result keys: {result_keys}"
             )
@@ -1261,9 +1269,14 @@ async def analyze_stock_all_agents(
                 logger.info(
                     f"🚀 [ANALYZE ALL] Starting News Agent for {request.symbol}"
                 )
-                news_data = await stock_service.get_stock_news(request.symbol, limit=20)
+                # Fetch news from past 6 months from Indian news sources
+                news_data = await stock_service.get_stock_news(
+                    request.symbol, limit=50, months_back=6
+                )
                 logger.info(
-                    f"🚀 [ANALYZE ALL] Retrieved {len(news_data) if news_data else 0} news articles"
+                    f"🚀 [ANALYZE ALL] Retrieved "
+                    f"{len(news_data) if news_data else 0} news articles "
+                    f"from Indian news sources"
                 )
                 agent = StockNewsAgent(db, context)
                 result = await agent.analyze_news(
