@@ -468,8 +468,9 @@ const DiscoveryDashboard: React.FC = () => {
 
     try {
       // Fetch full stock details from API to ensure we have all data
+      // Use refresh=true to get the latest price data
       const response = await apiCall(
-        `/stock/stocks/${encodeURIComponent(stock.symbol)}`,
+        `/stock/stocks/${encodeURIComponent(stock.symbol)}?refresh=true`,
         {
           method: 'GET',
           headers: getAuthHeaders(),
@@ -636,11 +637,12 @@ const DiscoveryDashboard: React.FC = () => {
     }
   };
 
-  const formatCurrency = (value?: number | null) => {
+  const formatCurrency = (value?: number | null, currency: string = 'USD') => {
     if (value === undefined || value === null || isNaN(value)) return 'N/A';
+    const currencyCode = currency || 'USD';
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD',
+      currency: currencyCode,
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(value);
@@ -723,7 +725,7 @@ const DiscoveryDashboard: React.FC = () => {
                               )}
                               {item.stock_data?.current_price && (
                                 <div className="font-semibold mt-1">
-                                  {formatCurrency(item.stock_data.current_price)}
+                                  {formatCurrency(item.stock_data.current_price, item.stock_data.currency || item.stock_data.metadata?.currency)}
                                 </div>
                               )}
                             </div>
@@ -861,7 +863,7 @@ const DiscoveryDashboard: React.FC = () => {
                               {stock.sector && <span>{stock.sector}</span>}
                               {stock.current_price && (
                                 <span className="font-semibold text-gray-900">
-                                  {formatCurrency(stock.current_price)}
+                                  {formatCurrency(stock.current_price, stock.currency || stock.metadata?.currency)}
                                 </span>
                               )}
                               {stock.price_change_percent !== undefined && stock.price_change_percent !== null && (
@@ -1012,7 +1014,7 @@ const DiscoveryDashboard: React.FC = () => {
                       {selectedStock.current_price && (
                         <div>
                           <div className="text-4xl font-bold text-gray-900">
-                            {formatCurrency(selectedStock.current_price)}
+                            {formatCurrency(selectedStock.current_price, selectedStock.currency || selectedStock.metadata?.currency)}
                           </div>
                           {selectedStock.price_change !== undefined && selectedStock.price_change !== null && (
                             <div className={`flex items-center gap-2 mt-1 ${getPriceChangeColor(selectedStock.price_change_percent || 0)}`}>
@@ -1162,7 +1164,7 @@ const DiscoveryDashboard: React.FC = () => {
                                         <div className="flex gap-2">
                                           {analysis.technical_analysis.support_levels.map((level, idx) => (
                                             <Badge key={idx} variant="secondary">
-                                              {formatCurrency(level)}
+                                              {formatCurrency(level, selectedStock?.currency || selectedStock?.metadata?.currency)}
                                             </Badge>
                                           ))}
                                         </div>
@@ -1174,7 +1176,7 @@ const DiscoveryDashboard: React.FC = () => {
                                         <div className="flex gap-2">
                                           {analysis.technical_analysis.resistance_levels.map((level, idx) => (
                                             <Badge key={idx} variant="secondary">
-                                              {formatCurrency(level)}
+                                              {formatCurrency(level, selectedStock?.currency || selectedStock?.metadata?.currency)}
                                             </Badge>
                                           ))}
                                         </div>
@@ -1242,7 +1244,7 @@ const DiscoveryDashboard: React.FC = () => {
                                           {analysis.fundamental_analysis.valuation_analysis.price_target && (
                                             <div className="flex items-center justify-between">
                                               <span className="text-sm text-muted-foreground">Price Target:</span>
-                                              <span className="font-semibold">{formatCurrency(analysis.fundamental_analysis.valuation_analysis.price_target)}</span>
+                                              <span className="font-semibold">{formatCurrency(analysis.fundamental_analysis.valuation_analysis.price_target, selectedStock?.currency || selectedStock?.metadata?.currency)}</span>
                                             </div>
                                           )}
                                           {analysis.fundamental_analysis.valuation_analysis.upside_potential !== undefined && analysis.fundamental_analysis.valuation_analysis.upside_potential !== null && (
@@ -1445,7 +1447,7 @@ const DiscoveryDashboard: React.FC = () => {
                                             <div>
                                               <div className="text-sm text-muted-foreground">1 Month</div>
                                               <div className="font-semibold">
-                                                {formatCurrency(analysis.price_targets.short_term_1m)}
+                                                {formatCurrency(analysis.price_targets.short_term_1m, selectedStock?.currency || selectedStock?.metadata?.currency)}
                                               </div>
                                             </div>
                                           )}
@@ -1453,7 +1455,7 @@ const DiscoveryDashboard: React.FC = () => {
                                             <div>
                                               <div className="text-sm text-muted-foreground">3 Months</div>
                                               <div className="font-semibold">
-                                                {formatCurrency(analysis.price_targets.medium_term_3m)}
+                                                {formatCurrency(analysis.price_targets.medium_term_3m, selectedStock?.currency || selectedStock?.metadata?.currency)}
                                               </div>
                                             </div>
                                           )}
@@ -1461,7 +1463,7 @@ const DiscoveryDashboard: React.FC = () => {
                                             <div>
                                               <div className="text-sm text-muted-foreground">12 Months</div>
                                               <div className="font-semibold">
-                                                {formatCurrency(analysis.price_targets.long_term_12m)}
+                                                {formatCurrency(analysis.price_targets.long_term_12m, selectedStock?.currency || selectedStock?.metadata?.currency)}
                                               </div>
                                             </div>
                                           )}
@@ -1606,20 +1608,20 @@ const DiscoveryDashboard: React.FC = () => {
                             {selectedStock.metadata?.day_high && (
                               <div>
                                 <div className="text-sm text-muted-foreground">Open</div>
-                                <div className="font-semibold text-lg">{formatCurrency(selectedStock.metadata.day_high)}</div>
+                                <div className="font-semibold text-lg">{formatCurrency(selectedStock.metadata.day_high, selectedStock.currency || selectedStock.metadata?.currency)}</div>
                               </div>
                             )}
                             {selectedStock.previous_close && (
                               <div>
                                 <div className="text-sm text-muted-foreground">Previous Close</div>
-                                <div className="font-semibold text-lg">{formatCurrency(selectedStock.previous_close)}</div>
+                                <div className="font-semibold text-lg">{formatCurrency(selectedStock.previous_close, selectedStock.currency || selectedStock.metadata?.currency)}</div>
                               </div>
                             )}
                             {selectedStock.metadata?.day_high && selectedStock.metadata?.day_low && (
                               <div>
                                 <div className="text-sm text-muted-foreground">Day's Range</div>
                                 <div className="font-semibold text-lg">
-                                  {formatCurrency(selectedStock.metadata.day_low)} - {formatCurrency(selectedStock.metadata.day_high)}
+                                  {formatCurrency(selectedStock.metadata.day_low, selectedStock.currency || selectedStock.metadata?.currency)} - {formatCurrency(selectedStock.metadata.day_high, selectedStock.currency || selectedStock.metadata?.currency)}
                                 </div>
                               </div>
                             )}
@@ -1627,7 +1629,7 @@ const DiscoveryDashboard: React.FC = () => {
                               <div>
                                 <div className="text-sm text-muted-foreground">52-Week Range</div>
                                 <div className="font-semibold text-lg">
-                                  {formatCurrency(selectedStock.metadata['52_week_low'])} - {formatCurrency(selectedStock.metadata['52_week_high'])}
+                                  {formatCurrency(selectedStock.metadata['52_week_low'], selectedStock.currency || selectedStock.metadata?.currency)} - {formatCurrency(selectedStock.metadata['52_week_high'], selectedStock.currency || selectedStock.metadata?.currency)}
                                 </div>
                               </div>
                             )}
@@ -1919,14 +1921,14 @@ const DiscoveryDashboard: React.FC = () => {
                                     <div className="text-sm text-muted-foreground">Day's Range</div>
                                     <div className="font-semibold text-lg">
                                       {selectedStock.metadata?.day_high && selectedStock.metadata?.day_low
-                                        ? `${formatCurrency(selectedStock.metadata.day_low)} - ${formatCurrency(selectedStock.metadata.day_high)}`
+                                        ? `${formatCurrency(selectedStock.metadata.day_low, selectedStock.currency || selectedStock.metadata?.currency)} - ${formatCurrency(selectedStock.metadata.day_high, selectedStock.currency || selectedStock.metadata?.currency)}`
                                         : 'N/A'}
                                     </div>
                                   </div>
                                   <div>
                                     <div className="text-sm text-muted-foreground">Previous Close</div>
                                     <div className="font-semibold text-lg">
-                                      {selectedStock.previous_close ? formatCurrency(selectedStock.previous_close) : 'N/A'}
+                                      {selectedStock.previous_close ? formatCurrency(selectedStock.previous_close, selectedStock.currency || selectedStock.metadata?.currency) : 'N/A'}
                                     </div>
                                   </div>
                                 </div>
@@ -1940,7 +1942,7 @@ const DiscoveryDashboard: React.FC = () => {
                                     <div className="text-sm text-muted-foreground">52-Week Range</div>
                                     <div className="font-semibold text-lg">
                                       {selectedStock.metadata?.['52_week_high'] && selectedStock.metadata?.['52_week_low']
-                                        ? `${formatCurrency(selectedStock.metadata['52_week_low'])} - ${formatCurrency(selectedStock.metadata['52_week_high'])}`
+                                        ? `${formatCurrency(selectedStock.metadata['52_week_low'], selectedStock.currency || selectedStock.metadata?.currency)} - ${formatCurrency(selectedStock.metadata['52_week_high'], selectedStock.currency || selectedStock.metadata?.currency)}`
                                         : 'N/A'}
                                     </div>
                                   </div>
@@ -2148,10 +2150,10 @@ const DiscoveryDashboard: React.FC = () => {
                                   {historicalPrices.slice(-20).reverse().map((price, idx) => (
                                     <tr key={idx} className="border-b hover:bg-gray-50">
                                       <td className="p-2">{price.date}</td>
-                                      <td className="p-2 text-right">{formatCurrency(price.open)}</td>
-                                      <td className="p-2 text-right">{formatCurrency(price.high)}</td>
-                                      <td className="p-2 text-right">{formatCurrency(price.low)}</td>
-                                      <td className="p-2 text-right font-semibold">{formatCurrency(price.close)}</td>
+                                      <td className="p-2 text-right">{formatCurrency(price.open, selectedStock?.currency || selectedStock?.metadata?.currency)}</td>
+                                      <td className="p-2 text-right">{formatCurrency(price.high, selectedStock?.currency || selectedStock?.metadata?.currency)}</td>
+                                      <td className="p-2 text-right">{formatCurrency(price.low, selectedStock?.currency || selectedStock?.metadata?.currency)}</td>
+                                      <td className="p-2 text-right font-semibold">{formatCurrency(price.close, selectedStock?.currency || selectedStock?.metadata?.currency)}</td>
                                       <td className="p-2 text-right">{price.volume ? formatNumber(price.volume) : 'N/A'}</td>
                                     </tr>
                                   ))}
@@ -2260,7 +2262,7 @@ const DiscoveryDashboard: React.FC = () => {
                                       <div className="text-sm text-muted-foreground">1 Month</div>
                                       <div className="font-semibold">
                                         {typeof historyAnalysis.price_targets.short_term_1m === 'number'
-                                          ? formatCurrency(historyAnalysis.price_targets.short_term_1m)
+                                          ? formatCurrency(historyAnalysis.price_targets.short_term_1m, selectedStock?.currency || selectedStock?.metadata?.currency)
                                           : historyAnalysis.price_targets.short_term_1m}
                                       </div>
                                     </div>
@@ -2270,7 +2272,7 @@ const DiscoveryDashboard: React.FC = () => {
                                       <div className="text-sm text-muted-foreground">3 Months</div>
                                       <div className="font-semibold">
                                         {typeof historyAnalysis.price_targets.medium_term_3m === 'number'
-                                          ? formatCurrency(historyAnalysis.price_targets.medium_term_3m)
+                                          ? formatCurrency(historyAnalysis.price_targets.medium_term_3m, selectedStock?.currency || selectedStock?.metadata?.currency)
                                           : historyAnalysis.price_targets.medium_term_3m}
                                       </div>
                                     </div>
@@ -2280,7 +2282,7 @@ const DiscoveryDashboard: React.FC = () => {
                                       <div className="text-sm text-muted-foreground">12 Months</div>
                                       <div className="font-semibold">
                                         {typeof historyAnalysis.price_targets.long_term_12m === 'number'
-                                          ? formatCurrency(historyAnalysis.price_targets.long_term_12m)
+                                          ? formatCurrency(historyAnalysis.price_targets.long_term_12m, selectedStock?.currency || selectedStock?.metadata?.currency)
                                           : historyAnalysis.price_targets.long_term_12m}
                                       </div>
                                     </div>
@@ -2569,7 +2571,7 @@ const DiscoveryDashboard: React.FC = () => {
                             <td className="p-2 font-bold">{stock.symbol}</td>
                             <td className="p-2">{stock.company_name}</td>
                             <td className="p-2 text-right">
-                              {stock.current_price ? formatCurrency(stock.current_price) : 'N/A'}
+                              {stock.current_price ? formatCurrency(stock.current_price, stock.currency || stock.metadata?.currency) : 'N/A'}
                             </td>
                             <td className={`p-2 text-right ${getPriceChangeColor(stock.price_change_percent)}`}>
                               {stock.price_change_percent !== undefined && stock.price_change_percent !== null

@@ -92,11 +92,12 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const formatCurrency = (value?: number | null) => {
+  const formatCurrency = (value?: number | null, currency: string = 'USD') => {
     if (value === undefined || value === null || isNaN(value)) return 'N/A';
+    const currencyCode = currency || 'USD';
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD',
+      currency: currencyCode,
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(value);
@@ -331,8 +332,9 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
 
     try {
       // Fetch full stock details from API
+      // Use refresh=true to get the latest price data
       const response = await apiCall(
-        `/stock/stocks/${encodeURIComponent(stock.symbol)}`,
+        `/stock/stocks/${encodeURIComponent(stock.symbol)}?refresh=true`,
         {
           method: 'GET',
           headers: getAuthHeaders(),
@@ -621,7 +623,7 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
                                 {stock.sector && <span>{stock.sector}</span>}
                                 {stock.current_price && (
                                   <span className="font-semibold text-gray-900">
-                                    {formatCurrency(stock.current_price)}
+                                    {formatCurrency(stock.current_price, stock.currency || stock.metadata?.currency)}
                                   </span>
                                 )}
                                 {stock.price_change_percent !== undefined && stock.price_change_percent !== null && (
@@ -772,7 +774,7 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
                       {selectedStock.current_price && (
                         <div>
                           <div className="text-4xl font-bold text-gray-900">
-                            {formatCurrency(selectedStock.current_price)}
+                            {formatCurrency(selectedStock.current_price, selectedStock.currency || selectedStock.metadata?.currency)}
                           </div>
                           {selectedStock.price_change !== undefined && selectedStock.price_change !== null && (
                             <div className={`flex items-center gap-2 mt-1 ${getPriceChangeColor(selectedStock.price_change_percent || 0)}`}>
@@ -947,7 +949,7 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
                             {selectedStock.previous_close && (
                               <div>
                                 <div className="text-sm text-muted-foreground">Previous Close</div>
-                                <div className="font-semibold text-lg">{formatCurrency(selectedStock.previous_close)}</div>
+                                <div className="font-semibold text-lg">{formatCurrency(selectedStock.previous_close, selectedStock.currency || selectedStock.metadata?.currency)}</div>
                               </div>
                             )}
                           </div>

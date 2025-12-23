@@ -431,30 +431,110 @@ class StockDataAPIService:
         Supports both US and Indian stocks
         """
         try:
-            # Get current price from history or info
+            # Determine if it's an Indian stock early (needed for price fetching strategy)
+            symbol_raw = info.get("symbol", symbol or "")
+            is_indian = symbol_raw.endswith(".NS") or symbol_raw.endswith(".BO")
+
+            # Get current price - prioritize most recent data
             current_price = None
             previous_close = None
 
-            try:
-                hist = ticker.history(period="2d")
-                if not hist.empty:
-                    current_price = float(hist["Close"].iloc[-1])
-                    if len(hist) > 1:
-                        previous_close = float(hist["Close"].iloc[-2])
-            except Exception as e:
-                logger.debug(f"Error fetching history: {e}")
+            # For Indian stocks, try multiple methods to get the absolute latest price
+            # For US stocks, try history first (more reliable)
+            if is_indian:
+                # Indian stocks: try multiple methods to get the most recent price
+                # Method 1: Try fast_info for real-time data (if available)
+                try:
+                    fast_info = ticker.fast_info
+                    if hasattr(fast_info, "lastPrice") and fast_info.lastPrice:
+                        current_price = float(fast_info.lastPrice)
+                        logger.debug(f"Got price from fast_info: {current_price}")
+                except Exception as e:
+                    logger.debug(f"fast_info not available: {e}")
 
-            # Fallback to info if history not available
-            if current_price is None:
-                current_price = (
-                    info.get("currentPrice")
-                    or info.get("regularMarketPrice")
-                    or info.get("regularMarketLastPrice")
-                )
+                # Method 2: Try 1-minute interval intraday data (most recent)
+                if current_price is None:
+                    try:
+                        hist_intraday = ticker.history(period="1d", interval="1m")
+                        if not hist_intraday.empty:
+                            latest_price = float(hist_intraday["Close"].iloc[-1])
+                            if latest_price:
+                                current_price = latest_price
+                                logger.debug(
+                                    f"Got price from 1m intraday: {current_price}"
+                                )
+                    except Exception as e:
+                        logger.debug(f"Error fetching 1m intraday history: {e}")
+
+                # Method 3: Try 5-minute interval intraday data
+                if current_price is None:
+                    try:
+                        hist_intraday = ticker.history(period="1d", interval="5m")
+                        if not hist_intraday.empty:
+                            latest_price = float(hist_intraday["Close"].iloc[-1])
+                            if latest_price:
+                                current_price = latest_price
+                                logger.debug(
+                                    f"Got price from 5m intraday: {current_price}"
+                                )
+                    except Exception as e:
+                        logger.debug(f"Error fetching 5m intraday history: {e}")
+
+                # Method 4: Use regularMarketPrice (usually current for Indian stocks)
+                if current_price is None:
+                    current_price = (
+                        info.get("regularMarketPrice")
+                        or info.get("currentPrice")
+                        or info.get("regularMarketLastPrice")
+                    )
+                    if current_price:
+                        logger.debug(
+                            f"Got price from regularMarketPrice: {current_price}"
+                        )
+
+                # Method 5: Fallback to daily history
+                if current_price is None:
+                    try:
+                        hist = ticker.history(period="2d")
+                        if not hist.empty:
+                            current_price = float(hist["Close"].iloc[-1])
+                            logger.debug(
+                                f"Got price from daily history: {current_price}"
+                            )
+                    except Exception as e:
+                        logger.debug(f"Error fetching daily history: {e}")
+            else:
+                # US stocks: try history first, then fallback to info
+                try:
+                    hist = ticker.history(period="2d")
+                    if not hist.empty:
+                        current_price = float(hist["Close"].iloc[-1])
+                        if len(hist) > 1:
+                            previous_close = float(hist["Close"].iloc[-2])
+                except Exception as e:
+                    logger.debug(f"Error fetching history: {e}")
+
+                # Fallback to info if history not available
+                if current_price is None:
+                    current_price = (
+                        info.get("currentPrice")
+                        or info.get("regularMarketPrice")
+                        or info.get("regularMarketLastPrice")
+                    )
+
+            # Get previous close
             if previous_close is None:
                 previous_close = info.get("previousClose") or info.get(
                     "regularMarketPreviousClose"
                 )
+                # Try to get from history if not in info
+                if previous_close is None:
+                    try:
+                        hist = ticker.history(period="2d")
+                        if not hist.empty and len(hist) > 1:
+                            previous_close = float(hist["Close"].iloc[-2])
+                    except Exception as e:
+                        logger.debug(f"Error fetching previous close from history: {e}")
 
             # Calculate price change
             price_change = None
@@ -466,18 +546,14 @@ class StockDataAPIService:
                 )
 
             # Extract symbol and determine exchange
-            symbol_raw = info.get("symbol", symbol or "")
             exchange = info.get("exchange")
 
-            # Determine if it's an Indian stock
-            is_indian = False
+            # Clean up symbol (remove .NS or .BO suffix for display)
             if symbol_raw.endswith(".NS"):
                 exchange = exchange or "NSE"
-                is_indian = True
                 symbol_raw = symbol_raw.replace(".NS", "")
             elif symbol_raw.endswith(".BO"):
                 exchange = exchange or "BSE"
-                is_indian = True
                 symbol_raw = symbol_raw.replace(".BO", "")
 
             # Get currency (INR for Indian stocks, USD for US)
@@ -748,11 +824,16 @@ class StockDataAPIService:
                 logger.info(f"Sample article: {str(news[0])[:200]}...")
 
             formatted_news = []
-            for article in news[:limit]:
-                # Log article structure for debugging
-                logger.debug(
-                    f"News article keys: {list(article.keys()) if isinstance(article, dict) else 'N/A'}"
-                )
+            for article in news:
+                # Log article structure for debugging (first article only to avoid spam)
+                if len(formatted_news) == 0:
+                    article_keys = (
+                        list(article.keys())
+                        if isinstance(article, dict)
+                        else "N/A"
+                    )
+                    logger.info(f"Sample news article structure - Keys: {article_keys}")
+                    logger.info(f"Sample news article: {str(article)[:500]}...")
 
                 # Try multiple field names for title
                 title = (
@@ -767,16 +848,32 @@ class StockDataAPIService:
                     article.get("publisher")
                     or article.get("source")
                     or article.get("provider")
+                    or article.get("publisherName")
                     or "Unknown"
                 )
 
-                # Try multiple field names for link
+                # Try multiple field names for link - Yahoo Finance uses various field names
                 link = (
                     article.get("link")
                     or article.get("url")
                     or article.get("webUrl")
+                    or article.get("canonicalUrl")
+                    or article.get("clickThroughUrl")
+                    or article.get("redirectUrl")
                     or ""
                 )
+
+                # Ensure link is a valid URL - if missing, try to construct from Yahoo Finance
+                if not link and article.get("uuid"):
+                    # Yahoo Finance news URL pattern
+                    link = f"https://finance.yahoo.com/news/{article.get('uuid', '')}"
+
+                # Validate link is a proper URL
+                if link and not (
+                    link.startswith("http://") or link.startswith("https://")
+                ):
+                    # If link doesn't start with http/https, prepend https://
+                    link = f"https://{link}"
 
                 # Try multiple field names for published date
                 published_date = (
@@ -812,6 +909,7 @@ class StockDataAPIService:
             logger.info(
                 f"Formatted {len(formatted_news)} valid news articles out of {len(news[:limit])} total"
             )
+
             return formatted_news
         except Exception as e:
             logger.error(f"Error fetching news for {symbol}: {e}")

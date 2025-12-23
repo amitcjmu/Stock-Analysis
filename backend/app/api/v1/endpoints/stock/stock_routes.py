@@ -340,15 +340,20 @@ async def compare_stocks(
 @router.get("/{symbol}", response_model=StockDetailResponse)
 async def get_stock(
     symbol: str,
+    refresh: bool = Query(False, description="Force refresh from API (bypass cache)"),
     db: AsyncSession = Depends(get_db),
     context: RequestContext = Depends(get_current_context),
 ):
     """
     Get stock details by symbol.
+
+    Args:
+        symbol: Stock symbol
+        refresh: If True, force refresh from API to get latest price data
     """
     try:
         stock_service = StockService(db, context)
-        stock = await stock_service.get_stock_by_symbol(symbol)
+        stock = await stock_service.get_stock_by_symbol(symbol, force_refresh=refresh)
 
         if not stock:
             raise HTTPException(status_code=404, detail=f"Stock {symbol} not found")

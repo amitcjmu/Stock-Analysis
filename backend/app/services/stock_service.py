@@ -76,23 +76,32 @@ class StockService:
             logger.error(f"Error getting historical prices: {e}")
             return None
 
-    async def get_stock_by_symbol(self, symbol: str) -> Optional[Dict[str, Any]]:
-        """Get stock by symbol"""
+    async def get_stock_by_symbol(
+        self, symbol: str, force_refresh: bool = False
+    ) -> Optional[Dict[str, Any]]:
+        """Get stock by symbol
+
+        Args:
+            symbol: Stock symbol
+            force_refresh: If True, always fetch fresh data from API, ignoring database cache
+        """
         try:
-            stmt = select(Stock).where(
-                and_(
-                    Stock.symbol == symbol.upper(),
-                    Stock.client_account_id == self.context.client_account_id,
-                    Stock.engagement_id == self.context.engagement_id,
+            # If force_refresh is True, skip database and fetch fresh data
+            if not force_refresh:
+                stmt = select(Stock).where(
+                    and_(
+                        Stock.symbol == symbol.upper(),
+                        Stock.client_account_id == self.context.client_account_id,
+                        Stock.engagement_id == self.context.engagement_id,
+                    )
                 )
-            )
-            result = await self.db.execute(stmt)
-            stock = result.scalar_one_or_none()
+                result = await self.db.execute(stmt)
+                stock = result.scalar_one_or_none()
 
-            if stock:
-                return stock.to_dict()
+                if stock:
+                    return stock.to_dict()
 
-            # If not in DB, fetch from Yahoo Finance API
+            # Fetch fresh data from Yahoo Finance API
             stock_data = await self.stock_data_api.get_stock_data(symbol)
             return stock_data
 
