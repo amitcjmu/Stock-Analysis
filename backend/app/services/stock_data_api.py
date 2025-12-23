@@ -239,13 +239,9 @@ class StockDataAPIService:
             logger.error(f"Error searching stocks: {e}")
             return await self._mock_search_stocks(query, limit)
 
-    def _search_stocks_sync(self, query: str, limit: int) -> List[Dict[str, Any]]:
-        """Synchronous search implementation"""
-        stocks = []
-        query_upper = query.upper().strip()
-
-        # Map common US company names to ticker symbols
-        us_company_to_ticker = {
+    def _get_us_company_to_ticker_map(self) -> Dict[str, str]:
+        """Get mapping of US company names to ticker symbols."""
+        return {
             "APPLE": "AAPL",
             "MICROSOFT": "MSFT",
             "GOOGLE": "GOOGL",
@@ -277,31 +273,22 @@ class StockDataAPIService:
             "MERCK": "MRK",
         }
 
-        # Normalize symbol (handles both US and Indian stocks)
-        search_symbol = self._normalize_symbol(query_upper)
-
-        # If normalization didn't change it, check US companies
-        if search_symbol == query_upper and query_upper in us_company_to_ticker:
-            logger.info(
-                f"Mapping US company name '{query_upper}' to ticker '{us_company_to_ticker[query_upper]}'"
-            )
-            search_symbol = us_company_to_ticker[query_upper]
-
-        # Try direct ticker lookup first
+    def _try_direct_ticker_lookup(self, search_symbol: str) -> Optional[Dict[str, Any]]:
+        """Try to get stock data by direct ticker lookup."""
         try:
             ticker = yf.Ticker(search_symbol)
             info = ticker.info
             if info and "symbol" in info and "error" not in info:
                 stock_data = self._format_stock_data(info, ticker)
                 if stock_data:
-                    stocks.append(stock_data)
+                    return stock_data
             elif info and "error" in info:
                 error_desc = (
                     info.get("error", {}).get("description", "Unknown error")
                     if isinstance(info.get("error"), dict)
                     else str(info.get("error", "Unknown error"))
                 )
-                # Only log as warning if it's not a "Not Found" error (which is expected for some searches)
+                # Only log as warning if it's not a "Not Found" error
                 if "not found" not in error_desc.lower() and "404" not in str(
                     error_desc
                 ):
@@ -316,13 +303,13 @@ class StockDataAPIService:
             # Suppress yfinance HTTP 404 errors as they're expected for unknown symbols
             if "404" not in str(e) and "not found" not in str(e).lower():
                 logger.debug(f"Direct ticker lookup failed for {search_symbol}: {e}")
+        return None
 
-        # If we have results, return them
-        if stocks:
-            return stocks[:limit]
-
-        # For broader search, try common tickers
-        # Note: Yahoo Finance doesn't have a direct search API, so we try common patterns
+    def _search_common_tickers(
+        self, query_upper: str, limit: int
+    ) -> List[Dict[str, Any]]:
+        """Search through common tickers for matches."""
+        stocks = []
         common_tickers = [
             "AAPL",
             "MSFT",
@@ -352,7 +339,7 @@ class StockDataAPIService:
         ]
 
         for ticker_symbol in common_tickers:
-            if query_upper in ticker_symbol or query_upper in ticker_symbol:
+            if query_upper in ticker_symbol:
                 try:
                     ticker = yf.Ticker(ticker_symbol)
                     info = ticker.info
@@ -369,6 +356,30 @@ class StockDataAPIService:
                     logger.debug(f"Error fetching {ticker_symbol}: {e}")
                     continue
 
+        return stocks
+
+    def _search_stocks_sync(self, query: str, limit: int) -> List[Dict[str, Any]]:
+        """Synchronous search implementation"""
+        query_upper = query.upper().strip()
+
+        # Normalize symbol (handles both US and Indian stocks)
+        search_symbol = self._normalize_symbol(query_upper)
+
+        # If normalization didn't change it, check US companies
+        us_company_to_ticker = self._get_us_company_to_ticker_map()
+        if search_symbol == query_upper and query_upper in us_company_to_ticker:
+            logger.info(
+                f"Mapping US company name '{query_upper}' to ticker '{us_company_to_ticker[query_upper]}'"
+            )
+            search_symbol = us_company_to_ticker[query_upper]
+
+        # Try direct ticker lookup first
+        stock_data = self._try_direct_ticker_lookup(search_symbol)
+        if stock_data:
+            return [stock_data][:limit]
+
+        # For broader search, try common tickers
+        stocks = self._search_common_tickers(query_upper, limit)
         return stocks[:limit]
 
     async def get_stock_data(self, symbol: str) -> Optional[Dict[str, Any]]:
@@ -424,6 +435,122 @@ class StockDataAPIService:
             logger.error(f"Error fetching stock data for {symbol}: {e}")
             return None
 
+    def _try_fast_info_price(self, ticker: Any) -> Optional[float]:
+        """Try to get price from fast_info."""
+        try:
+            fast_info = ticker.fast_info
+            if hasattr(fast_info, "lastPrice") and fast_info.lastPrice:
+                price = float(fast_info.lastPrice)
+                logger.debug(f"Got price from fast_info: {price}")
+                return price
+        except Exception as e:
+            logger.debug(f"fast_info not available: {e}")
+        return None
+
+    def _try_intraday_price(self, ticker: Any, interval: str) -> Optional[float]:
+        """Try to get price from intraday history."""
+        try:
+            hist_intraday = ticker.history(period="1d", interval=interval)
+            if not hist_intraday.empty:
+                price = float(hist_intraday["Close"].iloc[-1])
+                if price:
+                    logger.debug(f"Got price from {interval} intraday: {price}")
+                    return price
+        except Exception as e:
+            logger.debug(f"Error fetching {interval} intraday history: {e}")
+        return None
+
+    def _get_info_price(self, info: Dict) -> Optional[float]:
+        """Get price from info dict."""
+        price = (
+            info.get("regularMarketPrice")
+            or info.get("currentPrice")
+            or info.get("regularMarketLastPrice")
+        )
+        if price:
+            logger.debug(f"Got price from regularMarketPrice: {price}")
+            return float(price)
+        return None
+
+    def _get_indian_stock_price(self, ticker: Any, info: Dict) -> Optional[float]:
+        """Get current price for Indian stocks using multiple fallback methods."""
+        # Method 1: Try fast_info for real-time data
+        price = self._try_fast_info_price(ticker)
+        if price:
+            return price
+
+        # Method 2: Try 1-minute interval intraday data
+        price = self._try_intraday_price(ticker, "1m")
+        if price:
+            return price
+
+        # Method 3: Try 5-minute interval intraday data
+        price = self._try_intraday_price(ticker, "5m")
+        if price:
+            return price
+
+        # Method 4: Use regularMarketPrice
+        price = self._get_info_price(info)
+        if price:
+            return price
+
+        # Method 5: Fallback to daily history
+        try:
+            hist = ticker.history(period="2d")
+            if not hist.empty:
+                price = float(hist["Close"].iloc[-1])
+                logger.debug(f"Got price from daily history: {price}")
+                return price
+        except Exception as e:
+            logger.debug(f"Error fetching daily history: {e}")
+
+        return None
+
+    def _get_us_stock_price(self, ticker: Any, info: Dict) -> tuple:
+        """Get current price and previous close for US stocks."""
+        current_price = None
+        previous_close = None
+
+        # Try history first (more reliable)
+        try:
+            hist = ticker.history(period="2d")
+            if not hist.empty:
+                current_price = float(hist["Close"].iloc[-1])
+                if len(hist) > 1:
+                    previous_close = float(hist["Close"].iloc[-2])
+        except Exception as e:
+            logger.debug(f"Error fetching history: {e}")
+
+        # Fallback to info if history not available
+        if current_price is None:
+            current_price = (
+                info.get("currentPrice")
+                or info.get("regularMarketPrice")
+                or info.get("regularMarketLastPrice")
+            )
+            if current_price:
+                current_price = float(current_price)
+
+        return current_price, previous_close
+
+    def _get_previous_close(self, ticker: Any, info: Dict) -> Optional[float]:
+        """Get previous close price with fallback methods."""
+        previous_close = info.get("previousClose") or info.get(
+            "regularMarketPreviousClose"
+        )
+        if previous_close:
+            return float(previous_close)
+
+        # Try to get from history if not in info
+        try:
+            hist = ticker.history(period="2d")
+            if not hist.empty and len(hist) > 1:
+                return float(hist["Close"].iloc[-2])
+        except Exception as e:
+            logger.debug(f"Error fetching previous close from history: {e}")
+
+        return None
+
     def _format_stock_data(
         self, info: Dict, ticker: Any, symbol: Optional[str] = None
     ) -> Optional[Dict[str, Any]]:
@@ -436,105 +563,13 @@ class StockDataAPIService:
             is_indian = symbol_raw.endswith(".NS") or symbol_raw.endswith(".BO")
 
             # Get current price - prioritize most recent data
-            current_price = None
-            previous_close = None
-
-            # For Indian stocks, try multiple methods to get the absolute latest price
-            # For US stocks, try history first (more reliable)
             if is_indian:
-                # Indian stocks: try multiple methods to get the most recent price
-                # Method 1: Try fast_info for real-time data (if available)
-                try:
-                    fast_info = ticker.fast_info
-                    if hasattr(fast_info, "lastPrice") and fast_info.lastPrice:
-                        current_price = float(fast_info.lastPrice)
-                        logger.debug(f"Got price from fast_info: {current_price}")
-                except Exception as e:
-                    logger.debug(f"fast_info not available: {e}")
-
-                # Method 2: Try 1-minute interval intraday data (most recent)
-                if current_price is None:
-                    try:
-                        hist_intraday = ticker.history(period="1d", interval="1m")
-                        if not hist_intraday.empty:
-                            latest_price = float(hist_intraday["Close"].iloc[-1])
-                            if latest_price:
-                                current_price = latest_price
-                                logger.debug(
-                                    f"Got price from 1m intraday: {current_price}"
-                                )
-                    except Exception as e:
-                        logger.debug(f"Error fetching 1m intraday history: {e}")
-
-                # Method 3: Try 5-minute interval intraday data
-                if current_price is None:
-                    try:
-                        hist_intraday = ticker.history(period="1d", interval="5m")
-                        if not hist_intraday.empty:
-                            latest_price = float(hist_intraday["Close"].iloc[-1])
-                            if latest_price:
-                                current_price = latest_price
-                                logger.debug(
-                                    f"Got price from 5m intraday: {current_price}"
-                                )
-                    except Exception as e:
-                        logger.debug(f"Error fetching 5m intraday history: {e}")
-
-                # Method 4: Use regularMarketPrice (usually current for Indian stocks)
-                if current_price is None:
-                    current_price = (
-                        info.get("regularMarketPrice")
-                        or info.get("currentPrice")
-                        or info.get("regularMarketLastPrice")
-                    )
-                    if current_price:
-                        logger.debug(
-                            f"Got price from regularMarketPrice: {current_price}"
-                        )
-
-                # Method 5: Fallback to daily history
-                if current_price is None:
-                    try:
-                        hist = ticker.history(period="2d")
-                        if not hist.empty:
-                            current_price = float(hist["Close"].iloc[-1])
-                            logger.debug(
-                                f"Got price from daily history: {current_price}"
-                            )
-                    except Exception as e:
-                        logger.debug(f"Error fetching daily history: {e}")
+                current_price = self._get_indian_stock_price(ticker, info)
+                previous_close = self._get_previous_close(ticker, info)
             else:
-                # US stocks: try history first, then fallback to info
-                try:
-                    hist = ticker.history(period="2d")
-                    if not hist.empty:
-                        current_price = float(hist["Close"].iloc[-1])
-                        if len(hist) > 1:
-                            previous_close = float(hist["Close"].iloc[-2])
-                except Exception as e:
-                    logger.debug(f"Error fetching history: {e}")
-
-                # Fallback to info if history not available
-                if current_price is None:
-                    current_price = (
-                        info.get("currentPrice")
-                        or info.get("regularMarketPrice")
-                        or info.get("regularMarketLastPrice")
-                    )
-
-            # Get previous close
-            if previous_close is None:
-                previous_close = info.get("previousClose") or info.get(
-                    "regularMarketPreviousClose"
-                )
-                # Try to get from history if not in info
+                current_price, previous_close = self._get_us_stock_price(ticker, info)
                 if previous_close is None:
-                    try:
-                        hist = ticker.history(period="2d")
-                        if not hist.empty and len(hist) > 1:
-                            previous_close = float(hist["Close"].iloc[-2])
-                    except Exception as e:
-                        logger.debug(f"Error fetching previous close from history: {e}")
+                    previous_close = self._get_previous_close(ticker, info)
 
             # Calculate price change
             price_change = None
@@ -828,9 +863,7 @@ class StockDataAPIService:
                 # Log article structure for debugging (first article only to avoid spam)
                 if len(formatted_news) == 0:
                     article_keys = (
-                        list(article.keys())
-                        if isinstance(article, dict)
-                        else "N/A"
+                        list(article.keys()) if isinstance(article, dict) else "N/A"
                     )
                     logger.info(f"Sample news article structure - Keys: {article_keys}")
                     logger.info(f"Sample news article: {str(article)[:500]}...")

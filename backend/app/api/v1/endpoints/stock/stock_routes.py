@@ -30,6 +30,121 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="")
 
 
+# Helper functions for get_stock_news
+def _determine_model_type(model: Optional[str]):
+    """Determine ModelType from model string."""
+    if not model:
+        return None
+    model_lower = model.lower()
+    from app.services.multi_model_service import ModelType
+
+    if model_lower == "gemini":
+        return ModelType.GEMINI
+    if model_lower in ("llama4_maverick", "llama"):
+        return ModelType.LLAMA_4_MAVERICK
+    if model_lower in ("gemma3_4b", "gemma"):
+        return ModelType.GEMMA_3_4B
+    return None
+
+
+def _clean_json_response(response_text: str) -> str:
+    """Extract and clean JSON from LLM response text."""
+    response_clean = response_text.strip()
+
+    # Remove markdown code blocks
+    if "```json" in response_clean:
+        json_match = re.search(r"```json\s*(.*?)\s*```", response_clean, re.DOTALL)
+        if json_match:
+            response_clean = json_match.group(1).strip()
+    elif "```" in response_clean:
+        json_match = re.search(r"```\s*(.*?)\s*```", response_clean, re.DOTALL)
+        if json_match:
+            response_clean = json_match.group(1).strip()
+
+    # Try to find JSON array
+    json_match = re.search(r"\[.*\]", response_clean, re.DOTALL)
+    if json_match:
+        response_clean = json_match.group(0)
+
+    return response_clean
+
+
+def _format_llm_insight(insight: dict, symbol: str, index: int) -> dict:
+    """Format a single LLM insight to match Yahoo Finance format."""
+    return {
+        "title": insight.get("title", "AI News Insight"),
+        "publisher": insight.get("source", "AI Analysis"),
+        "link": "",
+        "published_date": int(datetime.now().timestamp()),
+        "uuid": f"llm-{symbol}-{index}",
+        "summary": insight.get("summary", ""),
+        "category": insight.get("category", "market_update"),
+        "impact": insight.get("impact", "neutral"),
+        "is_llm_generated": True,
+    }
+
+
+def _parse_llm_news_response(
+    response_text: str, response_clean: str, symbol: str
+) -> List[dict]:
+    """Parse LLM news response and return formatted insights."""
+    llm_news_insights = []
+
+    try:
+        llm_news_data = json.loads(response_clean)
+        if isinstance(llm_news_data, list) and len(llm_news_data) > 0:
+            # Format LLM news to match Yahoo Finance format
+            for idx, insight in enumerate(llm_news_data[:5]):  # Limit to 5 insights
+                if isinstance(insight, dict) and insight.get("title"):
+                    llm_news_insights.append(_format_llm_insight(insight, symbol, idx))
+            logger.info(
+                f"Generated {len(llm_news_insights)} LLM news insights for {symbol}"
+            )
+        elif isinstance(llm_news_data, dict):
+            # Handle case where LLM returns a single object instead of array
+            logger.warning(
+                "LLM returned a single object instead of array, converting to array"
+            )
+            if llm_news_data.get("title"):
+                llm_news_insights.append(_format_llm_insight(llm_news_data, symbol, 0))
+                logger.info(
+                    f"Generated 1 LLM news insight from single object for {symbol}"
+                )
+        else:
+            news_data_str = str(llm_news_data)[:200]
+            logger.warning(
+                f"LLM returned non-list news data: {type(llm_news_data)}, "
+                f"value: {news_data_str}"
+            )
+    except json.JSONDecodeError as e:
+        logger.warning(f"Failed to parse LLM news response as JSON: {e}")
+        logger.warning(f"Response text that failed to parse: {response_clean[:500]}")
+        # Try to create a fallback insight from the raw response
+        if response_text and len(response_text) > 20:
+            llm_news_insights.append(
+                {
+                    "title": f"Market Analysis for {symbol}",
+                    "publisher": "AI Analysis",
+                    "link": "",
+                    "published_date": int(datetime.now().timestamp()),
+                    "uuid": f"llm-{symbol}-fallback",
+                    "summary": (
+                        response_text[:300] + "..."
+                        if len(response_text) > 300
+                        else response_text
+                    ),
+                    "category": "market_update",
+                    "impact": "neutral",
+                    "is_llm_generated": True,
+                }
+            )
+            logger.info(
+                f"Created fallback LLM news insight from raw response for {symbol}"
+            )
+
+    return llm_news_insights
+
+
 # Request/Response Models
 class StockSearchResponse(BaseModel):
     """Response model for stock search"""
@@ -470,7 +585,6 @@ async def get_stock_news(
             try:
                 from app.services.multi_model_service import (
                     multi_model_service,
-                    ModelType,
                     TaskComplexity,
                 )
 
@@ -478,15 +592,7 @@ async def get_stock_news(
                 stock_data = await stock_service.get_stock_by_symbol(symbol)
                 if stock_data:
                     # Determine model type
-                    model_type = None
-                    if model:
-                        model_lower = model.lower()
-                        if model_lower == "gemini":
-                            model_type = ModelType.GEMINI
-                        elif model_lower == "llama4_maverick" or model_lower == "llama":
-                            model_type = ModelType.LLAMA_4_MAVERICK
-                        elif model_lower == "gemma3_4b" or model_lower == "gemma":
-                            model_type = ModelType.GEMMA_3_4B
+                    model_type = _determine_model_type(model)
 
                     # Generate LLM news insights
                     company_name = stock_data.get("company_name", symbol)
@@ -549,144 +655,14 @@ Provide only valid JSON array, no additional text.
                         )
 
                         if response_text and response_text.strip():
-                            # Extract JSON from response
-                            response_clean = response_text.strip()
-
-                            # Remove markdown code blocks
-                            if "```json" in response_clean:
-                                json_match = re.search(
-                                    r"```json\s*(.*?)\s*```", response_clean, re.DOTALL
-                                )
-                                if json_match:
-                                    response_clean = json_match.group(1).strip()
-                            elif "```" in response_clean:
-                                json_match = re.search(
-                                    r"```\s*(.*?)\s*```", response_clean, re.DOTALL
-                                )
-                                if json_match:
-                                    response_clean = json_match.group(1).strip()
-
-                            # Try to find JSON array
-                            json_match = re.search(r"\[.*\]", response_clean, re.DOTALL)
-                            if json_match:
-                                response_clean = json_match.group(0)
-
+                            response_clean = _clean_json_response(response_text)
                             logger.debug(
                                 f"Cleaned response for parsing: {response_clean[:200]}..."
                             )
-
-                            try:
-                                llm_news_data = json.loads(response_clean)
-                                if (
-                                    isinstance(llm_news_data, list)
-                                    and len(llm_news_data) > 0
-                                ):
-                                    # Format LLM news to match Yahoo Finance format
-                                    for insight in llm_news_data[
-                                        :5
-                                    ]:  # Limit to 5 insights
-                                        if isinstance(insight, dict) and insight.get(
-                                            "title"
-                                        ):
-                                            llm_news_insights.append(
-                                                {
-                                                    "title": insight.get(
-                                                        "title", "AI News Insight"
-                                                    ),
-                                                    "publisher": insight.get(
-                                                        "source", "AI Analysis"
-                                                    ),
-                                                    "link": "",
-                                                    "published_date": int(
-                                                        datetime.now().timestamp()
-                                                    ),
-                                                    "uuid": f"llm-{symbol}-{len(llm_news_insights)}",
-                                                    "summary": insight.get(
-                                                        "summary", ""
-                                                    ),
-                                                    "category": insight.get(
-                                                        "category", "market_update"
-                                                    ),
-                                                    "impact": insight.get(
-                                                        "impact", "neutral"
-                                                    ),
-                                                    "is_llm_generated": True,
-                                                }
-                                            )
-                                    logger.info(
-                                        f"Generated {len(llm_news_insights)} LLM news insights for {symbol}"
-                                    )
-                                elif isinstance(llm_news_data, dict):
-                                    # Handle case where LLM returns a single object instead of array
-                                    logger.warning(
-                                        "LLM returned a single object instead of array, converting to array"
-                                    )
-                                    if llm_news_data.get("title"):
-                                        llm_news_insights.append(
-                                            {
-                                                "title": llm_news_data.get(
-                                                    "title", "AI News Insight"
-                                                ),
-                                                "publisher": llm_news_data.get(
-                                                    "source", "AI Analysis"
-                                                ),
-                                                "link": "",
-                                                "published_date": int(
-                                                    datetime.now().timestamp()
-                                                ),
-                                                "uuid": f"llm-{symbol}-0",
-                                                "summary": llm_news_data.get(
-                                                    "summary", ""
-                                                ),
-                                                "category": llm_news_data.get(
-                                                    "category", "market_update"
-                                                ),
-                                                "impact": llm_news_data.get(
-                                                    "impact", "neutral"
-                                                ),
-                                                "is_llm_generated": True,
-                                            }
-                                        )
-                                        logger.info(
-                                            f"Generated 1 LLM news insight from single object for {symbol}"
-                                        )
-                                else:
-                                    news_data_str = str(llm_news_data)[:200]
-                                    logger.warning(
-                                        f"LLM returned non-list news data: {type(llm_news_data)}, "
-                                        f"value: {news_data_str}"
-                                    )
-                            except json.JSONDecodeError as e:
-                                logger.warning(
-                                    f"Failed to parse LLM news response as JSON: {e}"
-                                )
-                                logger.warning(
-                                    f"Response text that failed to parse: {response_clean[:500]}"
-                                )
-                                # Try to create a fallback insight from the raw response
-                                if response_text and len(response_text) > 20:
-                                    llm_news_insights.append(
-                                        {
-                                            "title": f"Market Analysis for {symbol}",
-                                            "publisher": "AI Analysis",
-                                            "link": "",
-                                            "published_date": int(
-                                                datetime.now().timestamp()
-                                            ),
-                                            "uuid": f"llm-{symbol}-fallback",
-                                            "summary": (
-                                                response_text[:300] + "..."
-                                                if len(response_text) > 300
-                                                else response_text
-                                            ),
-                                            "category": "market_update",
-                                            "impact": "neutral",
-                                            "is_llm_generated": True,
-                                        }
-                                    )
-                                    logger.info(
-                                        f"Created fallback LLM news insight from raw response for {symbol}"
-                                    )
+                            insights = _parse_llm_news_response(
+                                response_text, response_clean, symbol
+                            )
+                            llm_news_insights.extend(insights)
                         else:
                             logger.warning(
                                 "LLM returned empty response for news generation"
@@ -851,6 +827,281 @@ async def analyze_stock_news(
     except Exception as e:
         logger.error(f"Error analyzing news for {request.symbol}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to analyze news: {str(e)}")
+
+
+# Helper functions for analyze_stock_all_agents
+async def _run_agent(
+    agent_class,
+    agent_name: str,
+    symbol: str,
+    model: Optional[str],
+    db: AsyncSession,
+    context: RequestContext,
+) -> tuple:
+    """Run a single agent and return its result."""
+    try:
+        logger.info(f"🚀 [ANALYZE ALL] Starting {agent_name} Agent for {symbol}")
+        agent = agent_class(db, context)
+        result = await agent.analyze(symbol, model=model)
+        logger.info(f"🚀 [ANALYZE ALL] ✅ {agent_name} Agent completed for {symbol}")
+
+        if "analysis" in result and result["analysis"] is not None:
+            analysis = result["analysis"]
+            analysis_keys = (
+                list(analysis.keys()) if isinstance(analysis, dict) else "N/A"
+            )
+            logger.info(
+                f"🚀 [ANALYZE ALL] {agent_name} Agent returned analysis "
+                f"with keys: {analysis_keys}"
+            )
+            return (agent_name.lower(), analysis)
+        else:
+            logger.error(
+                f"🚀 [ANALYZE ALL] {agent_name} Agent result missing 'analysis' key or is None"
+            )
+            result_keys = (
+                list(result.keys()) if isinstance(result, dict) else "N/A"
+            )
+            logger.error(
+                f"🚀 [ANALYZE ALL] {agent_name} Agent result keys: {result_keys}"
+            )
+            return (agent_name.lower(), None)
+    except Exception as e:
+        logger.error(
+            f"🚀 [ANALYZE ALL] ❌ {agent_name} Agent failed: {e}", exc_info=True
+        )
+        return (agent_name.lower(), None)
+
+
+def _process_agent_result(result: tuple, results: dict) -> None:
+    """Process a single agent result and add it to results."""
+    if isinstance(result, Exception):
+        logger.error(f"🚀 [ANALYZE ALL] Agent task exception: {result}")
+        results["errors"].append(str(result))
+        return
+
+    if not result:
+        return
+
+    agent_type, analysis_data = result
+    logger.info(
+        f"🚀 [ANALYZE ALL] Processing {agent_type} result: "
+        f"type={type(analysis_data)}, is None={analysis_data is None}, "
+        f"is dict={isinstance(analysis_data, dict)}"
+    )
+
+    if analysis_data is None:
+        logger.warning(f"🚀 [ANALYZE ALL] ⚠️ {agent_type} returned None")
+        results["errors"].append(f"{agent_type} agent returned no data")
+        return
+
+    if isinstance(analysis_data, dict) and len(analysis_data) > 0:
+        results[agent_type] = analysis_data
+        logger.info(f"🚀 [ANALYZE ALL] ✅ {agent_type} data added to results")
+    elif isinstance(analysis_data, dict):
+        logger.warning(f"🚀 [ANALYZE ALL] ⚠️ {agent_type} returned empty dict")
+        results["errors"].append(f"{agent_type} agent returned empty data")
+    else:
+        logger.warning(
+            f"🚀 [ANALYZE ALL] ⚠️ {agent_type} returned non-dict: {type(analysis_data)}"
+        )
+        results["errors"].append(f"{agent_type} agent returned invalid data type")
+
+
+def _get_comprehensive_summary(results: dict) -> str:
+    """Get summary from first available agent result."""
+    if results.get("financials") and results["financials"].get("summary"):
+        return results["financials"]["summary"]
+    if results.get("statistics") and results["statistics"].get("summary"):
+        return results["statistics"]["summary"]
+    if results.get("history") and results["history"].get("summary"):
+        return results["history"]["summary"]
+    if results.get("news") and results["news"].get("summary"):
+        return results["news"]["summary"]
+    return "Analysis completed"
+
+
+def _merge_key_insights(results: dict) -> List[str]:
+    """Merge key insights from all agents."""
+    key_insights = []
+    for agent_type in ["financials", "statistics", "history", "news"]:
+        if results.get(agent_type) and results[agent_type].get("key_insights"):
+            key_insights.extend(results[agent_type]["key_insights"])
+    return key_insights
+
+
+def _merge_technical_analysis(results: dict) -> dict:
+    """Merge technical analysis from statistics and history agents."""
+    technical_analysis = {}
+
+    # Merge from statistics
+    if results.get("statistics"):
+        stats_technical = results["statistics"].get("technical_analysis")
+        if (
+            stats_technical
+            and isinstance(stats_technical, dict)
+            and len(stats_technical) > 0
+        ):
+            technical_analysis.update(stats_technical)
+            logger.info("🚀 [ANALYZE ALL] ✅ Merged statistics technical_analysis")
+        elif results["statistics"].get("summary"):
+            technical_analysis["statistics_summary"] = results["statistics"].get(
+                "summary", ""
+            )
+            if results["statistics"].get("key_insights"):
+                technical_analysis["statistical_insights"] = results["statistics"].get(
+                    "key_insights", []
+                )
+            logger.info(
+                "🚀 [ANALYZE ALL] ✅ Created technical_analysis from statistics summary (fallback)"
+            )
+
+    # Merge from history
+    if results.get("history"):
+        history_technical = results["history"].get("technical_analysis")
+        if (
+            history_technical
+            and isinstance(history_technical, dict)
+            and len(history_technical) > 0
+        ):
+            technical_analysis.update(history_technical)
+            logger.info("🚀 [ANALYZE ALL] ✅ Merged history technical_analysis")
+        elif results["history"].get("summary"):
+            if "history_summary" not in technical_analysis:
+                technical_analysis["history_summary"] = results["history"].get(
+                    "summary", ""
+                )
+            if results["history"].get("key_insights"):
+                if "technical_patterns" not in technical_analysis:
+                    technical_analysis["technical_patterns"] = results["history"].get(
+                        "key_insights", []
+                    )
+            logger.info(
+                "🚀 [ANALYZE ALL] ✅ Created technical_analysis from history summary (fallback)"
+            )
+
+    return technical_analysis
+
+
+def _merge_fundamental_analysis(results: dict) -> dict:
+    """Merge fundamental analysis from financials agent."""
+    fundamental_analysis = {}
+
+    if not results.get("financials"):
+        return fundamental_analysis
+
+    financials_fundamental = results["financials"].get("fundamental_analysis")
+    if (
+        financials_fundamental
+        and isinstance(financials_fundamental, dict)
+        and len(financials_fundamental) > 0
+    ):
+        # Check if it has the expected structure
+        has_structure = any(
+            key in financials_fundamental
+            for key in [
+                "valuation_analysis",
+                "financial_health",
+                "key_financial_ratios",
+                "growth_analysis",
+            ]
+        )
+        if has_structure:
+            fundamental_analysis.update(financials_fundamental)
+            logger.info(
+                "🚀 [ANALYZE ALL] ✅ Merged financials fundamental_analysis with proper structure"
+            )
+        else:
+            fundamental_keys = list(financials_fundamental.keys())
+            logger.warning(
+                f"🚀 [ANALYZE ALL] ⚠️ Financials fundamental_analysis exists "
+                f"but lacks expected structure. Keys: {fundamental_keys}"
+            )
+            fundamental_analysis.update(financials_fundamental)
+    else:
+        logger.warning(
+            f"🚀 [ANALYZE ALL] ⚠️ Financials agent did not return fundamental_analysis. "
+            f"Summary available: {bool(results['financials'].get('summary'))}"
+        )
+
+    return fundamental_analysis
+
+
+def _merge_risk_assessment(results: dict) -> dict:
+    """Merge risk assessment from all agents."""
+    risk_assessment = {}
+    for agent_type in ["financials", "statistics", "news"]:
+        if results.get(agent_type) and results[agent_type].get("risk_assessment"):
+            risk_assessment.update(results[agent_type]["risk_assessment"])
+    return risk_assessment
+
+
+def _get_recommendations(results: dict) -> tuple:
+    """Get recommendations and confidence score from first available agent."""
+    for agent_type in ["financials", "statistics", "history", "news"]:
+        if results.get(agent_type) and results[agent_type].get("recommendations"):
+            recommendations = results[agent_type]["recommendations"]
+            confidence = (
+                recommendations.get("confidence", 0.5)
+                if isinstance(recommendations, dict)
+                else 0.5
+            )
+            return recommendations, confidence
+    return {}, 0.5
+
+
+def _build_comprehensive_analysis(results: dict) -> Optional[dict]:
+    """Build comprehensive analysis by merging all agent results."""
+    if not (
+        results.get("financials")
+        or results.get("statistics")
+        or results.get("history")
+        or results.get("news")
+    ):
+        return None
+
+    recommendations, confidence = _get_recommendations(results)
+
+    comprehensive_analysis = {
+        "summary": _get_comprehensive_summary(results),
+        "key_insights": _merge_key_insights(results),
+        "technical_analysis": _merge_technical_analysis(results),
+        "fundamental_analysis": _merge_fundamental_analysis(results),
+        "risk_assessment": _merge_risk_assessment(results),
+        "recommendations": recommendations,
+        "confidence_score": confidence,
+    }
+
+    # Log what's actually in the analysis for debugging
+    has_technical = (
+        comprehensive_analysis.get("technical_analysis")
+        and isinstance(comprehensive_analysis["technical_analysis"], dict)
+        and len(comprehensive_analysis["technical_analysis"]) > 0
+    )
+    has_fundamental = (
+        comprehensive_analysis.get("fundamental_analysis")
+        and isinstance(comprehensive_analysis["fundamental_analysis"], dict)
+        and len(comprehensive_analysis["fundamental_analysis"]) > 0
+    )
+    has_risks = (
+        comprehensive_analysis.get("risk_assessment")
+        and isinstance(comprehensive_analysis["risk_assessment"], dict)
+        and len(comprehensive_analysis["risk_assessment"]) > 0
+    )
+    has_recommendations = (
+        comprehensive_analysis.get("recommendations")
+        and isinstance(comprehensive_analysis["recommendations"], dict)
+        and len(comprehensive_analysis["recommendations"]) > 0
+    )
+
+    logger.info(
+        f"🚀 [ANALYZE ALL] Created comprehensive analysis with: "
+        f"summary={bool(comprehensive_analysis.get('summary'))}, "
+        f"technical={has_technical}, fundamental={has_fundamental}, "
+        f"risks={has_risks}, recommendations={has_recommendations}"
+    )
+
+    return comprehensive_analysis
 
 
 @router.post("/analyze/all", response_model=dict)
@@ -1054,39 +1305,7 @@ async def analyze_stock_all_agents(
 
         # Process results
         for result in agent_results:
-            if isinstance(result, Exception):
-                logger.error(f"🚀 [ANALYZE ALL] Agent task exception: {result}")
-                results["errors"].append(str(result))
-            elif result:
-                agent_type, analysis_data = result
-                logger.info(
-                    f"🚀 [ANALYZE ALL] Processing {agent_type} result: "
-                    f"type={type(analysis_data)}, is None={analysis_data is None}, "
-                    f"is dict={isinstance(analysis_data, dict)}"
-                )
-                if analysis_data is not None:
-                    if isinstance(analysis_data, dict) and len(analysis_data) > 0:
-                        results[agent_type] = analysis_data
-                        logger.info(
-                            f"🚀 [ANALYZE ALL] ✅ {agent_type} data added to results"
-                        )
-                    elif isinstance(analysis_data, dict):
-                        logger.warning(
-                            f"🚀 [ANALYZE ALL] ⚠️ {agent_type} returned empty dict"
-                        )
-                        results["errors"].append(
-                            f"{agent_type} agent returned empty data"
-                        )
-                    else:
-                        logger.warning(
-                            f"🚀 [ANALYZE ALL] ⚠️ {agent_type} returned non-dict: {type(analysis_data)}"
-                        )
-                        results["errors"].append(
-                            f"{agent_type} agent returned invalid data type"
-                        )
-                else:
-                    logger.warning(f"🚀 [ANALYZE ALL] ⚠️ {agent_type} returned None")
-                    results["errors"].append(f"{agent_type} agent returned no data")
+            _process_agent_result(result, results)
 
         logger.info(f"🚀 [ANALYZE ALL] ✅ All agents completed for {request.symbol}")
         logger.info(
@@ -1116,269 +1335,7 @@ async def analyze_stock_all_agents(
 
         # Create a comprehensive analysis by merging all agent results
         # This is used for the "Overview" tab in the frontend
-        comprehensive_analysis = None
-        if (
-            results["financials"]
-            or results["statistics"]
-            or results["history"]
-            or results["news"]
-        ):
-            comprehensive_analysis = {
-                "summary": (
-                    results["financials"].get("summary", "")
-                    if results["financials"]
-                    else (
-                        results["statistics"].get("summary", "")
-                        if results["statistics"]
-                        else (
-                            results["history"].get("summary", "")
-                            if results["history"]
-                            else (
-                                results["news"].get("summary", "")
-                                if results["news"]
-                                else "Analysis completed"
-                            )
-                        )
-                    )
-                ),
-                "key_insights": [],
-                "technical_analysis": {},
-                "fundamental_analysis": {},
-                "risk_assessment": {},
-                "recommendations": {},
-                "confidence_score": 0.5,
-            }
-
-            # Merge key insights from all agents
-            if results["financials"] and results["financials"].get("key_insights"):
-                comprehensive_analysis["key_insights"].extend(
-                    results["financials"]["key_insights"]
-                )
-            if results["statistics"] and results["statistics"].get("key_insights"):
-                comprehensive_analysis["key_insights"].extend(
-                    results["statistics"]["key_insights"]
-                )
-            if results["history"] and results["history"].get("key_insights"):
-                comprehensive_analysis["key_insights"].extend(
-                    results["history"]["key_insights"]
-                )
-            if results["news"] and results["news"].get("key_insights"):
-                comprehensive_analysis["key_insights"].extend(
-                    results["news"]["key_insights"]
-                )
-
-            # Merge technical analysis (from statistics and history)
-            if results["statistics"]:
-                stats_technical = results["statistics"].get("technical_analysis")
-                logger.info(
-                    f"🚀 [ANALYZE ALL] Statistics technical_analysis: "
-                    f"exists={stats_technical is not None}, "
-                    f"type={type(stats_technical)}, "
-                    f"len={len(stats_technical) if isinstance(stats_technical, dict) else 'N/A'}, "
-                    f"keys={list(stats_technical.keys()) if isinstance(stats_technical, dict) else 'N/A'}"
-                )
-                if (
-                    stats_technical
-                    and isinstance(stats_technical, dict)
-                    and len(stats_technical) > 0
-                ):
-                    comprehensive_analysis["technical_analysis"].update(stats_technical)
-                    logger.info(
-                        "🚀 [ANALYZE ALL] ✅ Merged statistics technical_analysis"
-                    )
-                elif results["statistics"].get("summary"):
-                    # Fallback: create technical analysis from statistics summary
-                    comprehensive_analysis["technical_analysis"][
-                        "statistics_summary"
-                    ] = results["statistics"].get("summary", "")
-                    if results["statistics"].get("key_insights"):
-                        comprehensive_analysis["technical_analysis"][
-                            "statistical_insights"
-                        ] = results["statistics"].get("key_insights", [])
-                    logger.info(
-                        "🚀 [ANALYZE ALL] ✅ Created technical_analysis from "
-                        "statistics summary (fallback)"
-                    )
-
-            if results["history"]:
-                history_technical = results["history"].get("technical_analysis")
-                logger.info(
-                    f"🚀 [ANALYZE ALL] History technical_analysis: "
-                    f"exists={history_technical is not None}, "
-                    f"type={type(history_technical)}, "
-                    f"len={len(history_technical) if isinstance(history_technical, dict) else 'N/A'}, "
-                    f"keys={list(history_technical.keys()) if isinstance(history_technical, dict) else 'N/A'}"
-                )
-                if (
-                    history_technical
-                    and isinstance(history_technical, dict)
-                    and len(history_technical) > 0
-                ):
-                    comprehensive_analysis["technical_analysis"].update(
-                        history_technical
-                    )
-                    logger.info("🚀 [ANALYZE ALL] ✅ Merged history technical_analysis")
-                elif results["history"].get("summary"):
-                    # Fallback: create technical analysis from history summary
-                    if (
-                        "history_summary"
-                        not in comprehensive_analysis["technical_analysis"]
-                    ):
-                        comprehensive_analysis["technical_analysis"][
-                            "history_summary"
-                        ] = results["history"].get("summary", "")
-                    if results["history"].get("key_insights"):
-                        if (
-                            "technical_patterns"
-                            not in comprehensive_analysis["technical_analysis"]
-                        ):
-                            comprehensive_analysis["technical_analysis"][
-                                "technical_patterns"
-                            ] = results["history"].get("key_insights", [])
-                    logger.info(
-                        "🚀 [ANALYZE ALL] ✅ Created technical_analysis from "
-                        "history summary (fallback)"
-                    )
-
-            # Merge fundamental analysis (from financials)
-            if results["financials"]:
-                financials_fundamental = results["financials"].get(
-                    "fundamental_analysis"
-                )
-                logger.info(
-                    f"🚀 [ANALYZE ALL] Financials fundamental_analysis: "
-                    f"exists={financials_fundamental is not None}, "
-                    f"type={type(financials_fundamental)}, "
-                    f"len={len(financials_fundamental) if isinstance(financials_fundamental, dict) else 'N/A'}, "
-                    f"keys={list(financials_fundamental.keys()) if isinstance(financials_fundamental, dict) else 'N/A'}"
-                )
-                if (
-                    financials_fundamental
-                    and isinstance(financials_fundamental, dict)
-                    and len(financials_fundamental) > 0
-                ):
-                    # Check if it has the expected structure (valuation_analysis, financial_health, etc.)
-                    has_structure = any(
-                        key in financials_fundamental
-                        for key in [
-                            "valuation_analysis",
-                            "financial_health",
-                            "key_financial_ratios",
-                            "growth_analysis",
-                        ]
-                    )
-                    if has_structure:
-                        comprehensive_analysis["fundamental_analysis"].update(
-                            financials_fundamental
-                        )
-                        logger.info(
-                            "🚀 [ANALYZE ALL] ✅ Merged financials "
-                            "fundamental_analysis with proper structure"
-                        )
-                    else:
-                        # Has data but wrong structure - try to restructure it
-                        fundamental_keys = list(financials_fundamental.keys())
-                        logger.warning(
-                            "🚀 [ANALYZE ALL] ⚠️ Financials fundamental_analysis "
-                            f"exists but lacks expected structure. Keys: {fundamental_keys}"
-                        )
-                        # Still merge it, but log a warning
-                        comprehensive_analysis["fundamental_analysis"].update(
-                            financials_fundamental
-                        )
-                else:
-                    # No fundamental_analysis from financials agent -
-                    # this shouldn't happen if agent is working correctly
-                    logger.warning(
-                        f"🚀 [ANALYZE ALL] ⚠️ Financials agent did not return fundamental_analysis. "
-                        f"Summary available: {bool(results['financials'].get('summary'))}"
-                    )
-                    # Don't create fallback fields - let the frontend handle empty state
-
-            # Merge risk assessment (from all agents)
-            if results["financials"] and results["financials"].get("risk_assessment"):
-                comprehensive_analysis["risk_assessment"].update(
-                    results["financials"]["risk_assessment"]
-                )
-            if results["statistics"] and results["statistics"].get("risk_assessment"):
-                comprehensive_analysis["risk_assessment"].update(
-                    results["statistics"]["risk_assessment"]
-                )
-            if results["news"] and results["news"].get("risk_assessment"):
-                comprehensive_analysis["risk_assessment"].update(
-                    results["news"]["risk_assessment"]
-                )
-
-            # Use recommendations from financials (most comprehensive) or first available
-            if results["financials"] and results["financials"].get("recommendations"):
-                comprehensive_analysis["recommendations"] = results["financials"][
-                    "recommendations"
-                ]
-                comprehensive_analysis["confidence_score"] = results["financials"][
-                    "recommendations"
-                ].get("confidence", 0.5)
-            elif results["statistics"] and results["statistics"].get("recommendations"):
-                comprehensive_analysis["recommendations"] = results["statistics"][
-                    "recommendations"
-                ]
-                comprehensive_analysis["confidence_score"] = results["statistics"][
-                    "recommendations"
-                ].get("confidence", 0.5)
-            elif results["history"] and results["history"].get("recommendations"):
-                comprehensive_analysis["recommendations"] = results["history"][
-                    "recommendations"
-                ]
-                comprehensive_analysis["confidence_score"] = results["history"][
-                    "recommendations"
-                ].get("confidence", 0.5)
-            elif results["news"] and results["news"].get("recommendations"):
-                comprehensive_analysis["recommendations"] = results["news"][
-                    "recommendations"
-                ]
-                comprehensive_analysis["confidence_score"] = results["news"][
-                    "recommendations"
-                ].get("confidence", 0.5)
-
-            # Check if sections have actual content (not just empty dicts)
-            has_technical = (
-                comprehensive_analysis.get("technical_analysis")
-                and isinstance(comprehensive_analysis["technical_analysis"], dict)
-                and len(comprehensive_analysis["technical_analysis"]) > 0
-            )
-            has_fundamental = (
-                comprehensive_analysis.get("fundamental_analysis")
-                and isinstance(comprehensive_analysis["fundamental_analysis"], dict)
-                and len(comprehensive_analysis["fundamental_analysis"]) > 0
-            )
-            has_risks = (
-                comprehensive_analysis.get("risk_assessment")
-                and isinstance(comprehensive_analysis["risk_assessment"], dict)
-                and len(comprehensive_analysis["risk_assessment"]) > 0
-            )
-            has_recommendations = (
-                comprehensive_analysis.get("recommendations")
-                and isinstance(comprehensive_analysis["recommendations"], dict)
-                and len(comprehensive_analysis["recommendations"]) > 0
-            )
-
-            logger.info(
-                f"🚀 [ANALYZE ALL] Created comprehensive analysis with: "
-                f"summary={bool(comprehensive_analysis.get('summary'))}, "
-                f"technical={has_technical}, "
-                f"fundamental={has_fundamental}, "
-                f"risks={has_risks}, "
-                f"recommendations={has_recommendations}"
-            )
-
-            # Log what's actually in technical_analysis and fundamental_analysis for debugging
-            if comprehensive_analysis.get("technical_analysis"):
-                tech_keys = list(comprehensive_analysis["technical_analysis"].keys())
-                logger.info(f"🚀 [ANALYZE ALL] Technical analysis keys: {tech_keys}")
-            if comprehensive_analysis.get("fundamental_analysis"):
-                fund_keys = list(comprehensive_analysis["fundamental_analysis"].keys())
-                logger.info(f"🚀 [ANALYZE ALL] Fundamental analysis keys: {fund_keys}")
-
-        # Add comprehensive analysis to results
+        comprehensive_analysis = _build_comprehensive_analysis(results)
         results["analysis"] = comprehensive_analysis
 
         return results
