@@ -221,7 +221,7 @@ async def get_search_history(
     context: RequestContext = Depends(get_current_context),
 ):
     """
-    Get user's stock search history from Cassandra.
+    Get user's stock search history from Cassandra Database
     """
     try:
         from app.services.cassandra_service import cassandra_service
@@ -1186,7 +1186,7 @@ def _build_comprehensive_analysis(results: dict) -> Optional[dict]:
 
 
 @router.post("/analyze/all", response_model=dict)
-async def analyze_stock_all_agents(
+async def analyze_stock_all_agents(  # noqa: C901
     request: StockAnalysisRequest,
     db: AsyncSession = Depends(get_db),
     context: RequestContext = Depends(get_current_context),
