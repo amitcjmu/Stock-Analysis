@@ -2,6 +2,7 @@
 Stock Service - Handles stock search and data fetching
 """
 
+import asyncio
 import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
@@ -29,8 +30,46 @@ class StockService:
         """
         Search for stocks by symbol or company name.
         Uses Yahoo Finance API for real stock data.
+        Logs search to Cassandra for analytics.
         """
+        import time
+        from app.services.cassandra_service import cassandra_service
+
+        start_time = time.time()
+        source = "database"
+        search_type = (
+            "symbol" if len(query.split()) == 1 and query.isupper() else "company_name"
+        )
+
         try:
+            # Check Cassandra cache first
+            cached_results = await cassandra_service.get_cached_results(
+                self.context.client_account_id,
+                str(self.context.user_id or "system"),
+                query,
+            )
+            if cached_results:
+                logger.info(f"📊 Cache hit for search: {query}")
+                source = "cache"
+                stocks = cached_results[:limit]
+                execution_time_ms = int((time.time() - start_time) * 1000)
+
+                # Log to Cassandra (non-blocking)
+                asyncio.create_task(
+                    cassandra_service.log_stock_search(
+                        self.context.client_account_id,
+                        self.context.engagement_id,
+                        str(self.context.user_id or "system"),
+                        query,
+                        search_type=search_type,
+                        results_count=len(stocks),
+                        execution_time_ms=execution_time_ms,
+                        source=source,
+                        results=stocks,
+                    )
+                )
+                return stocks
+
             # Search in database first
             search_pattern = f"%{query.upper()}%"
             stmt = (
@@ -55,14 +94,49 @@ class StockService:
 
             # If no results in DB, fetch from Yahoo Finance API
             if not stocks:
+                source = "api"
                 stocks = await self.stock_data_api.search_stocks(query, limit)
+
+            execution_time_ms = int((time.time() - start_time) * 1000)
+
+            # Log search to Cassandra (non-blocking)
+            asyncio.create_task(
+                cassandra_service.log_stock_search(
+                    self.context.client_account_id,
+                    self.context.engagement_id,
+                    str(self.context.user_id or "system"),
+                    query,
+                    search_type=search_type,
+                    results_count=len(stocks),
+                    execution_time_ms=execution_time_ms,
+                    source=source,
+                    results=stocks,
+                )
+            )
 
             return stocks
 
         except Exception as e:
             logger.error(f"Error searching stocks: {e}")
             # Fallback to API on error
-            return await self.stock_data_api.search_stocks(query, limit)
+            stocks = await self.stock_data_api.search_stocks(query, limit)
+
+            # Still log the search even on error
+            execution_time_ms = int((time.time() - start_time) * 1000)
+            asyncio.create_task(
+                cassandra_service.log_stock_search(
+                    self.context.client_account_id,
+                    self.context.engagement_id,
+                    str(self.context.user_id or "system"),
+                    query,
+                    search_type=search_type,
+                    results_count=len(stocks),
+                    execution_time_ms=execution_time_ms,
+                    source="api",
+                    results=stocks,
+                )
+            )
+            return stocks
 
     async def get_historical_prices(
         self, symbol: str, period: str = "1mo", interval: str = "1d"

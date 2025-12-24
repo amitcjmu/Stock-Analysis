@@ -76,6 +76,15 @@ class Settings(BaseSettings):
     # NewsAPI.org Configuration (optional, for enhanced news fetching)
     NEWSAPI_KEY: str = Field(default="", env="NEWSAPI_KEY")
 
+    # Cassandra Configuration (for user stock search data)
+    CASSANDRA_CONTACT_POINTS: str = Field(
+        default="localhost", env="CASSANDRA_CONTACT_POINTS"
+    )
+    CASSANDRA_PORT: int = Field(default=9042, env="CASSANDRA_PORT")
+    CASSANDRA_KEYSPACE: str = Field(default="stock_analysis", env="CASSANDRA_KEYSPACE")
+    CASSANDRA_USERNAME: str = Field(default="", env="CASSANDRA_USERNAME")
+    CASSANDRA_PASSWORD: str = Field(default="", env="CASSANDRA_PASSWORD")
+
     @property
     def deepinfra_model_url(self) -> str:
         """Get the full DeepInfra model URL."""

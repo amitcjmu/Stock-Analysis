@@ -42,6 +42,12 @@ services:
       - ENVIRONMENT=development
       - DEBUG=true
       - PYTHONPATH=/app
+      # Cassandra Configuration
+      - CASSANDRA_CONTACT_POINTS=cassandra
+      - CASSANDRA_PORT=9042
+      - CASSANDRA_KEYSPACE=stock_analysis
+      - CASSANDRA_USERNAME=${CASSANDRA_USERNAME:-}
+      - CASSANDRA_PASSWORD=${CASSANDRA_PASSWORD:-}
 
       # Hot Module Reload (HMR) Configuration
       # WARNING: HMR restarts the server on file changes, causing:
@@ -85,6 +91,8 @@ services:
       - "8000:8000"
     depends_on:
       postgres:
+        condition: service_healthy
+      cassandra:
         condition: service_healthy
     volumes:
       - ../../backend:/app
@@ -164,6 +172,48 @@ services:
     restart: unless-stopped
     user: "999:999"  # Run as non-root user
 
+  # Cassandra Database for stock search data storage
+  cassandra:
+    image: cassandra:4.1
+    container_name: migration_cassandra
+    environment:
+      - CASSANDRA_CLUSTER_NAME=StockAnalysis
+      - CASSANDRA_DC=datacenter1
+      - CASSANDRA_RACK=rack1
+      - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
+      - MAX_HEAP_SIZE=512M
+      - HEAP_NEWSIZE=128M
+      # Remove CASSANDRA_LISTEN_ADDRESS to let Cassandra auto-detect (required for Docker)
+      - CASSANDRA_BROADCAST_ADDRESS=cassandra
+      - CASSANDRA_RPC_ADDRESS=cassandra
+      - CASSANDRA_START_RPC=true
+      # Optional: Enable authentication (uncomment and set password)
+      # - CASSANDRA_AUTHENTICATOR=PasswordAuthenticator
+      # - CASSANDRA_AUTHORIZER=CassandraAuthorizer
+    ports:
+      - "9042:9042"  # CQL native transport port (only port needed for single-node)
+      # Note: Ports 7000, 7001, 7199 are for multi-node clusters and JMX monitoring
+      # They are not needed for single-node setup and can conflict with other services
+    volumes:
+      - cassandra_data:/var/lib/cassandra
+    healthcheck:
+      test: ["CMD-SHELL", "nodetool status | grep -q '^UN' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s  # Give Cassandra time to start
+    networks:
+      - migration_network
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+    restart: unless-stopped
+
   # Assessment Flow Worker (optional for heavy workloads)
   assessment-worker:
     build:
@@ -205,6 +255,7 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  cassandra_data:
   frontend_node_modules:
 
 networks:

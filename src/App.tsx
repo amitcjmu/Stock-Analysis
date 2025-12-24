@@ -43,6 +43,7 @@ import {
   LazyTechDebtAnalysis,
   LazyDiscoveryDashboard,
   LazyWatchlist,
+  LazySearchHistory,
   LazyFlowStatusMonitor,
   LazyCloudComparison,
   LazySavingsAnalysis,
@@ -146,6 +147,7 @@ const AuthenticatedApp = (): JSX.Element => {
       <Route path="/discovery" element={<LazyDiscoveryDashboard />} />
       <Route path="/discovery/stock-analysis" element={<LazyDiscoveryDashboard />} />
       <Route path="/discovery/watchlist" element={<LazyWatchlist />} />
+      <Route path="/discovery/search-history" element={<LazySearchHistory />} />
       <Route path="/discovery/overview" element={<LazyDiscoveryDashboard />} />
       <Route path="/discovery/dashboard" element={<LazyDiscoveryDashboard />} />
       <Route
