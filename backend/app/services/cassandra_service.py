@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 try:
     from cassandra.cluster import Cluster, ExecutionProfile, EXEC_PROFILE_DEFAULT
     from cassandra.policies import DCAwareRoundRobinPolicy, TokenAwarePolicy
-    from cassandra.query import SimpleStatement, ConsistencyLevel
+    from cassandra.query import ConsistencyLevel
     from cassandra.auth import PlainTextAuthProvider
 
     CASSANDRA_AVAILABLE = True
@@ -288,8 +288,8 @@ class CassandraService:
                 f") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
             )
 
-            # Use SimpleStatement for parameterized queries
-            insert_query = SimpleStatement(insert_query_str)
+            # Use prepared statement for parameterized queries (recommended approach)
+            prepared = self.session.prepare(insert_query_str)
 
             # Capture parameters for lambda
             params = (
@@ -306,8 +306,8 @@ class CassandraService:
                 source,
             )
 
-            def execute_insert(q=insert_query, p=params):
-                return self.session.execute(q, p)
+            def execute_insert(stmt=prepared, p=params):
+                return self.session.execute(stmt, p)
 
             await loop.run_in_executor(None, execute_insert)
 
@@ -368,8 +368,8 @@ class CassandraService:
                 f") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) USING TTL 86400"
             )
 
-            # Use SimpleStatement for parameterized queries
-            insert_query = SimpleStatement(insert_query_str)
+            # Use prepared statement for parameterized queries (recommended approach)
+            prepared = self.session.prepare(insert_query_str)
 
             now = datetime.utcnow()
             expires_at = now + timedelta(hours=24)  # 24 hour cache
@@ -389,8 +389,8 @@ class CassandraService:
 
             loop = asyncio.get_event_loop()
 
-            def execute_cache_insert(q=insert_query, p=params):
-                return self.session.execute(q, p)
+            def execute_cache_insert(stmt=prepared, p=params):
+                return self.session.execute(stmt, p)
 
             await loop.run_in_executor(None, execute_cache_insert)
 
@@ -460,8 +460,8 @@ class CassandraService:
                     f"WHERE client_account_id = ? AND user_id = ? AND year_month = ?"
                 )
 
-                # Use SimpleStatement for parameterized queries
-                update_query = SimpleStatement(update_query_str)
+                # Use prepared statement for parameterized queries (recommended approach)
+                prepared = self.session.prepare(update_query_str)
 
                 update_params = (
                     total_searches,
@@ -475,8 +475,8 @@ class CassandraService:
                     year_month,
                 )
 
-                def execute_update(q=update_query, p=update_params):
-                    return self.session.execute(q, p)
+                def execute_update(stmt=prepared, p=update_params):
+                    return self.session.execute(stmt, p)
 
                 await loop.run_in_executor(None, execute_update)
             else:
@@ -492,8 +492,8 @@ class CassandraService:
                     f") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
                 )
 
-                # Use SimpleStatement for parameterized queries
-                insert_query = SimpleStatement(insert_query_str)
+                # Use prepared statement for parameterized queries (recommended approach)
+                prepared = self.session.prepare(insert_query_str)
 
                 insert_params = (
                     client_account_id,
@@ -508,8 +508,8 @@ class CassandraService:
                     now,
                 )
 
-                def execute_insert_analytics(q=insert_query, p=insert_params):
-                    return self.session.execute(q, p)
+                def execute_insert_analytics(stmt=prepared, p=insert_params):
+                    return self.session.execute(stmt, p)
 
                 await loop.run_in_executor(None, execute_insert_analytics)
 
@@ -566,8 +566,9 @@ class CassandraService:
                     f"ORDER BY search_timestamp DESC LIMIT ?"
                 )
 
-                # Use SimpleStatement for parameterized queries
-                select_query = SimpleStatement(query_str)
+                # Use prepared statement for parameterized queries (recommended approach)
+                prepared = self.session.prepare(query_str)
+                select_query = prepared
 
                 # Capture variables for lambda (avoid closure issues)
                 date_param = current_date
@@ -641,13 +642,13 @@ class CassandraService:
                 f"WHERE client_account_id = ? AND user_id = ? AND year_month = ?"
             )
 
-            # Use SimpleStatement for parameterized queries
-            select_query = SimpleStatement(select_query_str)
+            # Use prepared statement for parameterized queries (recommended approach)
+            prepared = self.session.prepare(select_query_str)
 
             select_params = (client_account_id, user_id, year_month)
 
-            def execute_select(q=select_query, p=select_params):
-                return self.session.execute(q, p).one()
+            def execute_select(stmt=prepared, p=select_params):
+                return self.session.execute(stmt, p).one()
 
             result = await loop.run_in_executor(None, execute_select)
 
@@ -707,14 +708,14 @@ class CassandraService:
                 f"AND expires_at > ? LIMIT 1"
             )
 
-            # Use SimpleStatement for parameterized queries
-            select_query = SimpleStatement(select_query_str)
+            # Use prepared statement for parameterized queries (recommended approach)
+            prepared = self.session.prepare(select_query_str)
 
             now = datetime.utcnow()
             select_params = (query_hash, client_account_id, user_id, now)
 
-            def execute_select_cache(q=select_query, p=select_params):
-                return self.session.execute(q, p).one()
+            def execute_select_cache(stmt=prepared, p=select_params):
+                return self.session.execute(stmt, p).one()
 
             result = await loop.run_in_executor(None, execute_select_cache)
 
