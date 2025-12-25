@@ -59,23 +59,130 @@ jobs:
             PUPPETEER_ARGS="--no-sandbox --disable-setuid-sandbox" mmdc -i "$file" -o "docs/architecture/generated/${filename}.svg"
           done
 
-      - name: Commit generated diagrams
+      - name: Get base SHA for commit
         if: github.event_name == 'pull_request'
+        id: get-base-sha
         run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          
-          # Get the branch name
-          BRANCH_NAME="${{ github.head_ref }}"
-          
-          # Ensure we're on the PR branch (not detached HEAD)
-          git checkout -B "$BRANCH_NAME" || git checkout "$BRANCH_NAME"
-          
-          git add docs/architecture/generated/
-          if ! git diff --staged --quiet; then
-            git commit -m "docs: Auto-generate architecture diagrams [skip ci]"
-            git push origin "$BRANCH_NAME"
-          fi
+          echo "sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Commit generated diagrams via API
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            
+            const diagramsDir = 'docs/architecture/generated';
+            if (!fs.existsSync(diagramsDir)) {
+              console.log('No diagrams directory found');
+              return;
+            }
+            
+            const files = fs.readdirSync(diagramsDir);
+            const diagramFiles = files.filter(f => f.endsWith('.png') || f.endsWith('.svg'));
+            
+            if (diagramFiles.length === 0) {
+              console.log('No diagram files to commit');
+              return;
+            }
+            
+            const branchName = context.payload.pull_request.head.ref;
+            const baseSha = context.payload.pull_request.head.sha;
+            
+            // Get current tree SHA
+            const { data: refData } = await github.rest.git.getRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: `heads/${branchName}`
+            });
+            
+            const baseTreeSha = refData.object.sha;
+            
+            // Get base tree
+            const { data: baseTree } = await github.rest.git.getTree({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tree_sha: baseTreeSha,
+              recursive: true
+            });
+            
+            // Create blobs for new files
+            const tree = [];
+            for (const file of diagramFiles) {
+              const filePath = path.join(diagramsDir, file);
+              const content = fs.readFileSync(filePath);
+              const contentBase64 = content.toString('base64');
+              
+              const { data: blob } = await github.rest.git.createBlob({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                content: contentBase64,
+                encoding: 'base64'
+              });
+              
+              tree.push({
+                path: `docs/architecture/generated/${file}`,
+                mode: '100644',
+                type: 'blob',
+                sha: blob.sha
+              });
+            }
+            
+            // Preserve existing files in the tree
+            for (const item of baseTree.tree) {
+              if (!item.path.startsWith('docs/architecture/generated/')) {
+                tree.push({
+                  path: item.path,
+                  mode: item.mode,
+                  type: item.type,
+                  sha: item.sha
+                });
+              }
+            }
+            
+            // Create new tree
+            const { data: newTree } = await github.rest.git.createTree({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              base_tree: baseTreeSha,
+              tree: tree
+            });
+            
+            // Create commit
+            const { data: newCommit } = await github.rest.git.createCommit({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              message: 'docs: Auto-generate architecture diagrams [skip ci]',
+              tree: newTree.sha,
+              parents: [baseTreeSha],
+              author: {
+                name: 'github-actions[bot]',
+                email: 'github-actions[bot]@users.noreply.github.com'
+              }
+            });
+            
+            // Update branch reference
+            try {
+              await github.rest.git.updateRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: `heads/${branchName}`,
+                sha: newCommit.sha
+              });
+              console.log('Successfully committed diagrams via API');
+            } catch (error) {
+              console.log('Could not update branch (may be protected):', error.message);
+              console.log('Diagrams are available in artifacts');
+            }
+
+      - name: Upload diagrams as artifacts
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: architecture-diagrams
+          path: docs/architecture/generated/
+          retention-days: 7
 
       - name: Comment on PR with diagrams
         if: github.event_name == 'pull_request'
@@ -94,12 +201,15 @@ jobs:
               if (diagramFiles.length > 0) {
                 const prNumber = context.issue.number;
                 const prBranch = context.payload.pull_request.head.ref;
-
-                // Reference images from the PR branch (will be available after commit)
-                const baseUrl = `https://raw.githubusercontent.com/${context.repo.owner}/${context.repo.repo}/${prBranch}`;
+                const runId = context.runId;
+                const repo = context.repo;
 
                 let comment = '## 📊 Architecture Diagrams\n\n';
-                comment += 'The following architecture diagrams have been generated and committed to this PR:\n\n';
+                comment += 'The following architecture diagrams have been generated:\n\n';
+
+                // Try to reference from branch (if commit succeeded)
+                const baseUrl = `https://raw.githubusercontent.com/${repo.owner}/${repo.repo}/${prBranch}`;
+                const artifactsUrl = `https://github.com/${repo.owner}/${repo.repo}/actions/runs/${runId}`;
 
                 for (const file of diagramFiles) {
                   const ext = path.extname(file);
@@ -108,19 +218,22 @@ jobs:
 
                   if (ext === '.png' || ext === '.svg') {
                     comment += `### ${name}\n\n`;
+                    // Try to show image, fallback to link if not available
                     comment += `![${name}](${imagePath})\n\n`;
+                    comment += `*[Download ${file} from artifacts](${artifactsUrl})*\n\n`;
                   }
                 }
 
                 comment += '---\n';
                 comment += `*Diagrams are automatically generated from \`.mmd\` files in \`docs/architecture/\`*\n`;
-                comment += `*View the generated files in: \`docs/architecture/generated/\`*\n`;
+                comment += `*If images don't display, download them from the [workflow artifacts](${artifactsUrl})*\n`;
+                comment += `*Note: If the branch is protected, diagrams are available as artifacts*\n`;
 
-                // Post comment on PR (images will be available after the commit is pushed)
+                // Post comment on PR
                 github.rest.issues.createComment({
                   issue_number: prNumber,
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
+                  owner: repo.owner,
+                  repo: repo.repo,
                   body: comment
                 });
               }
