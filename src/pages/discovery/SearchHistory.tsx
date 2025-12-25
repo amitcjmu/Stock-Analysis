@@ -169,8 +169,8 @@ const SearchHistoryPage: React.FC = () => {
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <ContextBreadcrumbs />
-        <main className="flex-1 overflow-y-auto p-6">
-          <div className="max-w-7xl mx-auto space-y-6">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6">
+          <div className="max-w-7xl mx-auto space-y-4 md:space-y-6">
             {/* Header */}
             <div className="flex items-center justify-between">
               <div>
@@ -189,7 +189,7 @@ const SearchHistoryPage: React.FC = () => {
             </div>
 
             {/* Statistics Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-gray-600">
@@ -197,7 +197,7 @@ const SearchHistoryPage: React.FC = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stats.total}</div>
+                  <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
                 </CardContent>
               </Card>
               <Card>
@@ -207,7 +207,7 @@ const SearchHistoryPage: React.FC = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{formatExecutionTime(stats.avgExecutionTime)}</div>
+                  <div className="text-2xl font-bold text-gray-900">{formatExecutionTime(stats.avgExecutionTime)}</div>
                 </CardContent>
               </Card>
               <Card>
@@ -221,7 +221,7 @@ const SearchHistoryPage: React.FC = () => {
                   <p className="text-xs text-gray-500 mt-1">
                     {stats.total > 0
                       ? `${Math.round((stats.cacheHits / stats.total) * 100)}% hit rate`
-                      : '0%'}
+                      : '0% hit rate'}
                   </p>
                 </CardContent>
               </Card>
@@ -234,7 +234,7 @@ const SearchHistoryPage: React.FC = () => {
                 <CardContent>
                   <div className="text-2xl font-bold text-blue-600">{stats.apiCalls}</div>
                   <p className="text-xs text-gray-500 mt-1">
-                    {stats.dbQueries > 0 && `${stats.dbQueries} DB queries`}
+                    {stats.dbQueries > 0 ? `${stats.dbQueries} DB queries` : 'External API only'}
                   </p>
                 </CardContent>
               </Card>
@@ -327,19 +327,19 @@ const SearchHistoryPage: React.FC = () => {
             {/* Search History Table */}
             <Card>
               <CardHeader>
-                <CardTitle>Search History</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-xl font-semibold">Search History</CardTitle>
+                <CardDescription className="text-sm text-gray-500">
                   Showing {filteredHistory.length} of {searchHistory.length} searches
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-0">
                 {isLoading ? (
                   <div className="flex items-center justify-center py-12">
                     <RefreshCw className="h-6 w-6 animate-spin text-gray-400" />
                     <span className="ml-2 text-gray-600">Loading search history...</span>
                   </div>
                 ) : filteredHistory.length === 0 ? (
-                  <div className="text-center py-12">
+                  <div className="text-center py-12 px-4">
                     <Search className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                     <p className="text-gray-600">
                       {searchHistory.length === 0
@@ -348,54 +348,55 @@ const SearchHistoryPage: React.FC = () => {
                     </p>
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto -mx-6 px-6">
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Timestamp</TableHead>
-                          <TableHead>Search Query</TableHead>
-                          <TableHead>Type</TableHead>
-                          <TableHead>Results</TableHead>
-                          <TableHead>Execution Time</TableHead>
-                          <TableHead>Source</TableHead>
-                          <TableHead>Actions</TableHead>
+                          <TableHead className="min-w-[180px]">Timestamp</TableHead>
+                          <TableHead className="min-w-[150px]">Search Query</TableHead>
+                          <TableHead className="min-w-[120px]">Type</TableHead>
+                          <TableHead className="min-w-[80px] text-center">Results</TableHead>
+                          <TableHead className="min-w-[120px]">Execution Time</TableHead>
+                          <TableHead className="min-w-[100px]">Source</TableHead>
+                          <TableHead className="min-w-[140px]">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {filteredHistory.map((item) => (
                           <TableRow key={item.search_id}>
-                            <TableCell className="font-mono text-sm">
+                            <TableCell className="font-mono text-xs whitespace-nowrap">
                               {formatTimestamp(item.timestamp)}
                             </TableCell>
-                            <TableCell>
+                            <TableCell className="max-w-[200px]">
                               <button
                                 onClick={() => handleSearchClick(item.search_query)}
-                                className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
+                                className="text-blue-600 hover:text-blue-800 hover:underline font-medium truncate block w-full text-left"
+                                title={item.search_query}
                               >
                                 {item.search_query}
                               </button>
                             </TableCell>
                             <TableCell>
-                              <Badge variant={getTypeBadgeVariant(item.search_type)}>
+                              <Badge variant={getTypeBadgeVariant(item.search_type)} className="whitespace-nowrap">
                                 {item.search_type}
                               </Badge>
                             </TableCell>
-                            <TableCell>{item.results_count}</TableCell>
+                            <TableCell className="text-center">{item.results_count}</TableCell>
                             <TableCell>
-                              <div className="flex items-center gap-1">
-                                <Zap className="h-3 w-3 text-gray-400" />
-                                <span className="font-mono text-sm">
+                              <div className="flex items-center gap-1 whitespace-nowrap">
+                                <Zap className="h-3 w-3 text-gray-400 flex-shrink-0" />
+                                <span className="font-mono text-xs">
                                   {formatExecutionTime(item.execution_time_ms)}
                                 </span>
                               </div>
                             </TableCell>
                             <TableCell>
-                              <Badge variant={getSourceBadgeVariant(item.source)}>
+                              <Badge variant={getSourceBadgeVariant(item.source)} className="whitespace-nowrap">
                                 {item.source === 'cache' && (
-                                  <Database className="h-3 w-3 mr-1" />
+                                  <Database className="h-3 w-3 mr-1 inline" />
                                 )}
                                 {item.source === 'api' && (
-                                  <TrendingUp className="h-3 w-3 mr-1" />
+                                  <TrendingUp className="h-3 w-3 mr-1 inline" />
                                 )}
                                 {item.source}
                               </Badge>
@@ -405,6 +406,7 @@ const SearchHistoryPage: React.FC = () => {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => handleSearchClick(item.search_query)}
+                                className="whitespace-nowrap"
                               >
                                 <Search className="h-4 w-4 mr-1" />
                                 Search Again
