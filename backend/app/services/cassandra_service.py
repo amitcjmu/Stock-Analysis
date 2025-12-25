@@ -280,33 +280,36 @@ class CassandraService:
 
             # Insert into user_stock_searches table (run in executor for async)
             loop = asyncio.get_event_loop()
-            insert_query = f"""
-                INSERT INTO {self.keyspace}.user_stock_searches (
-                    client_account_id, engagement_id, user_id, search_date,
-                    search_timestamp, search_id, search_query, search_type,
-                    results_count, execution_time_ms, source
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """
-
-            await loop.run_in_executor(
-                None,
-                lambda: self.session.execute(
-                    insert_query,
-                    (
-                        client_account_id,
-                        engagement_id,
-                        user_id,
-                        search_date,
-                        now,
-                        search_id,
-                        search_query,
-                        search_type,
-                        results_count,
-                        execution_time_ms,
-                        source,
-                    ),
-                ),
+            insert_query_str = (
+                f"INSERT INTO {self.keyspace}.user_stock_searches ("
+                f"client_account_id, engagement_id, user_id, search_date, "
+                f"search_timestamp, search_id, search_query, search_type, "
+                f"results_count, execution_time_ms, source"
+                f") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
             )
+
+            # Use SimpleStatement for parameterized queries
+            insert_query = SimpleStatement(insert_query_str)
+
+            # Capture parameters for lambda
+            params = (
+                client_account_id,
+                engagement_id,
+                user_id,
+                search_date,
+                now,
+                search_id,
+                search_query,
+                search_type,
+                results_count,
+                execution_time_ms,
+                source,
+            )
+
+            def execute_insert(q=insert_query, p=params):
+                return self.session.execute(q, p)
+
+            await loop.run_in_executor(None, execute_insert)
 
             # Cache results if provided
             if results:
@@ -358,34 +361,38 @@ class CassandraService:
             # Convert results to JSON string (Cassandra doesn't have native JSONB, use TEXT)
             results_json = json.dumps(results)
 
-            insert_query = f"""
-                INSERT INTO {self.keyspace}.user_search_results (
-                    search_query_hash, client_account_id, engagement_id,
-                    user_id, search_id, search_query, results, created_at, expires_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) USING TTL 86400
-            """
+            insert_query_str = (
+                f"INSERT INTO {self.keyspace}.user_search_results ("
+                f"search_query_hash, client_account_id, engagement_id, "
+                f"user_id, search_id, search_query, results, created_at, expires_at"
+                f") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) USING TTL 86400"
+            )
+
+            # Use SimpleStatement for parameterized queries
+            insert_query = SimpleStatement(insert_query_str)
 
             now = datetime.utcnow()
             expires_at = now + timedelta(hours=24)  # 24 hour cache
 
-            loop = asyncio.get_event_loop()
-            await loop.run_in_executor(
-                None,
-                lambda: self.session.execute(
-                    insert_query,
-                    (
-                        query_hash,
-                        client_account_id,
-                        engagement_id,
-                        user_id,
-                        search_id,
-                        search_query,
-                        results_json,
-                        now,
-                        expires_at,
-                    ),
-                ),
+            # Capture parameters for lambda
+            params = (
+                query_hash,
+                client_account_id,
+                engagement_id,
+                user_id,
+                search_id,
+                search_query,
+                results_json,
+                now,
+                expires_at,
             )
+
+            loop = asyncio.get_event_loop()
+
+            def execute_cache_insert(q=insert_query, p=params):
+                return self.session.execute(q, p)
+
+            await loop.run_in_executor(None, execute_cache_insert)
 
         except Exception as e:
             logger.debug(f"Error caching search results: {e}")
@@ -442,65 +449,69 @@ class CassandraService:
                 most_searched[symbol] = most_searched.get(symbol, 0) + 1
                 search_sources[source] = search_sources.get(source, 0) + 1
 
-                update_query = f"""
-                    UPDATE {self.keyspace}.user_search_analytics
-                    SET total_searches = ?,
-                        avg_results_count = ?,
-                        avg_execution_time_ms = ?,
-                        most_searched_symbols = ?,
-                        search_sources = ?,
-                        updated_at = ?
-                    WHERE client_account_id = ? AND user_id = ? AND year_month = ?
-                """
-
-                await loop.run_in_executor(
-                    None,
-                    lambda: self.session.execute(
-                        update_query,
-                        (
-                            total_searches,
-                            avg_results,
-                            avg_time,
-                            most_searched,
-                            search_sources,
-                            now,
-                            client_account_id,
-                            user_id,
-                            year_month,
-                        ),
-                    ),
+                update_query_str = (
+                    f"UPDATE {self.keyspace}.user_search_analytics "
+                    f"SET total_searches = ?, "
+                    f"avg_results_count = ?, "
+                    f"avg_execution_time_ms = ?, "
+                    f"most_searched_symbols = ?, "
+                    f"search_sources = ?, "
+                    f"updated_at = ? "
+                    f"WHERE client_account_id = ? AND user_id = ? AND year_month = ?"
                 )
+
+                # Use SimpleStatement for parameterized queries
+                update_query = SimpleStatement(update_query_str)
+
+                update_params = (
+                    total_searches,
+                    avg_results,
+                    avg_time,
+                    most_searched,
+                    search_sources,
+                    now,
+                    client_account_id,
+                    user_id,
+                    year_month,
+                )
+
+                def execute_update(q=update_query, p=update_params):
+                    return self.session.execute(q, p)
+
+                await loop.run_in_executor(None, execute_update)
             else:
                 # Create new analytics record
                 most_searched = {search_query.upper().split()[0]: 1}
                 search_sources = {source: 1}
 
-                insert_query = f"""
-                    INSERT INTO {self.keyspace}.user_search_analytics (
-                        client_account_id, user_id, year_month,
-                        total_searches, unique_queries, avg_results_count,
-                        avg_execution_time_ms, most_searched_symbols, search_sources, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """
-
-                await loop.run_in_executor(
-                    None,
-                    lambda: self.session.execute(
-                        insert_query,
-                        (
-                            client_account_id,
-                            user_id,
-                            year_month,
-                            1,  # total_searches
-                            1,  # unique_queries
-                            float(results_count),  # avg_results_count
-                            float(execution_time_ms),  # avg_execution_time_ms
-                            most_searched,
-                            search_sources,
-                            now,
-                        ),
-                    ),
+                insert_query_str = (
+                    f"INSERT INTO {self.keyspace}.user_search_analytics ("
+                    f"client_account_id, user_id, year_month, "
+                    f"total_searches, unique_queries, avg_results_count, "
+                    f"avg_execution_time_ms, most_searched_symbols, search_sources, updated_at"
+                    f") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
                 )
+
+                # Use SimpleStatement for parameterized queries
+                insert_query = SimpleStatement(insert_query_str)
+
+                insert_params = (
+                    client_account_id,
+                    user_id,
+                    year_month,
+                    1,  # total_searches
+                    1,  # unique_queries
+                    float(results_count),  # avg_results_count
+                    float(execution_time_ms),  # avg_execution_time_ms
+                    most_searched,
+                    search_sources,
+                    now,
+                )
+
+                def execute_insert_analytics(q=insert_query, p=insert_params):
+                    return self.session.execute(q, p)
+
+                await loop.run_in_executor(None, execute_insert_analytics)
 
         except Exception as e:
             logger.debug(f"Error updating analytics: {e}")
@@ -623,19 +634,22 @@ class CassandraService:
             if not year_month:
                 year_month = datetime.utcnow().strftime("%Y-%m")
 
-            select_query = f"""
-                SELECT total_searches, unique_queries, avg_results_count,
-                       avg_execution_time_ms, most_searched_symbols, search_sources
-                FROM {self.keyspace}.user_search_analytics
-                WHERE client_account_id = ? AND user_id = ? AND year_month = ?
-            """
-
-            result = await loop.run_in_executor(
-                None,
-                lambda: self.session.execute(
-                    select_query, (client_account_id, user_id, year_month)
-                ).one(),
+            select_query_str = (
+                f"SELECT total_searches, unique_queries, avg_results_count, "
+                f"avg_execution_time_ms, most_searched_symbols, search_sources "
+                f"FROM {self.keyspace}.user_search_analytics "
+                f"WHERE client_account_id = ? AND user_id = ? AND year_month = ?"
             )
+
+            # Use SimpleStatement for parameterized queries
+            select_query = SimpleStatement(select_query_str)
+
+            select_params = (client_account_id, user_id, year_month)
+
+            def execute_select(q=select_query, p=select_params):
+                return self.session.execute(q, p).one()
+
+            result = await loop.run_in_executor(None, execute_select)
 
             if result:
                 return {
@@ -686,21 +700,23 @@ class CassandraService:
             loop = asyncio.get_event_loop()
             query_hash = hashlib.md5(search_query.lower().encode()).hexdigest()
 
-            select_query = f"""
-                SELECT results, expires_at
-                FROM {self.keyspace}.user_search_results
-                WHERE search_query_hash = ? AND client_account_id = ? AND user_id = ?
-                AND expires_at > ?
-                LIMIT 1
-            """
+            select_query_str = (
+                f"SELECT results, expires_at "
+                f"FROM {self.keyspace}.user_search_results "
+                f"WHERE search_query_hash = ? AND client_account_id = ? AND user_id = ? "
+                f"AND expires_at > ? LIMIT 1"
+            )
+
+            # Use SimpleStatement for parameterized queries
+            select_query = SimpleStatement(select_query_str)
 
             now = datetime.utcnow()
-            result = await loop.run_in_executor(
-                None,
-                lambda: self.session.execute(
-                    select_query, (query_hash, client_account_id, user_id, now)
-                ).one(),
-            )
+            select_params = (query_hash, client_account_id, user_id, now)
+
+            def execute_select_cache(q=select_query, p=select_params):
+                return self.session.execute(q, p).one()
+
+            result = await loop.run_in_executor(None, execute_select_cache)
 
             if result and result.expires_at > now:
                 return json.loads(result.results)
