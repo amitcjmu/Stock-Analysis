@@ -1,0 +1,37 @@
+sequenceDiagram
+    participant User
+    participant Frontend
+    participant API as Backend API
+    participant StockService
+    participant Cassandra as Cassandra DB
+    participant Cache as Result Cache
+
+    User->>Frontend: Search Stock (e.g., "RELIANCE")
+    Frontend->>API: GET /api/v1/stock/stocks/search?query=RELIANCE
+
+    API->>StockService: search_stocks(query)
+
+    Note over StockService,Cache: Check cache first
+    StockService->>Cache: get_cached_results(client_id, user_id, query)
+    Cache-->>StockService: Cache miss (null)
+
+    Note over StockService: Search in database
+    StockService->>StockService: Search PostgreSQL for stock
+    StockService-->>API: Stock data
+
+    Note over StockService,Cassandra: Log search (non-blocking)
+    StockService->>Cassandra: log_stock_search() [async]
+    Cassandra->>Cassandra: Insert into user_stock_searches
+    Cassandra->>Cassandra: Cache results in user_search_results (TTL 24h)
+    Cassandra->>Cassandra: Update analytics in user_search_analytics
+
+    API-->>Frontend: Return stock results
+    Frontend-->>User: Display stock information
+
+    Note over User,Frontend: User views search history
+    User->>Frontend: Navigate to Search History
+    Frontend->>API: GET /api/v1/stock/stocks/search/history
+    API->>Cassandra: get_search_history(client_id, user_id, days=30)
+    Cassandra-->>API: Search history records
+    API-->>Frontend: History data
+    Frontend-->>User: Display search history with stats

@@ -1,0 +1,93 @@
+name: Generate Architecture Diagrams
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'docs/architecture/**/*.mmd'
+      - 'docs/architecture/**/*.mermaid'
+      - '.github/workflows/generate-diagrams.yml'
+  workflow_dispatch:
+
+jobs:
+  generate-diagrams:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Mermaid CLI
+        run: |
+          npm install -g @mermaid-js/mermaid-cli
+
+      - name: Generate diagrams
+        run: |
+          mkdir -p docs/architecture/generated
+
+          # Find all .mmd and .mermaid files and generate PNG/SVG
+          find docs/architecture -name "*.mmd" -o -name "*.mermaid" | while read file; do
+            filename=$(basename "$file" .mmd)
+            filename=$(basename "$filename" .mermaid)
+            echo "Generating diagram from $file"
+            mmdc -i "$file" -o "docs/architecture/generated/${filename}.png" -b transparent
+            mmdc -i "$file" -o "docs/architecture/generated/${filename}.svg"
+          done
+
+      - name: Comment on PR with diagrams
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            // Find generated diagrams
+            const diagramsDir = 'docs/architecture/generated';
+            if (fs.existsSync(diagramsDir)) {
+              const files = fs.readdirSync(diagramsDir);
+              const diagramFiles = files.filter(f => f.endsWith('.png') || f.endsWith('.svg'));
+
+              if (diagramFiles.length > 0) {
+                let comment = '## 📊 Architecture Diagrams\n\n';
+                comment += 'The following architecture diagrams have been generated:\n\n';
+
+                for (const file of diagramFiles) {
+                  const filePath = path.join(diagramsDir, file);
+                  const content = fs.readFileSync(filePath, 'base64');
+                  const ext = path.extname(file);
+
+                  if (ext === '.png') {
+                    comment += `### ${path.basename(file, ext)}\n\n`;
+                    comment += `![${path.basename(file, ext)}](data:image/png;base64,${content})\n\n`;
+                  }
+                }
+
+                // Post comment on PR
+                github.rest.issues.createComment({
+                  issue_number: context.issue.number,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  body: comment
+                });
+              }
+            }
+
+      - name: Commit generated diagrams
+        if: github.event_name == 'pull_request'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add docs/architecture/generated/
+          git diff --staged --quiet || git commit -m "docs: Auto-generate architecture diagrams [skip ci]"
+          git push

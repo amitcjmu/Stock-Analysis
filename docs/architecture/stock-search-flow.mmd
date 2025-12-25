@@ -1,0 +1,32 @@
+flowchart TD
+    Start([User Searches Stock]) --> CheckCache{Check<br/>Cassandra Cache}
+
+    CheckCache -->|Cache Hit| ReturnCached[Return Cached Results]
+    CheckCache -->|Cache Miss| SearchDB[Search PostgreSQL]
+
+    SearchDB --> Found{Stock<br/>Found?}
+    Found -->|No| SearchAPI[Search Yahoo Finance API]
+    Found -->|Yes| ReturnResults[Return Stock Data]
+
+    SearchAPI --> APIResults{API<br/>Success?}
+    APIResults -->|Yes| SaveStock[Save to PostgreSQL]
+    APIResults -->|No| ReturnError[Return Error]
+
+    SaveStock --> ReturnResults
+    ReturnResults --> LogSearch[Log to Cassandra<br/>Async Task]
+    ReturnCached --> LogSearch
+
+    LogSearch --> InsertHistory[Insert into<br/>user_stock_searches]
+    LogSearch --> CacheResults[Cache Results<br/>user_search_results]
+    LogSearch --> UpdateAnalytics[Update Analytics<br/>user_search_analytics]
+
+    InsertHistory --> End([Return to User])
+    CacheResults --> End
+    UpdateAnalytics --> End
+    ReturnError --> End
+
+    style CheckCache fill:#e1f5ff
+    style LogSearch fill:#e1f5ff
+    style InsertHistory fill:#fff4e1
+    style CacheResults fill:#fff4e1
+    style UpdateAnalytics fill:#fff4e1
