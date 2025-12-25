@@ -5,7 +5,7 @@ Designed for high-volume, time-series data with fast reads
 
 import asyncio
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 from datetime import datetime, timedelta
 from uuid import UUID, uuid4
 
@@ -237,8 +237,8 @@ class CassandraService:
 
     async def log_stock_search(
         self,
-        client_account_id: UUID,
-        engagement_id: UUID,
+        client_account_id: Union[UUID, str],
+        engagement_id: Union[UUID, str],
         user_id: str,
         search_query: str,
         search_type: str = "symbol",
@@ -251,8 +251,8 @@ class CassandraService:
         Log a stock search to Cassandra.
 
         Args:
-            client_account_id: Client account ID
-            engagement_id: Engagement ID
+            client_account_id: Client account ID (UUID or string)
+            engagement_id: Engagement ID (UUID or string)
             user_id: User ID
             search_query: The search query string
             search_type: Type of search ('symbol', 'company_name', 'fuzzy')
@@ -274,6 +274,12 @@ class CassandraService:
                 return None
 
         try:
+            # Convert string UUIDs to UUID objects if needed
+            if isinstance(client_account_id, str):
+                client_account_id = UUID(client_account_id)
+            if isinstance(engagement_id, str):
+                engagement_id = UUID(engagement_id)
+
             search_id = uuid4()
             now = datetime.utcnow()
             search_date = now.date()
@@ -343,8 +349,8 @@ class CassandraService:
 
     async def _cache_search_results(
         self,
-        client_account_id: UUID,
-        engagement_id: UUID,
+        client_account_id: Union[UUID, str],
+        engagement_id: Union[UUID, str],
         user_id: str,
         search_query: str,
         search_id: UUID,
@@ -354,6 +360,12 @@ class CassandraService:
         try:
             import hashlib
             import json
+
+            # Convert string UUIDs to UUID objects if needed
+            if isinstance(client_account_id, str):
+                client_account_id = UUID(client_account_id)
+            if isinstance(engagement_id, str):
+                engagement_id = UUID(engagement_id)
 
             # Create hash of search query for partitioning
             query_hash = hashlib.md5(search_query.lower().encode()).hexdigest()
@@ -518,7 +530,7 @@ class CassandraService:
 
     async def get_search_history(
         self,
-        client_account_id: UUID,
+        client_account_id: Union[UUID, str],
         user_id: str,
         days: int = 30,
         limit: int = 100,
@@ -527,7 +539,7 @@ class CassandraService:
         Get user's stock search history.
 
         Args:
-            client_account_id: Client account ID
+            client_account_id: Client account ID (UUID or string)
             user_id: User ID
             days: Number of days to look back
             limit: Maximum number of results
@@ -545,6 +557,10 @@ class CassandraService:
 
         try:
             from datetime import date
+
+            # Convert string UUID to UUID object if needed
+            if isinstance(client_account_id, str):
+                client_account_id = UUID(client_account_id)
 
             searches = []
             end_date = date.today()
@@ -607,7 +623,7 @@ class CassandraService:
 
     async def get_search_analytics(
         self,
-        client_account_id: UUID,
+        client_account_id: Union[UUID, str],
         user_id: str,
         year_month: Optional[str] = None,
     ) -> Optional[Dict[str, Any]]:
@@ -671,7 +687,7 @@ class CassandraService:
 
     async def get_cached_results(
         self,
-        client_account_id: UUID,
+        client_account_id: Union[UUID, str],
         user_id: str,
         search_query: str,
     ) -> Optional[List[Dict[str, Any]]]:
@@ -697,6 +713,10 @@ class CassandraService:
         try:
             import hashlib
             import json
+
+            # Convert string UUID to UUID object if needed
+            if isinstance(client_account_id, str):
+                client_account_id = UUID(client_account_id)
 
             loop = asyncio.get_event_loop()
             query_hash = hashlib.md5(search_query.lower().encode()).hexdigest()
