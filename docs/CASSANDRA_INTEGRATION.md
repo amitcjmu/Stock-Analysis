@@ -4,13 +4,6 @@
 
 This document describes the integration of Apache Cassandra database for storing user stock search-related information. Cassandra is used to store high-volume, time-series search data with fast read performance.
 
-## Architecture Diagrams
-
-For visual architecture diagrams, see:
-- [Cassandra Integration Sequence Diagram](../architecture/cassandra-integration-sequence.mmd)
-- [Cassandra Architecture Overview](../architecture/cassandra-architecture.mmd)
-- [Stock Search Flow Diagram](../architecture/stock-search-flow.mmd)
-
 ## Architecture
 
 ### Why Cassandra?
