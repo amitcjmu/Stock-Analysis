@@ -147,7 +147,7 @@ class StockService:
                 symbol, period, interval
             )
         except Exception as e:
-            logger.error(f"Error getting historical prices: {e}")
+            logger.error(f"Error getting historical prices of a stock: {e}")
             return None
 
     async def get_stock_by_symbol(
