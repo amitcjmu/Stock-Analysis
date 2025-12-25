@@ -57,6 +57,17 @@ jobs:
             PUPPETEER_ARGS="--no-sandbox --disable-setuid-sandbox" mmdc -i "$file" -o "docs/architecture/generated/${filename}.svg"
           done
 
+      - name: Commit generated diagrams
+        if: github.event_name == 'pull_request'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add docs/architecture/generated/
+          if ! git diff --staged --quiet; then
+            git commit -m "docs: Auto-generate architecture diagrams [skip ci]"
+            git push
+          fi
+
       - name: Comment on PR with diagrams
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
@@ -72,35 +83,36 @@ jobs:
               const diagramFiles = files.filter(f => f.endsWith('.png') || f.endsWith('.svg'));
 
               if (diagramFiles.length > 0) {
+                const prNumber = context.issue.number;
+                const prBranch = context.payload.pull_request.head.ref;
+
+                // Reference images from the PR branch (will be available after commit)
+                const baseUrl = `https://raw.githubusercontent.com/${context.repo.owner}/${context.repo.repo}/${prBranch}`;
+
                 let comment = '## 📊 Architecture Diagrams\n\n';
-                comment += 'The following architecture diagrams have been generated:\n\n';
+                comment += 'The following architecture diagrams have been generated and committed to this PR:\n\n';
 
                 for (const file of diagramFiles) {
-                  const filePath = path.join(diagramsDir, file);
-                  const content = fs.readFileSync(filePath, 'base64');
                   const ext = path.extname(file);
+                  const name = path.basename(file, ext);
+                  const imagePath = `${baseUrl}/docs/architecture/generated/${file}`;
 
-                  if (ext === '.png') {
-                    comment += `### ${path.basename(file, ext)}\n\n`;
-                    comment += `![${path.basename(file, ext)}](data:image/png;base64,${content})\n\n`;
+                  if (ext === '.png' || ext === '.svg') {
+                    comment += `### ${name}\n\n`;
+                    comment += `![${name}](${imagePath})\n\n`;
                   }
                 }
 
-                // Post comment on PR
+                comment += '---\n';
+                comment += `*Diagrams are automatically generated from \`.mmd\` files in \`docs/architecture/\`*\n`;
+                comment += `*View the generated files in: \`docs/architecture/generated/\`*\n`;
+
+                // Post comment on PR (images will be available after the commit is pushed)
                 github.rest.issues.createComment({
-                  issue_number: context.issue.number,
+                  issue_number: prNumber,
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   body: comment
                 });
               }
             }
-
-      - name: Commit generated diagrams
-        if: github.event_name == 'pull_request'
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add docs/architecture/generated/
-          git diff --staged --quiet || git commit -m "docs: Auto-generate architecture diagrams [skip ci]"
-          git push
