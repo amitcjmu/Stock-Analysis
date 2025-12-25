@@ -31,6 +31,11 @@ jobs:
         run: |
           npm install -g @mermaid-js/mermaid-cli
 
+      - name: Create Puppeteer config file
+        run: |
+          mkdir -p .github
+          echo '{"args":["--no-sandbox","--disable-setuid-sandbox","--disable-dev-shm-usage"]}' > .github/puppeteer-config.json
+
       - name: Generate diagrams
         run: |
           mkdir -p docs/architecture/generated
@@ -40,8 +45,16 @@ jobs:
             filename=$(basename "$file" .mmd)
             filename=$(basename "$filename" .mermaid)
             echo "Generating diagram from $file"
-            mmdc -i "$file" -o "docs/architecture/generated/${filename}.png" -b transparent
-            mmdc -i "$file" -o "docs/architecture/generated/${filename}.svg"
+
+            # Generate PNG with Puppeteer config for GitHub Actions
+            mmdc -i "$file" -o "docs/architecture/generated/${filename}.png" -b transparent -p .github/puppeteer-config.json || \
+            mmdc -i "$file" -o "docs/architecture/generated/${filename}.png" -b transparent --puppeteerConfigFile .github/puppeteer-config.json || \
+            PUPPETEER_ARGS="--no-sandbox --disable-setuid-sandbox" mmdc -i "$file" -o "docs/architecture/generated/${filename}.png" -b transparent
+
+            # Generate SVG with Puppeteer config for GitHub Actions
+            mmdc -i "$file" -o "docs/architecture/generated/${filename}.svg" -p .github/puppeteer-config.json || \
+            mmdc -i "$file" -o "docs/architecture/generated/${filename}.svg" --puppeteerConfigFile .github/puppeteer-config.json || \
+            PUPPETEER_ARGS="--no-sandbox --disable-setuid-sandbox" mmdc -i "$file" -o "docs/architecture/generated/${filename}.svg"
           done
 
       - name: Comment on PR with diagrams
