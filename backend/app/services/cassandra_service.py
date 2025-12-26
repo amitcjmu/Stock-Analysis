@@ -329,7 +329,8 @@ class CassandraService:
                 )
 
             # Update analytics (async, non-blocking)
-            asyncio.create_task(
+            # Store task reference and add error callback to prevent silent failures
+            analytics_task = asyncio.create_task(
                 self._update_analytics(
                     client_account_id,
                     user_id,
@@ -339,6 +340,18 @@ class CassandraService:
                     source,
                 )
             )
+
+            def log_analytics_error(task):
+                """Callback to log errors from analytics update task"""
+                try:
+                    task.result()  # This will raise if task failed
+                except Exception as e:
+                    logger.error(
+                        f"Error in background analytics update for query '{search_query}': {e}",
+                        exc_info=True,
+                    )
+
+            analytics_task.add_done_callback(log_analytics_error)
 
             logger.debug(f"✅ Logged stock search: {search_query} (ID: {search_id})")
             return search_id
