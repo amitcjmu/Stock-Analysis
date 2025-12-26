@@ -163,7 +163,19 @@ def add_cors(app, settings):
 
         # SECURITY FIX: Validate all origins before returning
         unique_origins = list(set(filter(None, cors_origins)))
-        return validate_cors_origins(unique_origins)
+        validated = validate_cors_origins(unique_origins)
+
+        # Log CORS origins for debugging
+        logger = logging.getLogger(__name__)
+        logger.info(f"CORS origins collected: {len(unique_origins)} unique origins")
+        logger.info(f"CORS origins validated: {len(validated)} valid origins")
+        if "https://ai-stock-assess.vercel.app" in validated:
+            logger.info("✅ ai-stock-assess.vercel.app is in validated origins")
+        else:
+            logger.warning("⚠️ ai-stock-assess.vercel.app is NOT in validated origins")
+            logger.warning(f"Validated origins: {validated}")
+
+        return validated
 
     origins = get_cors_origins()
 
