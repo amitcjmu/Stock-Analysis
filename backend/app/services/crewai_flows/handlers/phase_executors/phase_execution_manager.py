@@ -40,57 +40,41 @@ class PhaseExecutionManager:
         self.context = context  # Request context for monitoring
 
         # Initialize phase executors with flow bridge
-        from .asset_inventory_executor import AssetInventoryExecutor
-        from .data_cleansing_executor import DataCleansingExecutor
-        from .data_import_validation.executor import DataImportValidationExecutor
         from .dependency_analysis_executor import DependencyAnalysisExecutor
-        from .field_mapping_executor import FieldMappingExecutor
         from .tech_debt_executor import TechDebtExecutor
 
-        self.data_import_validation_executor = DataImportValidationExecutor(
-            state, crew_manager, flow_bridge
-        )
-        self.field_mapping_executor = FieldMappingExecutor(
-            state, crew_manager, flow_bridge
-        )
-        self.data_cleansing_executor = DataCleansingExecutor(
-            state, crew_manager, flow_bridge
-        )
-        self.asset_inventory_executor = AssetInventoryExecutor(
-            state, crew_manager, flow_bridge
-        )
+        self.data_import_validation_executor = None
+        self.field_mapping_executor = None
+        self.data_cleansing_executor = None
+        self.asset_inventory_executor = None
         self.dependency_analysis_executor = DependencyAnalysisExecutor(
             state, crew_manager, flow_bridge
         )
         self.tech_debt_executor = TechDebtExecutor(state, crew_manager, flow_bridge)
 
     async def execute_data_import_validation_phase(self, previous_result):
-        """Execute data import validation phase with PostgreSQL persistence"""
-        return await self.data_import_validation_executor.execute(previous_result)
+        """Execute data import validation phase - REMOVED: data import functionality was removed"""
+        # REMOVED: Data import validation executor - data import functionality was removed
+        # return await self.data_import_validation_executor.execute(previous_result)
+        return {
+            "status": "skipped",
+            "message": "Data import validation phase is no longer available - functionality was removed",
+            "phase": "data_import_validation",
+        }
 
     async def execute_field_mapping_phase(self, previous_result, mode: str = "full"):
-        """Execute field mapping phase with PostgreSQL persistence
+        """Execute field mapping phase - REMOVED: field mapping functionality was removed
 
         Args:
             previous_result: Result from previous phase
             mode: Execution mode - 'full' or 'suggestions_only'
         """
-        logger.info(f"🔍 DEBUG: execute_field_mapping_phase called with mode: {mode}")
-
-        # Pass mode to executor if it's suggestions_only
-        if mode == "suggestions_only":
-            logger.info("🔍 DEBUG: Calling execute_suggestions_only")
-            result = await self.field_mapping_executor.execute_suggestions_only(
-                previous_result
-            )
-            logger.info(f"🔍 DEBUG: execute_suggestions_only returned: {result}")
-            logger.info(
-                f"🔍 DEBUG: Return result keys: {list(result.keys()) if isinstance(result, dict) else 'Not a dict'}"
-            )
-            return result
-        else:
-            logger.info("🔍 DEBUG: Calling execute (full mode)")
-            return await self.field_mapping_executor.execute(previous_result)
+        return {
+            "status": "skipped",
+            "message": "Field mapping phase is no longer available - functionality was removed",
+            "phase": "field_mapping",
+            "mode": mode,
+        }
 
     async def execute_data_cleansing_phase(self, previous_result):
         """Execute data cleansing phase with PostgreSQL persistence"""
@@ -111,10 +95,11 @@ class PhaseExecutionManager:
     def get_phase_executor(self, phase_name: str):
         """Get specific phase executor by name"""
         executors = {
-            "data_import_validation": self.data_import_validation_executor,
-            "field_mapping": self.field_mapping_executor,
-            "data_cleansing": self.data_cleansing_executor,
-            "asset_inventory": self.asset_inventory_executor,
+            # REMOVED: Data import validation, field mapping, data cleansing, asset inventory
+            # "data_import_validation": self.data_import_validation_executor,
+            # "field_mapping": self.field_mapping_executor,
+            # "data_cleansing": self.data_cleansing_executor,
+            # "asset_inventory": self.asset_inventory_executor,
             "dependency_analysis": self.dependency_analysis_executor,
             "tech_debt_analysis": self.tech_debt_executor,
         }

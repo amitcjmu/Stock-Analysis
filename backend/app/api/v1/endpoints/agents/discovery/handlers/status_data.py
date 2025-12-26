@@ -109,63 +109,21 @@ async def _get_data_classifications(
         if not context or not context.client_account_id or not context.engagement_id:
             return []
 
-        # Get the latest data import for analysis
-        from app.models.data_import.core import DataImport
+        # REMOVED: Data import functionality - models were removed
+        # from app.models.data_import.core import DataImport
+        #
+        # query = (
+        #     select(DataImport)
+        #     .where(
+        #         DataImport.client_account_id == uuid.UUID(context.client_account_id),
+        #         DataImport.engagement_id == uuid.UUID(context.engagement_id),
+        #     )
+        #     .order_by(DataImport.created_at.desc())
+        #     .limit(1)
+        # )
 
-        query = (
-            select(DataImport)
-            .where(
-                DataImport.client_account_id == uuid.UUID(context.client_account_id),
-                DataImport.engagement_id == uuid.UUID(context.engagement_id),
-            )
-            .order_by(DataImport.created_at.desc())
-            .limit(1)
-        )
-
-        result = await db.execute(query)
-        latest_import = result.scalar_one_or_none()
-
-        if not latest_import:
-            return []
-
-        # Analyze data quality and create classifications
-        classifications = []
-
-        # Calculate success rate
-        success_rate = (
-            (latest_import.processed_records / latest_import.total_records * 100)
-            if latest_import.total_records > 0
-            else 0
-        )
-
-        # Good Data Classification
-        if latest_import.processed_records > 0:
-            good_data_classification = _create_good_data_classification(
-                latest_import, success_rate
-            )
-            if good_data_classification:
-                classifications.append(good_data_classification)
-
-        # Needs Clarification Classification
-        failed_records = (
-            latest_import.total_records - latest_import.processed_records
-            if latest_import.total_records > latest_import.processed_records
-            else 0
-        )
-        if failed_records > 0:
-            classifications.append(
-                _create_needs_clarification_classification(
-                    latest_import, failed_records
-                )
-            )
-
-        # Migration Ready Classification
-        if success_rate >= 90:
-            classifications.append(
-                _create_migration_ready_classification(latest_import)
-            )
-
-        return classifications
+        # Return empty list since data import is removed
+        return []
 
     except Exception as e:
         logger.error(f"Error getting data classifications: {e}")

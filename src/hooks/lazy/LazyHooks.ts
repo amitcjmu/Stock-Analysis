@@ -9,18 +9,18 @@ import { LoadingPriority } from '@/types/lazy';
  * Discovery-related lazy hooks
  */
 
-// Lazy load attribute mapping logic
-export const useLazyAttributeMappingLogic = (immediate = false): ReturnType<typeof useLazyHook> => {
-  return useLazyHook(
-    'attribute-mapping-logic',
-    () => import('@/hooks/discovery/attribute-mapping'),
-    {
-      priority: LoadingPriority.HIGH,
-      immediate,
-      timeout: 20000
-    }
-  );
-};
+// REMOVED: Lazy load attribute mapping logic
+// export const useLazyAttributeMappingLogic = (immediate = false): ReturnType<typeof useLazyHook> => {
+//   return useLazyHook(
+//     'attribute-mapping-logic',
+//     () => import('@/hooks/discovery/attribute-mapping'),
+//     {
+//       priority: LoadingPriority.HIGH,
+//       immediate,
+//       timeout: 20000
+//     }
+//   );
+// };
 
 // Lazy load data cleansing logic - Currently not implemented
 // export const useLazyDataCleansingLogic = (immediate = false): JSX.Element => {

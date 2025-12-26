@@ -15,9 +15,11 @@ from app.repositories.crewai_flow_state_extensions_repository import (
     CrewAIFlowStateExtensionsRepository,
 )
 from app.services.crewai_flows.agents.decision.base import PhaseAction
-from app.services.crewai_flows.agents.decision.field_mapping import (
-    FieldMappingDecisionAgent,
-)
+
+# REMOVED: Field mapping decision agent - field mapping functionality was removed
+# from app.services.crewai_flows.agents.decision.field_mapping import (
+#     FieldMappingDecisionAgent,
+# )
 from app.services.crewai_flows.agents.decision.phase_transition import (
     PhaseTransitionAgent,
 )
@@ -67,7 +69,9 @@ class FlowExecutionCore:
         self.validator_registry = validator_registry
 
         # Initialize decision agents
-        self.field_mapping_agent = FieldMappingDecisionAgent()
+        # REMOVED: Field mapping agent - field mapping functionality was removed
+        # self.field_mapping_agent = FieldMappingDecisionAgent()
+        self.field_mapping_agent = None
         # Make the phase transition agent flow-aware by providing the registry
         # Flow type will be determined at runtime from context
         self.phase_transition_agent = PhaseTransitionAgent(

@@ -21,20 +21,24 @@ from app.core.database import get_db
 from app.core.context import get_request_context, RequestContext
 from app.api.v1.auth.auth_utils import get_current_user
 from app.models.client_account import User
-from app.models.data_import.core import RawImportRecord
+
+# REMOVED: Data import models
+# from app.models.data_import.core import RawImportRecord
 from app.models.discovery_flow import DiscoveryFlow
 from app.repositories.crewai_flow_state_extensions_repository import (
     CrewAIFlowStateExtensionsRepository,
 )
-from app.services.crewai_flows.handlers.phase_executors.asset_inventory_executor.transforms import (
-    transform_raw_record_to_asset,
-)
-from app.services.crewai_flows.handlers.phase_executors.asset_inventory_executor.queries import (
-    get_field_mappings,
-)
-from app.services.crewai_flows.handlers.phase_executors.asset_inventory_executor.utils import (
-    serialize_uuids_for_jsonb,
-)
+
+# REMOVED: Asset inventory executor - inventory functionality was removed
+# from app.services.crewai_flows.handlers.phase_executors.asset_inventory_executor.transforms import (
+#     transform_raw_record_to_asset,
+# )
+# from app.services.crewai_flows.handlers.phase_executors.asset_inventory_executor.queries import (
+#     get_field_mappings,
+# )
+# from app.services.crewai_flows.handlers.phase_executors.asset_inventory_executor.utils import (
+#     serialize_uuids_for_jsonb,
+# )
 
 
 class ApproveAssetsRequest(BaseModel):
@@ -229,66 +233,8 @@ async def _regenerate_preview(
             logger.warning(f"No data_import_id found for flow {master_flow_id}")
             return None
 
-        # Get raw import records (with cleansed data)
-        stmt = select(RawImportRecord).where(
-            RawImportRecord.data_import_id == UUID(data_import_id),
-            RawImportRecord.client_account_id == UUID(client_account_id),
-            RawImportRecord.engagement_id == UUID(engagement_id),
-        )
-        result = await db.execute(stmt)
-        raw_records = result.scalars().all()
-
-        if not raw_records:
-            logger.warning(
-                f"No raw import records found for data_import_id {data_import_id}"
-            )
-            return None
-
-        logger.info(f"📊 Found {len(raw_records)} raw records for preview regeneration")
-
-        # Get field mappings
-        field_mappings = await get_field_mappings(db, data_import_id, client_account_id)
-        logger.info(f"📋 Retrieved {len(field_mappings)} field mappings")
-
-        # Transform records to asset data
-        assets_data = []
-        for record in raw_records:
-            # Get discovery_flow_id for proper association
-            discovery_flow_id = (
-                persistence_data.get("discovery_flow_id") or master_flow_id
-            )
-
-            asset_data = transform_raw_record_to_asset(
-                record, master_flow_id, discovery_flow_id, field_mappings
-            )
-            if asset_data:
-                assets_data.append(asset_data)
-
-        logger.info(f"🔄 Transformed {len(assets_data)} records to asset format")
-
-        if not assets_data:
-            return None
-
-        # Serialize and store preview
-        serialized_assets = []
-        for i, asset in enumerate(assets_data):
-            serialized_asset = serialize_uuids_for_jsonb(asset)
-            serialized_asset["id"] = f"asset-{i}"
-            serialized_assets.append(serialized_asset)
-
-        # Update flow_persistence_data with new preview
-        # CC: Use dictionary reassignment for SQLAlchemy change tracking
-        flow.flow_persistence_data = {
-            **persistence_data,
-            "assets_preview": serialized_assets,
-            "preview_generated_at": datetime.utcnow().isoformat(),
-            "preview_regenerated": True,
-        }
-
-        await db.commit()
-
-        logger.info(f"✅ Regenerated preview with {len(serialized_assets)} assets")
-        return serialized_assets
+        # Data import and asset inventory functionality removed
+        return None
 
     except Exception as e:
         logger.error(f"❌ Failed to regenerate preview: {e}")

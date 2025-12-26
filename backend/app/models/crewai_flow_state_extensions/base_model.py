@@ -202,13 +202,13 @@ class CrewAIFlowStateExtensions(
         comment="A flexible JSON blob for storing any other metadata related to the flow.",
     )
 
-    # Collection flow integration fields
-    collection_flow_id = Column(
-        UUID(as_uuid=True),
-        ForeignKey("migration.collection_flows.id", ondelete="SET NULL"),
-        nullable=True,
-        comment="Reference to associated collection flow if this is a collection-enabled flow.",
-    )
+    # REMOVED: Collection flow integration fields
+    # collection_flow_id = Column(
+    #     UUID(as_uuid=True),
+    #     ForeignKey("migration.collection_flows.id", ondelete="SET NULL"),
+    #     nullable=True,
+    #     comment="Reference to associated collection flow if this is a collection-enabled flow.",
+    # )
     automation_tier = Column(
         String(50),
         nullable=True,
@@ -254,21 +254,23 @@ class CrewAIFlowStateExtensions(
 
     # assessment_flows relationship REMOVED - AssessmentFlow was removed
 
-    data_imports = relationship(
-        "DataImport",
-        foreign_keys="DataImport.master_flow_id",
-        primaryjoin="CrewAIFlowStateExtensions.flow_id == DataImport.master_flow_id",
-        back_populates="master_flow",
-        cascade="all, delete-orphan",
-    )
+    # REMOVED: Data import relationships
+    # data_imports = relationship(
+    #     "DataImport",
+    #     foreign_keys="DataImport.master_flow_id",
+    #     primaryjoin="CrewAIFlowStateExtensions.flow_id == DataImport.master_flow_id",
+    #     back_populates="master_flow",
+    #     cascade="all, delete-orphan",
+    # )
 
-    raw_import_records = relationship(
-        "RawImportRecord",
-        foreign_keys="RawImportRecord.master_flow_id",
-        primaryjoin="CrewAIFlowStateExtensions.flow_id == RawImportRecord.master_flow_id",
-        back_populates="master_flow",
-        cascade="all, delete-orphan",
-    )
+    # REMOVED: Raw import record relationships
+    # raw_import_records = relationship(
+    #     "RawImportRecord",
+    #     foreign_keys="RawImportRecord.master_flow_id",
+    #     primaryjoin="CrewAIFlowStateExtensions.flow_id == RawImportRecord.master_flow_id",
+    #     back_populates="master_flow",
+    #     cascade="all, delete-orphan",
+    # )
 
     # Collection flow relationship REMOVED - CollectionFlow was removed
 

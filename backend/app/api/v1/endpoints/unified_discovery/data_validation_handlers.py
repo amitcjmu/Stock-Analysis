@@ -18,7 +18,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
 from app.core.security.secure_logging import mask_id, safe_log_format
-from app.models.data_import.core import RawImportRecord
+
+# REMOVED: Data import models
+# from app.models.data_import.core import RawImportRecord
 from app.models.discovery_flow import DiscoveryFlow
 from app.services.crewai_flows.handlers.phase_executors.data_import_validation.data_profiler import (
     DataProfiler,
@@ -71,24 +73,10 @@ async def _get_raw_data_for_flow(
     """
     Fetch raw data records for a data import.
 
-    Returns the list of raw_data dictionaries from RawImportRecord.
+    Data import functionality removed - RawImportRecord model was removed.
+    Returns empty list.
     """
-    stmt = (
-        select(RawImportRecord.raw_data)
-        .where(
-            and_(
-                RawImportRecord.data_import_id == data_import_id,
-                RawImportRecord.client_account_id == context.client_account_id,
-                RawImportRecord.engagement_id == context.engagement_id,
-            )
-        )
-        .order_by(RawImportRecord.row_number)
-    )
-    result = await db.execute(stmt)
-    rows = result.scalars().all()
-
-    # Each row is a JSON dict representing one record
-    return [row for row in rows if row is not None]
+    return []
 
 
 @router.get("/flows/{flow_id}/data-profile")

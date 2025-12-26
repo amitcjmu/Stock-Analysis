@@ -10,15 +10,18 @@ and tech_debt_assessment which moved to Assessment flow).
 from app.services.flow_type_registry import (
     FlowCapabilities,
     FlowTypeConfig,
+    PhaseConfig,
 )
 from app.services.child_flow_services import DiscoveryChildFlowService
-from .discovery_phases import (
-    get_asset_inventory_phase,
-    get_data_cleansing_phase,
-    get_data_import_phase,
-    get_data_validation_phase,
-    get_field_mapping_phase,
-)
+
+# REMOVED: Data import, validation, attribute mapping, data cleansing, and inventory phases
+# from .discovery_phases import (
+#     get_asset_inventory_phase,
+#     get_data_cleansing_phase,
+#     get_data_import_phase,
+#     get_data_validation_phase,
+#     get_field_mapping_phase,
+# )
 
 
 def get_discovery_flow_config() -> FlowTypeConfig:
@@ -58,16 +61,35 @@ def get_discovery_flow_config() -> FlowTypeConfig:
         name="discovery",
         display_name="Discovery Flow",
         description=(
-            "Data discovery flow for importing, validating, mapping, "
-            "and creating asset inventory from CMDB exports"
+            "Discovery flow - phases removed (data import, validation, mapping, cleansing, inventory)"
         ),
         version="3.0.0",  # Major version for phase scope change
         phases=[
-            get_data_import_phase(),
-            get_data_validation_phase(),
-            get_field_mapping_phase(),
-            get_data_cleansing_phase(),
-            get_asset_inventory_phase(),
+            # REMOVED: All phases (data_import, data_validation, field_mapping, data_cleansing, asset_inventory)
+            # Added placeholder phase to satisfy validation requirement
+            PhaseConfig(
+                name="deprecated",
+                display_name="Discovery Flow Deprecated",
+                description=(
+                    "This flow has been deprecated. All discovery phases "
+                    "(data import, validation, mapping, cleansing, inventory) have been removed."
+                ),
+                can_skip=True,
+                can_pause=False,
+                can_rollback=False,
+                requires_user_input=False,
+                metadata={
+                    "deprecated": True,
+                    "reason": "All discovery phases were removed",
+                    "removed_phases": [
+                        "data_import",
+                        "data_validation",
+                        "field_mapping",
+                        "data_cleansing",
+                        "asset_inventory",
+                    ],
+                },
+            ),
         ],
         child_flow_service=DiscoveryChildFlowService,  # Per ADR-025
         capabilities=capabilities,
@@ -87,11 +109,12 @@ def get_discovery_flow_config() -> FlowTypeConfig:
             "complexity": "medium",
             "estimated_duration_minutes": 60,
             "required_agents": [
-                "data_import_agent",
-                "validation_agent",
-                "mapping_agent",
-                "cleansing_agent",
-                "inventory_agent",
+                # REMOVED: All agents related to removed phases
+                # "data_import_agent",
+                # "validation_agent",
+                # "mapping_agent",
+                # "cleansing_agent",
+                # "inventory_agent",
             ],
             "output_formats": ["json", "excel", "dashboard"],
             "prerequisite_flows": [],
@@ -105,8 +128,6 @@ def get_discovery_flow_config() -> FlowTypeConfig:
         },
         tags=[
             "discovery",
-            "data_import",
-            "asset_inventory",
-            "cmdb",
+            # REMOVED: "data_import", "asset_inventory", "cmdb",
         ],
     )

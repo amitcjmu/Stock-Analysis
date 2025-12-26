@@ -29,29 +29,7 @@ router = APIRouter()
 
 async def _get_import_raw_data(db: AsyncSession, data_import_id: str):
     """Helper to get raw data for a data import."""
-    try:
-        from app.models.data_import.core import DataImport, RawImportRecord
-
-        # DataImport uses 'id' as primary key, not 'import_id'
-        import_query = select(DataImport).where(DataImport.id == data_import_id)
-        import_result = await db.execute(import_query)
-        data_import = import_result.scalar_one_or_none()
-
-        if data_import:
-            # Get raw records for this import
-            raw_records_query = (
-                select(RawImportRecord)
-                .where(RawImportRecord.data_import_id == data_import.id)
-                .order_by(RawImportRecord.row_number)
-            )
-            raw_result = await db.execute(raw_records_query)
-            raw_records = raw_result.scalars().all()
-
-            # Extract raw_data from records
-            return [record.raw_data for record in raw_records] if raw_records else []
-    except Exception as e:
-        logger.warning(f"Failed to get raw data for import {data_import_id}: {e}")
-
+    # Data import functionality removed
     return []
 
 

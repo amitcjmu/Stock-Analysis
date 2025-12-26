@@ -5,9 +5,8 @@ This module centralizes all router imports to reduce complexity in the main api.
 
 import logging
 from typing import Optional, Dict, Tuple
-from fastapi import APIRouter
 
-# Core endpoint imports
+from fastapi import APIRouter
 from app.api.v1.endpoints import (
     agent_learning_router,
     agents_router,
@@ -16,31 +15,26 @@ from app.api.v1.endpoints import (
     asset_inventory_router,
     chat_router,
     context_router,
-    data_import_router,
+    # data_import_router,  # REMOVED
     feedback_router,
-    field_mapping_router,
+    # field_mapping_router,  # REMOVED
     monitoring_router,
     # sixr_router removed - replaced by Assessment Flow with MFO integration (Phase 4, Issue #840)
 )
-
-# Asset conflicts and preview routers
 from app.api.v1.endpoints.asset_conflicts import router as asset_conflicts_router
 from app.api.v1.endpoints.asset_preview import (  # noqa: F401
     router as asset_preview_router,
 )
-
-# Asset editing router (Issues #911, #912)
 from app.api.v1.endpoints.asset_editing import router as asset_editing_router
-
-# Asset data audit router (Asset Data Review feature)
 from app.api.v1.endpoints.asset_data_audit import (
     router as asset_data_audit_router,
 )  # noqa: F401
-
-
 from app.api.v1.endpoints.context_establishment import (
     router as context_establishment_router,
 )
+
+logger = logging.getLogger(__name__)
+
 # flow_sync_debug removed - was master flow related
 flow_sync_debug_router = None
 
@@ -158,13 +152,12 @@ try:
 except ImportError:
     routers_with_flags["LLM_HEALTH"] = (False, None)
 
-# Data Cleansing endpoints
-try:
-    from app.api.v1.endpoints.data_cleansing import router as data_cleansing_router
-
-    routers_with_flags["DATA_CLEANSING"] = (True, data_cleansing_router)
-except ImportError:
-    routers_with_flags["DATA_CLEANSING"] = (False, None)
+# Data Cleansing endpoints - REMOVED
+# try:
+#     from app.api.v1.endpoints.data_cleansing import router as data_cleansing_router
+#     routers_with_flags["DATA_CLEANSING"] = (True, data_cleansing_router)
+# except ImportError:
+routers_with_flags["DATA_CLEANSING"] = (False, None)
 
 # Observability endpoints
 try:
@@ -178,8 +171,10 @@ except ImportError:
 try:
     from app.api.v1.auth import auth_router
 
+    logger.info(f"✅ Auth router imported successfully: {auth_router}")
     routers_with_flags["AUTH_RBAC"] = (True, auth_router)
-except ImportError:
+except ImportError as e:
+    logger.error(f"❌ Failed to import auth router: {e}", exc_info=True)
     routers_with_flags["AUTH_RBAC"] = (False, None)
 
 # RBAC Admin
@@ -324,9 +319,6 @@ try:
 except ImportError:
     routers_with_flags["RBAC_ADMIN"] = (False, None)
 
-# Initialize logger after all imports
-logger = logging.getLogger(__name__)
-
 # Export all available routers and flags for use by router_registry.py
 __all__ = [
     # Core routers
@@ -340,9 +332,9 @@ __all__ = [
     "asset_data_audit_router",
     "chat_router",
     "context_router",
-    "data_import_router",
+    # "data_import_router",  # REMOVED
     "feedback_router",
-    "field_mapping_router",
+    # "field_mapping_router",  # REMOVED
     "monitoring_router",
     # "sixr_router",  # Removed - replaced by Assessment Flow with MFO integration (Phase 4, Issue #840)
     "context_establishment_router",

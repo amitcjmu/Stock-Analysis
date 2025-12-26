@@ -8,11 +8,13 @@ from .context import (
     SessionBase,  # Kept for backward compatibility during migration
     UserContext,
 )
-from .data_import_schemas import (
-    DataImportValidationResponse,
-    UploadContext,
-    ValidationFlow,
-)
+
+# REMOVED: Data import schemas
+# from .data_import_schemas import (
+#     DataImportValidationResponse,
+#     UploadContext,
+#     ValidationFlow,
+# )
 from .flow import (
     Flow,
     FlowBase,
@@ -39,8 +41,8 @@ __all__ = [
     "ClientBase",
     "EngagementBase",
     "SessionBase",
-    # Data import schemas
-    "ValidationFlow",
-    "DataImportValidationResponse",
-    "UploadContext",
+    # REMOVED: Data import schemas
+    # "ValidationFlow",
+    # "DataImportValidationResponse",
+    # "UploadContext",
 ]

@@ -7,7 +7,9 @@ business logic with intelligent, context-aware decisions.
 
 # Base classes and utilities
 from .base import AgentDecision, BaseDecisionAgent, PhaseAction
-from .field_mapping import FieldMappingDecisionAgent
+
+# REMOVED: Field mapping decision agent - field mapping functionality was removed
+# from .field_mapping import FieldMappingDecisionAgent
 
 # Specialized decision agents
 from .phase_transition import PhaseTransitionAgent
@@ -20,7 +22,7 @@ __all__ = [
     "AgentDecision",
     "PhaseAction",
     "PhaseTransitionAgent",
-    "FieldMappingDecisionAgent",
+    # "FieldMappingDecisionAgent",  # REMOVED
     "DecisionUtils",
     "ConfidenceCalculator",
 ]

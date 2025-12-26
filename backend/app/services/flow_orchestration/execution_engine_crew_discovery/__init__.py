@@ -16,7 +16,8 @@ from .phase_executors import PhaseExecutorsMixin
 from .phase_orchestration import PhaseOrchestrationMixin
 
 # Import external dependencies that were imported in original file
-from ..field_mapping_logic import FieldMappingLogic
+# REMOVED: Field mapping logic - field mapping functionality was removed
+# from ..field_mapping_logic import FieldMappingLogic
 from ..discovery_phase_handlers import DiscoveryPhaseHandlers
 from ..asset_creation_tools import AssetCreationToolsExecutor
 
@@ -52,7 +53,7 @@ __all__ = [
     "PersistentAgentsMixin",
     "PhaseExecutorsMixin",
     "PhaseOrchestrationMixin",
-    "FieldMappingLogic",
+    # "FieldMappingLogic",  # REMOVED
     "DiscoveryPhaseHandlers",
     "AssetCreationToolsExecutor",
 ]

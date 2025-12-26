@@ -22,7 +22,7 @@ TOOL_CATEGORIES = {
         name="analysis",
         description="Tools for data and structure analysis",
         typical_tools=["schema_analyzer", "data_profiler", "pattern_detector"],
-        required_for_phases=["data_validation", "field_mapping"],
+        required_for_phases=[],  # REMOVED: "data_validation", "field_mapping"
     ),
     "validation": ToolCategory(
         name="validation",
@@ -32,31 +32,31 @@ TOOL_CATEGORIES = {
             "data_quality_checker",
             "constraint_validator",
         ],
-        required_for_phases=["data_validation", "data_cleansing"],
+        required_for_phases=[],  # REMOVED: "data_validation", "data_cleansing"
     ),
     "mapping": ToolCategory(
         name="mapping",
         description="Tools for field and data mapping",
         typical_tools=["field_matcher", "semantic_mapper", "mapping_validator"],
-        required_for_phases=["field_mapping"],
+        required_for_phases=[],  # REMOVED: "field_mapping"
     ),
     "security": ToolCategory(
         name="security",
         description="Security and compliance tools",
         typical_tools=["pii_scanner", "encryption_checker", "access_validator"],
-        required_for_phases=["data_validation", "tech_debt_assessment"],
+        required_for_phases=["tech_debt_assessment"],  # REMOVED: "data_validation"
     ),
     "transformation": ToolCategory(
         name="transformation",
         description="Data transformation and cleansing tools",
         typical_tools=["data_cleanser", "format_converter", "normalizer"],
-        required_for_phases=["data_cleansing"],
+        required_for_phases=[],  # REMOVED: "data_cleansing"
     ),
     "discovery": ToolCategory(
         name="discovery",
         description="Asset and dependency discovery tools",
         typical_tools=["asset_scanner", "dependency_analyzer", "relationship_mapper"],
-        required_for_phases=["asset_inventory", "dependency_analysis"],
+        required_for_phases=["dependency_analysis"],  # REMOVED: "asset_inventory"
     ),
 }
 

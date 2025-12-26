@@ -6,7 +6,8 @@ import logging
 from datetime import datetime
 from typing import List, Dict, Any
 
-from sqlalchemy import and_, select
+# REMOVED: Unused imports - data import functionality was removed
+# from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
@@ -170,56 +171,7 @@ async def _get_dynamic_agent_insights(
         if not context or not context.client_account_id or not context.engagement_id:
             return _get_fallback_agent_insights()
 
-        # Get latest import for this context
-        import uuid
-        from app.models.data_import import DataImport
-
-        latest_import_query = (
-            select(DataImport)
-            .where(
-                and_(
-                    DataImport.client_account_id
-                    == uuid.UUID(context.client_account_id),
-                    DataImport.engagement_id == uuid.UUID(context.engagement_id),
-                )
-            )
-            .order_by(
-                DataImport.total_records.desc(),
-                DataImport.created_at.desc(),
-            )
-            .limit(1)
-        )
-
-        result = await db.execute(latest_import_query)
-        latest_import = result.scalar_one_or_none()
-
-        if not latest_import:
-            return _get_fallback_agent_insights()
-
-        # Get field mappings for this import
-        from app.models.data_import import ImportFieldMapping
-
-        mappings_query = select(ImportFieldMapping).where(
-            ImportFieldMapping.data_import_id == latest_import.id
-        )
-        mappings_result = await db.execute(mappings_query)
-        mappings = mappings_result.scalars().all()
-
-        # Generate dynamic insights based on actual data
-        insights = []
-
-        # Field Mapping Analysis
-        if mappings:
-            insights.append(_create_field_mapping_insight(mappings, latest_import))
-
-        # Data Quality Analysis
-        insights.append(_create_data_quality_insight(latest_import))
-
-        # Asset Classification Readiness
-        if latest_import.total_records > 0:
-            insights.append(_create_asset_classification_insight(latest_import))
-
-        return insights
+        return _get_fallback_agent_insights()
 
     except Exception as e:
         logger.error(f"Error generating dynamic agent insights: {e}")

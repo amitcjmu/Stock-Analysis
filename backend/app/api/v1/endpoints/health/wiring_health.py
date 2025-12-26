@@ -11,7 +11,10 @@ from datetime import datetime, timedelta
 from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import exists, func, select
+
+# REMOVED: exists import - RawImportRecord queries were removed
+# from sqlalchemy import exists, func, select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext, get_request_context
@@ -19,7 +22,9 @@ from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.user import User
 from app.models.asset import Asset
-from app.models.data_import.core import RawImportRecord
+
+# REMOVED: Data import models
+# from app.models.data_import.core import RawImportRecord
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -76,118 +81,9 @@ async def check_wiring_health(
             Asset.engagement_id == context.engagement_id,
         ]
 
-        raw_filter = [
-            RawImportRecord.client_account_id == context.client_account_id,
-            RawImportRecord.engagement_id == context.engagement_id,
-        ]
-
         issues = {}
         samples = {}
         all_healthy = True
-
-        # 1. Assets with orphaned raw_import_records_id references
-        assets_with_orphan_raw_ref = await db.execute(
-            select(func.count(Asset.id)).where(
-                *base_filter,
-                Asset.raw_import_records_id.isnot(None),
-                ~exists(
-                    select(1).where(
-                        RawImportRecord.id == Asset.raw_import_records_id,
-                        RawImportRecord.client_account_id == Asset.client_account_id,
-                        RawImportRecord.engagement_id == Asset.engagement_id,
-                    )
-                ),
-            )
-        )
-        orphan_asset_count = assets_with_orphan_raw_ref.scalar()
-
-        if orphan_asset_count > 0:
-            all_healthy = False
-            issues["assets_with_orphan_raw_references"] = {
-                "count": orphan_asset_count,
-                "severity": "high",
-                "description": "Assets referencing non-existent raw import records",
-            }
-
-            if detail:
-                # Get sample assets with orphan references
-                sample_assets = await db.execute(
-                    select(Asset.id, Asset.name, Asset.raw_import_records_id)
-                    .where(
-                        *base_filter,
-                        Asset.raw_import_records_id.isnot(None),
-                        ~exists(
-                            select(1).where(
-                                RawImportRecord.id == Asset.raw_import_records_id,
-                                RawImportRecord.client_account_id
-                                == context.client_account_id,
-                                RawImportRecord.engagement_id == context.engagement_id,
-                            )
-                        ),
-                    )
-                    .limit(5)
-                )
-                samples["assets_with_orphan_raw_references"] = [
-                    {
-                        "asset_id": str(row.id),
-                        "asset_name": row.name,
-                        "orphan_raw_id": str(row.raw_import_records_id),
-                    }
-                    for row in sample_assets
-                ]
-
-        # 2. Raw import records with orphaned asset_id references
-        raw_with_orphan_asset_ref = await db.execute(
-            select(func.count(RawImportRecord.id)).where(
-                *raw_filter,
-                RawImportRecord.asset_id.isnot(None),
-                ~exists(
-                    select(1).where(
-                        Asset.id == RawImportRecord.asset_id,
-                        Asset.client_account_id == context.client_account_id,
-                        Asset.engagement_id == context.engagement_id,
-                    )
-                ),
-            )
-        )
-        orphan_raw_count = raw_with_orphan_asset_ref.scalar()
-
-        if orphan_raw_count > 0:
-            all_healthy = False
-            issues["raw_records_with_orphan_asset_references"] = {
-                "count": orphan_raw_count,
-                "severity": "medium",
-                "description": "Raw import records referencing non-existent assets",
-            }
-
-            if detail:
-                sample_raws = await db.execute(
-                    select(
-                        RawImportRecord.id,
-                        RawImportRecord.row_number,
-                        RawImportRecord.asset_id,
-                    )
-                    .where(
-                        *raw_filter,
-                        RawImportRecord.asset_id.isnot(None),
-                        ~exists(
-                            select(1).where(
-                                Asset.id == RawImportRecord.asset_id,
-                                Asset.client_account_id == context.client_account_id,
-                                Asset.engagement_id == context.engagement_id,
-                            )
-                        ),
-                    )
-                    .limit(5)
-                )
-                samples["raw_records_with_orphan_asset_references"] = [
-                    {
-                        "raw_record_id": str(row.id),
-                        "row_number": row.row_number,
-                        "orphan_asset_id": str(row.asset_id),
-                    }
-                    for row in sample_raws
-                ]
 
         # 3. Assets without raw import record links (potential data gaps)
         assets_without_raw_links = await db.execute(
@@ -204,15 +100,17 @@ async def check_wiring_health(
                 "description": "Assets not linked to raw import records (may be manually created)",
             }
 
-        # 4. Raw records not processed into assets
-        unprocessed_raw_records = await db.execute(
-            select(func.count(RawImportRecord.id)).where(
-                *raw_filter,
-                RawImportRecord.is_processed.is_(False),
-                RawImportRecord.asset_id.is_(None),
-            )
-        )
-        unprocessed_count = unprocessed_raw_records.scalar()
+        # REMOVED: Raw records check - RawImportRecord model was removed
+        # # 4. Raw records not processed into assets
+        # unprocessed_raw_records = await db.execute(
+        #     select(func.count(RawImportRecord.id)).where(
+        #         *raw_filter,
+        #         RawImportRecord.is_processed.is_(False),
+        #         RawImportRecord.asset_id.is_(None),
+        #     )
+        # )
+        # unprocessed_count = unprocessed_raw_records.scalar()
+        unprocessed_count = 0
 
         if unprocessed_count > 0:
             issues["unprocessed_raw_records"] = {
@@ -326,65 +224,6 @@ async def get_wiring_repair_recommendations(
 
     try:
         recommendations = []
-
-        # Check for specific issues and provide targeted recommendations
-        base_filter = [
-            Asset.client_account_id == context.client_account_id,
-            Asset.engagement_id == context.engagement_id,
-        ]
-
-        # Check for orphaned asset references
-        assets_with_orphan_raw_ref = await db.execute(
-            select(func.count(Asset.id)).where(
-                *base_filter,
-                Asset.raw_import_records_id.isnot(None),
-                ~exists(
-                    select(1).where(
-                        RawImportRecord.id == Asset.raw_import_records_id,
-                        RawImportRecord.client_account_id == context.client_account_id,
-                        RawImportRecord.engagement_id == context.engagement_id,
-                    )
-                ),
-            )
-        )
-
-        if assets_with_orphan_raw_ref.scalar() > 0:
-            recommendations.append(
-                {
-                    "issue": "assets_with_orphan_raw_references",
-                    "severity": "high",
-                    "action": "NULL out orphaned raw_import_records_id references",
-                    "sql_hint": (
-                        "UPDATE assets SET raw_import_records_id = NULL "
-                        "WHERE raw_import_records_id NOT IN (SELECT id FROM raw_import_records)"
-                    ),
-                    "automation": "Use asset cleanup scripts or run discovery flow repair",
-                }
-            )
-
-        # Check for unprocessed raw records
-        raw_filter = [
-            RawImportRecord.client_account_id == context.client_account_id,
-            RawImportRecord.engagement_id == context.engagement_id,
-        ]
-
-        unprocessed_raw = await db.execute(
-            select(func.count(RawImportRecord.id)).where(
-                *raw_filter,
-                RawImportRecord.is_processed.is_(False),
-                RawImportRecord.asset_id.is_(None),
-            )
-        )
-
-        if unprocessed_raw.scalar() > 0:
-            recommendations.append(
-                {
-                    "issue": "unprocessed_raw_records",
-                    "severity": "medium",
-                    "action": "Reprocess raw import records through asset creation pipeline",
-                    "automation": "Trigger asset inventory phase or manual asset creation from raw data",
-                }
-            )
 
         return {
             "tenant": {

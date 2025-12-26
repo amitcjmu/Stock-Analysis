@@ -11,9 +11,6 @@ from .factory import tool_factory
 # Import base tool classes after registry to avoid circular import
 from .base_tool import AsyncBaseDiscoveryTool, BaseDiscoveryTool
 
-# Import specific tools last
-from .field_mapping_tool import field_mapping_tool
-
 # Auto-discover tools on import
 # Note: Tools are auto-discovered and registered via registry
 # Individual tool imports removed to avoid unused import warnings
@@ -25,7 +22,6 @@ except Exception:
     pass
 
 __all__ = [
-    "field_mapping_tool",
     "tool_registry",
     "tool_factory",
     "ToolMetadata",

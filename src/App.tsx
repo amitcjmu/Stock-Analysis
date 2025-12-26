@@ -34,12 +34,12 @@ import {
   LazyDiscovery,
   LazyFinOps,
   LazyObservability,
-  LazyDataImport,
-  LazyInventory,
+  // LazyDataImport,  // REMOVED
+  // LazyInventory,  // REMOVED
   LazyDependencies,
-  LazyDataCleansing,
-  LazyDataValidation,
-  LazyAttributeMapping,
+  // LazyDataCleansing,  // REMOVED
+  // LazyDataValidation,  // REMOVED
+  // LazyAttributeMapping,  // REMOVED
   LazyTechDebtAnalysis,
   LazyDiscoveryDashboard,
   LazyWatchlist,
@@ -158,42 +158,43 @@ const AuthenticatedApp = (): JSX.Element => {
         path="/discovery/monitor/:flowId"
         element={<LazyFlowStatusMonitor />}
       />
-      <Route path="/discovery/cmdb-import" element={<LazyDataImport />} />
-      <Route path="/discovery/data-import" element={<LazyDataImport />} />
-      <Route path="/discovery/inventory" element={<LazyInventory />} />
-      <Route path="/discovery/inventory/:flowId" element={<LazyInventory />} />
+      {/* REMOVED: Data Import, Validation, Attribute Mapping, Data Cleansing, and Inventory routes */}
+      {/* <Route path="/discovery/cmdb-import" element={<LazyDataImport />} /> */}
+      {/* <Route path="/discovery/data-import" element={<LazyDataImport />} /> */}
+      {/* <Route path="/discovery/inventory" element={<LazyInventory />} /> */}
+      {/* <Route path="/discovery/inventory/:flowId" element={<LazyInventory />} /> */}
       <Route path="/discovery/dependencies" element={<LazyDependencies />} />
       <Route
         path="/discovery/dependencies/:flowId"
         element={<LazyDependencies />}
       />
-      <Route path="/discovery/data-cleansing" element={<LazyDataCleansing />} />
-      <Route
+      {/* <Route path="/discovery/data-cleansing" element={<LazyDataCleansing />} /> */}
+      {/* <Route
         path="/discovery/data-cleansing/:flowId"
         element={<LazyDataCleansing />}
-      />
-      <Route path="/discovery/data-validation" element={<LazyDataValidation />} />
-      <Route
+      /> */}
+      {/* <Route path="/discovery/data-validation" element={<LazyDataValidation />} /> */}
+      {/* <Route
         path="/discovery/data-validation/:flowId"
         element={<LazyDataValidation />}
-      />
-      <Route
+      /> */}
+      {/* <Route
         path="/discovery/attribute-mapping"
         element={<LazyAttributeMapping />}
-      />
-      <Route
+      /> */}
+      {/* <Route
         path="/discovery/attribute-mapping/:flowId"
         element={<LazyAttributeMapping />}
-      />
+      /> */}
       {/* Redirect for backward compatibility - field-mapping to attribute-mapping */}
-      <Route
+      {/* <Route
         path="/discovery/field-mapping"
         element={<LazyAttributeMapping />}
-      />
-      <Route
+      /> */}
+      {/* <Route
         path="/discovery/field-mapping/:flowId"
         element={<LazyAttributeMapping />}
-      />
+      /> */}
 
 
 
