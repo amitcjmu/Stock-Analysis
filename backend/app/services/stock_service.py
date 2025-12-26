@@ -33,9 +33,12 @@ class StockService:
         Logs search to Cassandra for analytics.
         """
         import time
+        
+        # Initialize start_time first to avoid NameError in exception handler
+        start_time = time.time()
+        
         from app.services.cassandra_service import cassandra_service
 
-        start_time = time.time()
         source = "database"
         search_type = (
             "symbol" if len(query.split()) == 1 and query.isupper() else "company_name"
