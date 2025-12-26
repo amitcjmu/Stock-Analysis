@@ -179,9 +179,16 @@ def add_cors(app, settings):
         for origin in origins:
             logging.getLogger(__name__).info(f"CORS origin allowed: {origin}")
 
+    # Allow Vercel preview deployments (pattern: https://*-*-*-projects.vercel.app)
+    # This matches Vercel's preview deployment URL pattern
+    vercel_preview_regex = (
+        r"^https://[a-z0-9-]+-[a-z0-9]+-[a-z0-9]+-projects\.vercel\.app$"
+    )
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
+        allow_origin_regex=vercel_preview_regex,
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
         allow_headers=[
