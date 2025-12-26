@@ -181,8 +181,10 @@ def add_cors(app, settings):
 
     # Allow Vercel preview deployments (pattern: https://*-*-*-projects.vercel.app)
     # This matches Vercel's preview deployment URL pattern
+    # Pattern matches: project-name-hash-username-projects.vercel.app
+    # Case-insensitive matching for flexibility
     vercel_preview_regex = (
-        r"^https://[a-z0-9-]+-[a-z0-9]+-[a-z0-9]+-projects\.vercel\.app$"
+        r"^https://[a-zA-Z0-9-]+-[a-zA-Z0-9]+-[a-zA-Z0-9]+-projects\.vercel\.app$"
     )
 
     app.add_middleware(
