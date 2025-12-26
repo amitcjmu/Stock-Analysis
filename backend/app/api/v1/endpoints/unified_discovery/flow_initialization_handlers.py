@@ -16,7 +16,9 @@ from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
 from app.core.security.secure_logging import mask_id, safe_log_format
 from app.services.master_flow_orchestrator import MasterFlowOrchestrator
-from app.models.data_import import ImportFieldMapping
+
+# REMOVED: Data import models
+# from app.models.data_import import ImportFieldMapping
 from app.models.discovery_flow import DiscoveryFlow
 from .flow_schemas import FlowInitializationRequest, FlowInitializationResponse
 
@@ -371,44 +373,50 @@ async def _generate_field_mappings_from_raw_data(
             logger.warning("No source fields found in raw data")
             return
 
-        # Get common field mappings
-        common_mappings = _get_common_field_mappings()
-        field_mappings_created = 0
+        # REMOVED: Field mapping generation - ImportFieldMapping model was removed
+        # # Get common field mappings
+        # common_mappings = _get_common_field_mappings()
+        # field_mappings_created = 0
+        #
+        # for source_field in source_fields:
+        #     # Skip metadata fields
+        #     if _should_skip_field(source_field):
+        #         continue
+        #
+        #     # Find target field and confidence
+        #     target_field, confidence_score = _find_field_mapping(
+        #         source_field, common_mappings
+        #     )
 
-        for source_field in source_fields:
-            # Skip metadata fields
-            if _should_skip_field(source_field):
-                continue
+        # REMOVED: Field mapping creation - ImportFieldMapping model was removed
+        # # Create the field mapping
+        # field_mapping = ImportFieldMapping(
+        #     id=str(uuid.uuid4()),
+        #     data_import_id=flow.data_import_id,
+        #     source_field=source_field,
+        #     target_field=target_field,
+        #     confidence_score=confidence_score,
+        #     field_type="auto_detected",
+        #     status="suggested",
+        #     client_account_id=context.client_account_id,
+        #     engagement_id=context.engagement_id,
+        #     agent_reasoning=f"Auto-mapped based on field name similarity (confidence: {confidence_score:.2f})",
+        #     transformation_rules={
+        #         "auto_generated": True,
+        #         "generation_timestamp": datetime.now(timezone.utc).isoformat(),
+        #     },
+        # )
+        #
+        # db.add(field_mapping)
+        # field_mappings_created += 1
 
-            # Find target field and confidence
-            target_field, confidence_score = _find_field_mapping(
-                source_field, common_mappings
-            )
-
-            # Create the field mapping
-            field_mapping = ImportFieldMapping(
-                id=str(uuid.uuid4()),
-                data_import_id=flow.data_import_id,
-                source_field=source_field,
-                target_field=target_field,
-                confidence_score=confidence_score,
-                field_type="auto_detected",
-                status="suggested",
-                client_account_id=context.client_account_id,
-                engagement_id=context.engagement_id,
-                agent_reasoning=f"Auto-mapped based on field name similarity (confidence: {confidence_score:.2f})",
-                transformation_rules={
-                    "auto_generated": True,
-                    "generation_timestamp": datetime.now(timezone.utc).isoformat(),
-                },
-            )
-
-            db.add(field_mapping)
-            field_mappings_created += 1
-
-        await db.commit()
-        logger.info(
-            f"✅ Created {field_mappings_created} field mappings for flow {flow_id}"
+        # REMOVED: Field mapping commit - ImportFieldMapping model was removed
+        # await db.commit()
+        # logger.info(
+        #     f"✅ Created {field_mappings_created} field mappings for flow {flow_id}"
+        # )
+        logger.warning(
+            "⚠️ Field mapping generation skipped - ImportFieldMapping model was removed"
         )
 
     except Exception as e:

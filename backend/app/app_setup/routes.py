@@ -9,8 +9,20 @@ def include_api_routes(app):
 
         app.include_router(api_router, prefix="/api/v1")
         logger.info("✅ API v1 routes loaded successfully")
+
+        # Debug: Log registered routes
+        auth_routes = [
+            r for r in api_router.routes if hasattr(r, "path") and "/auth" in r.path
+        ]
+        if auth_routes:
+            logger.info(f"✅ Found {len(auth_routes)} auth routes registered")
+            for route in auth_routes[:5]:  # Log first 5 auth routes
+                logger.info(f"  - {getattr(route, 'methods', [])} {route.path}")
+        else:
+            logger.warning("⚠️ No auth routes found in api_router")
+
     except Exception as e:  # pragma: no cover
-        logger.warning("API v1 routes error: %s", e)
+        logger.error(f"❌ API v1 routes error: {e}", exc_info=True)
         fallback_router = APIRouter()
 
         @fallback_router.get("/health", summary="Fallback Health Check")

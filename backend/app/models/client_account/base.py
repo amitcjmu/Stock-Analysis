@@ -210,13 +210,13 @@ class ClientAccount(Base):
         cascade="all, delete-orphan",
     )
 
-    # Data import relationships (string reference to avoid circular imports)
-    data_imports = relationship(
-        "DataImport",
-        back_populates="client_account",
-        cascade="all, delete-orphan",
-        lazy="select",
-    )
+    # REMOVED: Data import relationships
+    # data_imports = relationship(
+    #     "DataImport",
+    #     back_populates="client_account",
+    #     cascade="all, delete-orphan",
+    #     lazy="select",
+    # )
 
     # Feedback relationships (string reference to avoid circular imports)
     feedback = relationship(

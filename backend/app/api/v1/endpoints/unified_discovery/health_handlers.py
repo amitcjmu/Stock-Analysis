@@ -13,7 +13,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
 from app.models.discovery_flow import DiscoveryFlow
-from app.models.data_import.core import DataImport, RawImportRecord
+
+# REMOVED: Data import models
+# from app.models.data_import.core import DataImport, RawImportRecord
 from app.models.asset import Asset
 
 router = APIRouter()
@@ -55,26 +57,28 @@ async def check_asset_pipeline_health(
     if not discovery_flow:
         return {"error": "Flow not found"}
 
-    # Get data import
-    data_import = await db.scalar(
-        select(DataImport)
-        .where(DataImport.master_flow_id == flow_id)
-        .where(DataImport.client_account_id == context.client_account_id)
-    )
+    # REMOVED: Data import functionality - models were removed
+    # data_import = await db.scalar(
+    #     select(DataImport)
+    #     .where(DataImport.master_flow_id == flow_id)
+    #     .where(DataImport.client_account_id == context.client_account_id)
+    # )
 
-    # Count raw import records with proper tenant scoping
-    raw_count = (
-        await db.scalar(
-            select(func.count())
-            .select_from(RawImportRecord)
-            .where(
-                RawImportRecord.master_flow_id == flow_id,
-                RawImportRecord.client_account_id == context.client_account_id,
-                RawImportRecord.engagement_id == context.engagement_id,
-            )
-        )
-        or 0
-    )
+    # REMOVED: Raw import records - models were removed
+    # raw_count = (
+    #     await db.scalar(
+    #         select(func.count())
+    #         .select_from(RawImportRecord)
+    #         .where(
+    #             RawImportRecord.master_flow_id == flow_id,
+    #             RawImportRecord.client_account_id == context.client_account_id,
+    #             RawImportRecord.engagement_id == context.engagement_id,
+    #         )
+    #     )
+    #     or 0
+    # )
+    data_import = None
+    raw_count = 0
 
     # Count assets
     asset_count = (
@@ -93,7 +97,7 @@ async def check_asset_pipeline_health(
         "assets_count": asset_count,
         "current_phase": discovery_flow.current_phase,
         "status": discovery_flow.status,
-        "can_create_assets": raw_count > 0 and asset_count == 0,
+        "can_create_assets": False,  # Data import removed
         "field_mapping_completed": discovery_flow.field_mapping_completed,
         "data_cleansing_completed": discovery_flow.data_cleansing_completed,
         "asset_inventory_completed": discovery_flow.asset_inventory_completed,

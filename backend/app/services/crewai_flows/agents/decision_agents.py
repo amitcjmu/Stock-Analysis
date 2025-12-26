@@ -17,7 +17,8 @@ import logging
 from .decision import (
     AgentDecision,
     BaseDecisionAgent,
-    FieldMappingDecisionAgent,
+    # REMOVED: FieldMappingDecisionAgent - field mapping functionality was removed
+    # FieldMappingDecisionAgent,
     PhaseAction,
     PhaseTransitionAgent,
 )
@@ -30,5 +31,5 @@ __all__ = [
     "BaseDecisionAgent",
     "PhaseAction",
     "PhaseTransitionAgent",
-    "FieldMappingDecisionAgent",
+    # "FieldMappingDecisionAgent",  # REMOVED
 ]

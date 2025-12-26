@@ -82,49 +82,49 @@ export const LazyRawDataTable = createLazyComponent(
   LoadingPriority.HIGH
 );
 
-// Attribute Mapping Components (NORMAL priority)
-export const LazyNavigationTabs = createLazyComponent(
-  () => import('@/components/discovery/attribute-mapping/NavigationTabs'),
-  'Navigation Tabs',
-  'minimal',
-  LoadingPriority.NORMAL
-);
+// REMOVED: Attribute Mapping Components (NORMAL priority)
+// export const LazyNavigationTabs = createLazyComponent(
+//   () => import('@/components/discovery/attribute-mapping/NavigationTabs'),
+//   'Navigation Tabs',
+//   'minimal',
+//   LoadingPriority.NORMAL
+// );
 
-// Data Cleansing Components (NORMAL priority)
-export const LazyQualityDashboard = createLazyComponent(
-  () => import('@/components/discovery/data-cleansing/QualityDashboard'),
-  'Quality Dashboard',
-  'skeleton',
-  LoadingPriority.NORMAL
-);
+// REMOVED: Data Cleansing Components (NORMAL priority)
+// export const LazyQualityDashboard = createLazyComponent(
+//   () => import('@/components/discovery/data-cleansing/QualityDashboard'),
+//   'Quality Dashboard',
+//   'skeleton',
+//   LoadingPriority.NORMAL
+// );
 
-export const LazyAgentQualityAnalysis = createLazyComponent(
-  () => import('@/components/discovery/data-cleansing/AgentQualityAnalysis'),
-  'Agent Quality Analysis',
-  'skeleton',
-  LoadingPriority.NORMAL
-);
+// export const LazyAgentQualityAnalysis = createLazyComponent(
+//   () => import('@/components/discovery/data-cleansing/AgentQualityAnalysis'),
+//   'Agent Quality Analysis',
+//   'skeleton',
+//   LoadingPriority.NORMAL
+// );
 
-export const LazyRecommendationsSummary = createLazyComponent(
-  () => import('@/components/discovery/data-cleansing/RecommendationsSummary'),
-  'Recommendations Summary',
-  'skeleton',
-  LoadingPriority.NORMAL
-);
+// export const LazyRecommendationsSummary = createLazyComponent(
+//   () => import('@/components/discovery/data-cleansing/RecommendationsSummary'),
+//   'Recommendations Summary',
+//   'skeleton',
+//   LoadingPriority.NORMAL
+// );
 
-export const LazyActionFeedback = createLazyComponent(
-  () => import('@/components/discovery/data-cleansing/ActionFeedback'),
-  'Action Feedback',
-  'minimal',
-  LoadingPriority.NORMAL
-);
+// export const LazyActionFeedback = createLazyComponent(
+//   () => import('@/components/discovery/data-cleansing/ActionFeedback'),
+//   'Action Feedback',
+//   'minimal',
+//   LoadingPriority.NORMAL
+// );
 
-export const LazyQualityIssuesSummary = createLazyComponent(
-  () => import('@/components/discovery/data-cleansing/QualityIssuesSummary'),
-  'Quality Issues Summary',
-  'skeleton',
-  LoadingPriority.NORMAL
-);
+// export const LazyQualityIssuesSummary = createLazyComponent(
+//   () => import('@/components/discovery/data-cleansing/QualityIssuesSummary'),
+//   'Quality Issues Summary',
+//   'skeleton',
+//   LoadingPriority.NORMAL
+// );
 
 // Note: 6R Analysis Components removed as part of Assessment Flow Migration Phase 5
 // These components have been deleted:

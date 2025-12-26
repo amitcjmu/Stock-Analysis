@@ -10,9 +10,9 @@ from . import (
     asset_inventory,
     chat,
     context,
-    data_import,
+    # data_import,  # REMOVED
     feedback,
-    field_mapping,
+    # field_mapping,  # REMOVED
     flow_processing,
 )
 from .agents import router as agents_router
@@ -29,11 +29,11 @@ chat_router = chat.router
 feedback_router = feedback.router
 # websocket_router removed - using HTTP polling for Vercel+Railway compatibility
 agent_learning_router = agent_learning_endpoints.router
-data_import_router = data_import.router
+# data_import_router = data_import.router  # REMOVED
 context_router = context.router
 # test_discovery_router removed - was dead code with auth bypass
 flow_processing_router = flow_processing.router
 agents_router = agents_router  # Use the imported agents_router
 analysis_router = analysis.router
 asset_workflow_router = asset_workflow.router
-field_mapping_router = field_mapping.router
+# field_mapping_router = field_mapping.router  # REMOVED

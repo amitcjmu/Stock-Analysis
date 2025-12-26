@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.discovery_flow import DiscoveryFlow
 from app.core.context import RequestContext
+
 # MasterFlowOrchestrator removed - master flow code removed from project
 from app.core.security.secure_logging import safe_log_format
 from app.services.flow_type_registry_helpers import get_flow_config
@@ -19,10 +20,12 @@ from .phase_persistence_helpers import (
     persist_phase_completion,
     persist_field_mapping_completion,
 )
-from .field_mapping_helpers import (
-    check_existing_field_mappings,
-    auto_generate_field_mappings,
-)
+
+# REMOVED: Field mapping helpers - field mapping functionality was removed
+# from .field_mapping_helpers import (
+#     check_existing_field_mappings,
+#     auto_generate_field_mappings,
+# )
 
 logger = logging.getLogger(__name__)
 
@@ -179,10 +182,11 @@ async def execute_field_mapping_phase(
     """Execute field mapping phase directly."""
     logger.info(f"🎯 Attempting direct field mapping execution for flow {flow_id}")
 
-    # Check if field mapping has already been completed
-    existing_mappings = await check_existing_field_mappings(db, discovery_flow, flow_id)
-    if existing_mappings:
-        return existing_mappings
+    # REMOVED: Field mapping helpers - field mapping functionality was removed
+    # # Check if field mapping has already been completed
+    # existing_mappings = await check_existing_field_mappings(db, discovery_flow, flow_id)
+    # if existing_mappings:
+    #     return existing_mappings
 
     try:
         from app.services.crewai_flow_service import CrewAIFlowService
@@ -233,8 +237,9 @@ async def execute_field_mapping_phase(
 
         logger.info(f"✅ Field mapping phase executed successfully for flow {flow_id}")
 
-        # Auto-generate field mappings if data_import_id exists
-        await auto_generate_field_mappings(db, context, discovery_flow)
+        # REMOVED: Field mapping helpers - field mapping functionality was removed
+        # # Auto-generate field mappings if data_import_id exists
+        # await auto_generate_field_mappings(db, context, discovery_flow)
 
         # Update discovery flow status
         discovery_flow.status = "processing"
@@ -337,7 +342,7 @@ async def execute_flow_phase(
             result = {
                 "success": False,
                 "error": "MasterFlowOrchestrator removed - asset_inventory phase not available",
-                "error_code": "MFO_REMOVED"
+                "error_code": "MFO_REMOVED",
             }
 
             # Check for CLEANSING_REQUIRED error
@@ -411,7 +416,7 @@ async def execute_flow_phase(
             "success": False,
             "error": "MasterFlowOrchestrator removed - phase execution not available",
             "error_code": "MFO_REMOVED",
-            "phase": phase_to_execute
+            "phase": phase_to_execute,
         }
 
         # Persist phase completion after successful execution

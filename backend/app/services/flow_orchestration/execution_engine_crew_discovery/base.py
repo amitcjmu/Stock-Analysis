@@ -38,10 +38,12 @@ class ExecutionEngineDiscoveryCrewsBase:
         self.db_session = db_session
 
         # Initialize specialized components
-        from ..field_mapping_logic import FieldMappingLogic
+        # REMOVED: Field mapping logic - field mapping functionality was removed
+        # from ..field_mapping_logic import FieldMappingLogic
         from ..discovery_phase_handlers import DiscoveryPhaseHandlers
 
-        self.field_mapping_logic = FieldMappingLogic()
+        # self.field_mapping_logic = FieldMappingLogic()
+        self.field_mapping_logic = None
         self.phase_handlers = DiscoveryPhaseHandlers(context)
 
     def set_service_registry(self, service_registry):

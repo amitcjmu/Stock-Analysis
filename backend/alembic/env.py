@@ -23,9 +23,11 @@ from app.models.client_account import (
     UserAccountAssociation,
 )
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
-from app.models.data_cleansing import DataCleansingRecommendation
-from app.models.data_import.core import DataImport, RawImportRecord
-from app.models.data_import.mapping import ImportFieldMapping
+
+# REMOVED: Data import, validation, attribute mapping, data cleansing, and inventory models
+# from app.models.data_cleansing import DataCleansingRecommendation
+# from app.models.data_import.core import DataImport, RawImportRecord
+# from app.models.data_import.mapping import ImportFieldMapping
 from app.models.discovery_flow import DiscoveryFlow
 from app.models.feedback import Feedback
 from app.models.flow_deletion_audit import FlowDeletionAudit

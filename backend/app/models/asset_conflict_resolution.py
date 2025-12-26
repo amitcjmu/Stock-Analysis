@@ -46,12 +46,13 @@ class AssetConflictResolution(Base, TimestampMixin):
         nullable=False,
         index=True,
     )
-    data_import_id = Column(
-        UUID(as_uuid=True),
-        ForeignKey("migration.data_imports.id"),
-        nullable=True,
-        index=True,
-    )
+    # REMOVED: Data import foreign key
+    # data_import_id = Column(
+    #     UUID(as_uuid=True),
+    #     ForeignKey("migration.data_imports.id"),
+    #     nullable=True,
+    #     index=True,
+    # )
     discovery_flow_id = Column(
         UUID(as_uuid=True),
         ForeignKey("migration.discovery_flows.id"),

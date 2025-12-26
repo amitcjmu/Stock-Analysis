@@ -19,22 +19,22 @@ class ToolAdders:
 
     @classmethod
     def add_data_analysis_tools(cls, context_info: Dict[str, Any], tools: List) -> int:
-        """Add data analysis and validation tools."""
+        """Add data analysis and validation tools - REMOVED: data validation tools."""
         tools_added = 0
         try:
-            # Lazy import data analysis tools
-            from app.services.crewai_flows.tools.data_validation_tool import (
-                create_data_validation_tools,
-            )
+            # REMOVED: Data validation tools
+            # from app.services.crewai_flows.tools.data_validation_tool import (
+            #     create_data_validation_tools,
+            # )
             from app.services.crewai_flows.tools.critical_attributes_tool import (
                 create_critical_attributes_tools,
             )
 
             from app.services.persistent_agents.tool_manager import AgentToolManager
 
-            tools_added += AgentToolManager._safe_extend_tools(
-                tools, create_data_validation_tools, "data validation", context_info
-            )
+            # tools_added += AgentToolManager._safe_extend_tools(
+            #     tools, create_data_validation_tools, "data validation", context_info
+            # )
             tools_added += AgentToolManager._safe_extend_tools(
                 tools,
                 create_critical_attributes_tools,
@@ -86,24 +86,24 @@ class ToolAdders:
 
     @classmethod
     def add_field_mapper_tools(cls, context_info: Dict[str, Any], tools: List) -> int:
-        """Add field mapping specific tools."""
+        """Add field mapping specific tools - REMOVED: field mapping tools."""
         tools_added = 0
 
         try:
-            # Lazy import field mapping tools
-            from app.services.crewai_flows.tools.mapping_confidence_tool import (
-                MappingConfidenceTool,
-            )
+            # REMOVED: Field mapping tools
+            # from app.services.crewai_flows.tools.mapping_confidence_tool import (
+            #     MappingConfidenceTool,
+            # )
             from app.services.crewai_flows.tools.critical_attributes_tool import (
                 create_critical_attributes_tools,
             )
 
             from app.services.persistent_agents.tool_manager import AgentToolManager
 
-            # Add mapping confidence tool
-            if MappingConfidenceTool:
-                tools.append(MappingConfidenceTool(context_info=context_info))
-                tools_added += 1
+            # REMOVED: Mapping confidence tool
+            # if MappingConfidenceTool:
+            #     tools.append(MappingConfidenceTool(context_info=context_info))
+            #     tools_added += 1
 
             # Add critical attributes assessment tools for field mapper
             tools_added += AgentToolManager._safe_extend_tools(

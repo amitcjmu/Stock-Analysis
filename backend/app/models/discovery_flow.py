@@ -43,13 +43,13 @@ class DiscoveryFlow(Base):
     engagement_id = Column(UUID(as_uuid=True), nullable=False, index=True)
     user_id = Column(String, nullable=False)
 
-    # Data import integration
-    data_import_id = Column(
-        UUID(as_uuid=True),
-        ForeignKey("migration.data_imports.id"),
-        nullable=True,
-        index=True,
-    )
+    # REMOVED: Data import integration
+    # data_import_id = Column(
+    #     UUID(as_uuid=True),
+    #     ForeignKey("migration.data_imports.id"),
+    #     nullable=True,
+    #     index=True,
+    # )
 
     # Flow metadata
     flow_name = Column(String(255), nullable=False)
@@ -129,7 +129,8 @@ class DiscoveryFlow(Base):
     # Relationships
     # Note: discovery_assets table was consolidated into main assets table
     # Use assets table with discovery_flow_id foreign key instead
-    data_import = relationship("DataImport", back_populates="discovery_flows")
+    # REMOVED: data_import relationship
+    # data_import = relationship("DataImport", back_populates="discovery_flows")
 
     # Master flow relationship
     master_flow = relationship(
@@ -141,14 +142,14 @@ class DiscoveryFlow(Base):
 
     # Collection flow relationships REMOVED - CollectionFlow was removed
 
-    # Data cleansing recommendations relationship
-    recommendations = relationship(
-        "DataCleansingRecommendation",
-        primaryjoin="DiscoveryFlow.flow_id == DataCleansingRecommendation.flow_id",
-        back_populates="discovery_flow",
-        cascade="all, delete-orphan",
-        lazy="select",
-    )
+    # REMOVED: Data cleansing recommendations relationship
+    # recommendations = relationship(
+    #     "DataCleansingRecommendation",
+    #     primaryjoin="DiscoveryFlow.flow_id == DataCleansingRecommendation.flow_id",
+    #     back_populates="discovery_flow",
+    #     cascade="all, delete-orphan",
+    #     lazy="select",
+    # )
 
     def __repr__(self):
         return f"<DiscoveryFlow(flow_id={self.flow_id}, name='{self.flow_name}', status='{self.status}')>"

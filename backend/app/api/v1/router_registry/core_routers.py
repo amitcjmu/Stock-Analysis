@@ -25,9 +25,9 @@ def register_core_routers(api_router: APIRouter):
         asset_data_audit_router,
         chat_router,
         context_router,
-        data_import_router,
+        # data_import_router,  # REMOVED
         feedback_router,
-        field_mapping_router,
+        # field_mapping_router,  # REMOVED
         monitoring_router,
         context_establishment_router,
         # flow_sync_debug_router removed - was master flow related
@@ -76,10 +76,8 @@ def register_core_routers(api_router: APIRouter):
     logger.info("✅ Communication and context routers registered")
 
     # Data and Monitoring
-    api_router.include_router(data_import_router, prefix="/data-import")
-    api_router.include_router(
-        field_mapping_router
-    )  # Uses /field-mapping prefix from router
+    # api_router.include_router(data_import_router, prefix="/data-import")  # REMOVED
+    # api_router.include_router(field_mapping_router)  # REMOVED
     api_router.include_router(monitoring_router, prefix="/monitoring")
     # flow_sync_debug router removed - was master flow related
     logger.info("✅ Data and monitoring routers registered")

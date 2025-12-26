@@ -173,13 +173,13 @@ class Engagement(Base):
         lazy="select",
     )
 
-    # Data import relationships (string reference to avoid circular imports)
-    data_imports = relationship(
-        "DataImport",
-        back_populates="engagement",
-        cascade="all, delete-orphan",
-        lazy="select",
-    )
+    # REMOVED: Data import relationships
+    # data_imports = relationship(
+    #     "DataImport",
+    #     back_populates="engagement",
+    #     cascade="all, delete-orphan",
+    #     lazy="select",
+    # )
 
     # Feedback relationships (string reference to avoid circular imports)
     feedback = relationship(

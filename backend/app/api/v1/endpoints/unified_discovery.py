@@ -19,8 +19,8 @@ This file has been modularized. Related endpoints can be found in:
 MODULARIZED STRUCTURE:
 - unified_discovery/flow_handlers.py - Flow initialization, status, and execution endpoints
 - unified_discovery/asset_handlers.py - Asset listing and summary endpoints
-- unified_discovery/field_mapping_handlers.py - Field mapping endpoints
 - unified_discovery/health_handlers.py - Health check endpoints
+# REMOVED: unified_discovery/field_mapping_handlers.py
 """
 
 from fastapi import APIRouter
@@ -28,7 +28,9 @@ from fastapi import APIRouter
 # Import all modularized routers
 from .unified_discovery.flow_handlers import router as flow_router
 from .unified_discovery.asset_handlers import router as asset_router
-from .unified_discovery.field_mapping_handlers import router as field_mapping_router
+
+# REMOVED: field_mapping_handlers
+# from .unified_discovery.field_mapping_handlers import router as field_mapping_router
 from .unified_discovery.health_handlers import router as health_router
 
 # Create main router and include all modular routers
@@ -37,7 +39,8 @@ router = APIRouter()
 # Include all the modularized routers
 router.include_router(flow_router, tags=["Unified Discovery"])
 router.include_router(asset_router, tags=["Unified Discovery"])
-router.include_router(field_mapping_router, tags=["Field Mapping"])
+# REMOVED: field_mapping_router
+# router.include_router(field_mapping_router, tags=["Field Mapping"])
 router.include_router(health_router, tags=["System Health"])
 
 # For backward compatibility, we can also expose the individual routers
@@ -46,6 +49,6 @@ __all__ = [
     "router",
     "flow_router",
     "asset_router",
-    "field_mapping_router",
+    # REMOVED: "field_mapping_router",
     "health_router",
 ]

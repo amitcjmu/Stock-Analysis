@@ -71,19 +71,17 @@ class FieldMappingAdapter:
                 logger.error("No service_registry available in crewai_service")
                 return {"mappings": {}, "error": "No service_registry available"}
 
-            # Import execute_field_mapping at runtime
-            from app.services.persistent_agents.field_mapping_persistent import (
-                execute_field_mapping,
-            )
+            # REMOVED: Field mapping functionality
+            # from app.services.persistent_agents.field_mapping_persistent import (
+            #     execute_field_mapping,
+            # )
+            # result = await execute_field_mapping(...)
 
-            # Execute field mapping using persistent agent
-            result = await execute_field_mapping(
-                context=context,
-                service_registry=service_registry,
-                raw_data=self.raw_data,
-            )
-
-            return result
+            logger.warning("Field mapping functionality has been removed")
+            return {
+                "mappings": {},
+                "error": "Field mapping functionality has been removed",
+            }
 
         except Exception as e:
             logger.error(f"❌ Field mapping adapter failed: {e}", exc_info=True)
@@ -209,14 +207,14 @@ class UnifiedFlowCrewManager:
                 def field_mapping_factory(
                     crewai_service, raw_data, shared_memory=None, knowledge_base=None
                 ):
-                    """Wrapper to make persistent agent compatible with crew interface"""
-                    from app.services.persistent_agents.field_mapping_persistent import (
-                        get_persistent_field_mapper,
-                    )
-
-                    return _create_field_mapping_adapter(
-                        crewai_service, raw_data, get_persistent_field_mapper
-                    )
+                    """REMOVED: Field mapping factory - functionality removed"""
+                    # REMOVED: Field mapping functionality
+                    # from app.services.persistent_agents.field_mapping_persistent import (
+                    #     get_persistent_field_mapper,
+                    # )
+                    # return _create_field_mapping_adapter(...)
+                    logger.warning("Field mapping factory has been removed")
+                    return None
 
                 logger.info(
                     "✅ Using NEW PERSISTENT field mapper wrapper (ADR-015, ADR-024)"

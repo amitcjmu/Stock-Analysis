@@ -99,35 +99,36 @@ export const LazyDiscoveryIndex = createLazyRoute(
   "Discovery Overview",
 );
 
-export const LazyDataImport = createLazyRoute(
-  () => import("@/pages/discovery/CMDBImport"),
-  "Data Import",
-);
+// REMOVED: Data Import, Validation, Attribute Mapping, Data Cleansing, and Inventory
+// export const LazyDataImport = createLazyRoute(
+//   () => import("@/pages/discovery/CMDBImport"),
+//   "Data Import",
+// );
 
-export const LazyInventory = createLazyRoute(
-  () => import("@/pages/discovery/Inventory"),
-  "Inventory",
-);
+// export const LazyInventory = createLazyRoute(
+//   () => import("@/pages/discovery/Inventory"),
+//   "Inventory",
+// );
 
 export const LazyDependencies = createLazyRoute(
   () => import("@/pages/discovery/Dependencies"),
   "Dependencies",
 );
 
-export const LazyDataCleansing = createLazyRoute(
-  () => import("@/pages/discovery/DataCleansing"),
-  "Data Cleansing",
-);
+// export const LazyDataCleansing = createLazyRoute(
+//   () => import("@/pages/discovery/DataCleansing"),
+//   "Data Cleansing",
+// );
 
-export const LazyDataValidation = createLazyRoute(
-  () => import("@/pages/discovery/DataValidation"),
-  "Data Validation",
-);
+// export const LazyDataValidation = createLazyRoute(
+//   () => import("@/pages/discovery/DataValidation"),
+//   "Data Validation",
+// );
 
-export const LazyAttributeMapping = createLazyRoute(
-  () => import("@/pages/discovery/AttributeMapping"),
-  "Attribute Mapping",
-);
+// export const LazyAttributeMapping = createLazyRoute(
+//   () => import("@/pages/discovery/AttributeMapping"),
+//   "Attribute Mapping",
+// );
 
 export const LazyTechDebtAnalysis = createLazyRoute(
   () => import("@/pages/discovery/TechDebtAnalysis"),
