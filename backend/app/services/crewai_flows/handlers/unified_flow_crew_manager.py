@@ -71,12 +71,6 @@ class FieldMappingAdapter:
                 logger.error("No service_registry available in crewai_service")
                 return {"mappings": {}, "error": "No service_registry available"}
 
-            # REMOVED: Field mapping functionality
-            # from app.services.persistent_agents.field_mapping_persistent import (
-            #     execute_field_mapping,
-            # )
-            # result = await execute_field_mapping(...)
-
             logger.warning("Field mapping functionality has been removed")
             return {
                 "mappings": {},
@@ -207,12 +201,7 @@ class UnifiedFlowCrewManager:
                 def field_mapping_factory(
                     crewai_service, raw_data, shared_memory=None, knowledge_base=None
                 ):
-                    """REMOVED: Field mapping factory - functionality removed"""
-                    # REMOVED: Field mapping functionality
-                    # from app.services.persistent_agents.field_mapping_persistent import (
-                    #     get_persistent_field_mapper,
-                    # )
-                    # return _create_field_mapping_adapter(...)
+                    """Field mapping factory - functionality removed"""
                     logger.warning("Field mapping factory has been removed")
                     return None
 
@@ -304,9 +293,6 @@ class UnifiedFlowCrewManager:
                 "data_import_validation": create_data_import_validation_crew,  # NEW: Focused data validation crew
                 "data_import": create_data_import_validation_crew,  # Alias for phase executor compatibility
                 "attribute_mapping": field_mapping_factory,  # Dynamic based on CREWAI_FAST_MODE setting
-                # "data_cleansing": create_data_cleansing_crew,  # REMOVED: Persistent agents
-                # via DataCleansingExecutor
-                # "inventory": create_inventory_building_crew,  # REMOVED: Now uses persistent agents
                 "dependencies": create_dependency_analysis_crew,  # Fixed: Use dependencies to match DB schema
                 "tech_debt": create_technical_debt_crew,  # Fixed: Use tech_debt to match DB schema
             }

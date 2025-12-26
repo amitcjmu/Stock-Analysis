@@ -57,26 +57,6 @@ async def check_asset_pipeline_health(
     if not discovery_flow:
         return {"error": "Flow not found"}
 
-    # REMOVED: Data import functionality - models were removed
-    # data_import = await db.scalar(
-    #     select(DataImport)
-    #     .where(DataImport.master_flow_id == flow_id)
-    #     .where(DataImport.client_account_id == context.client_account_id)
-    # )
-
-    # REMOVED: Raw import records - models were removed
-    # raw_count = (
-    #     await db.scalar(
-    #         select(func.count())
-    #         .select_from(RawImportRecord)
-    #         .where(
-    #             RawImportRecord.master_flow_id == flow_id,
-    #             RawImportRecord.client_account_id == context.client_account_id,
-    #             RawImportRecord.engagement_id == context.engagement_id,
-    #         )
-    #     )
-    #     or 0
-    # )
     data_import = None
     raw_count = 0
 

@@ -18,11 +18,7 @@ class PhaseExecutorsMixin:
     async def _execute_discovery_field_mapping(
         self, agent_pool: Dict[str, Any], phase_input: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """Execute field mapping phase - REMOVED: field mapping functionality was removed"""
-        # REMOVED: Field mapping logic - field mapping functionality was removed
-        # return await self.field_mapping_logic.execute_discovery_field_mapping(
-        #     agent_pool, phase_input, self.db_session
-        # )
+        """Execute field mapping phase - field mapping functionality was removed"""
         return {
             "status": "skipped",
             "message": "Field mapping phase is no longer available - functionality was removed",

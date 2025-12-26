@@ -171,42 +171,6 @@ async def _get_dynamic_agent_insights(
         if not context or not context.client_account_id or not context.engagement_id:
             return _get_fallback_agent_insights()
 
-        # REMOVED: Data import functionality - models were removed
-        # import uuid
-        # from app.models.data_import import DataImport
-        #
-        # latest_import_query = (
-        #     select(DataImport)
-        #     .where(
-        #         and_(
-        #             DataImport.client_account_id
-        #             == uuid.UUID(context.client_account_id),
-        #             DataImport.engagement_id == uuid.UUID(context.engagement_id),
-        #         )
-        #     )
-        #     .order_by(
-        #         DataImport.total_records.desc(),
-        #         DataImport.created_at.desc(),
-        #     )
-        #     .limit(1)
-        # )
-        #
-        # result = await db.execute(latest_import_query)
-        # latest_import = result.scalar_one_or_none()
-        #
-        # if not latest_import:
-        #     return _get_fallback_agent_insights()
-        #
-        # # Get field mappings for this import
-        # from app.models.data_import import ImportFieldMapping
-        #
-        # mappings_query = select(ImportFieldMapping).where(
-        #     ImportFieldMapping.data_import_id == latest_import.id
-        # )
-        # mappings_result = await db.execute(mappings_query)
-        # mappings = mappings_result.scalars().all()
-
-        # Return fallback since data import is removed
         return _get_fallback_agent_insights()
 
     except Exception as e:

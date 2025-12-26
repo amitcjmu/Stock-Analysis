@@ -73,26 +73,9 @@ async def _get_raw_data_for_flow(
     """
     Fetch raw data records for a data import.
 
-    REMOVED: Data import functionality - RawImportRecord model was removed.
+    Data import functionality removed - RawImportRecord model was removed.
     Returns empty list.
     """
-    # REMOVED: RawImportRecord model was removed
-    # stmt = (
-    #     select(RawImportRecord.raw_data)
-    #     .where(
-    #         and_(
-    #             RawImportRecord.data_import_id == data_import_id,
-    #             RawImportRecord.client_account_id == context.client_account_id,
-    #             RawImportRecord.engagement_id == context.engagement_id,
-    #         )
-    #     )
-    #     .order_by(RawImportRecord.row_number)
-    # )
-    # result = await db.execute(stmt)
-    # rows = result.scalars().all()
-
-    # Each row is a JSON dict representing one record
-    # return [row for row in rows if row is not None]
     return []
 
 

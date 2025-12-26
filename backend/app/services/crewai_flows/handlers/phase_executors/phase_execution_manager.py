@@ -40,37 +40,12 @@ class PhaseExecutionManager:
         self.context = context  # Request context for monitoring
 
         # Initialize phase executors with flow bridge
-        # REMOVED: Asset inventory executor - inventory functionality was removed
-        # from .asset_inventory_executor import AssetInventoryExecutor
-        # REMOVED: Data cleansing executor - data cleansing functionality was removed
-        # from .data_cleansing_executor import DataCleansingExecutor
-        # REMOVED: Data import validation executor - data import functionality was removed
-        # from .data_import_validation.executor import DataImportValidationExecutor
         from .dependency_analysis_executor import DependencyAnalysisExecutor
-
-        # REMOVED: Field mapping executor - field mapping functionality was removed
-        # from .field_mapping_executor import FieldMappingExecutor
         from .tech_debt_executor import TechDebtExecutor
 
-        # REMOVED: Data import validation executor - data import functionality was removed
-        # self.data_import_validation_executor = DataImportValidationExecutor(
-        #     state, crew_manager, flow_bridge
-        # )
         self.data_import_validation_executor = None
-        # REMOVED: Field mapping executor - field mapping functionality was removed
-        # self.field_mapping_executor = FieldMappingExecutor(
-        #     state, crew_manager, flow_bridge
-        # )
         self.field_mapping_executor = None
-        # REMOVED: Data cleansing executor - data cleansing functionality was removed
-        # self.data_cleansing_executor = DataCleansingExecutor(
-        #     state, crew_manager, flow_bridge
-        # )
         self.data_cleansing_executor = None
-        # REMOVED: Asset inventory executor - inventory functionality was removed
-        # self.asset_inventory_executor = AssetInventoryExecutor(
-        #     state, crew_manager, flow_bridge
-        # )
         self.asset_inventory_executor = None
         self.dependency_analysis_executor = DependencyAnalysisExecutor(
             state, crew_manager, flow_bridge
@@ -94,23 +69,6 @@ class PhaseExecutionManager:
             previous_result: Result from previous phase
             mode: Execution mode - 'full' or 'suggestions_only'
         """
-        # REMOVED: Field mapping executor - field mapping functionality was removed
-        # logger.info(f"🔍 DEBUG: execute_field_mapping_phase called with mode: {mode}")
-        #
-        # # Pass mode to executor if it's suggestions_only
-        # if mode == "suggestions_only":
-        #     logger.info("🔍 DEBUG: Calling execute_suggestions_only")
-        #     result = await self.field_mapping_executor.execute_suggestions_only(
-        #         previous_result
-        #     )
-        #     logger.info(f"🔍 DEBUG: execute_suggestions_only returned: {result}")
-        #     logger.info(
-        #         f"🔍 DEBUG: Return result keys: {list(result.keys()) if isinstance(result, dict) else 'Not a dict'}"
-        #     )
-        #     return result
-        # else:
-        #     logger.info("🔍 DEBUG: Calling execute (full mode)")
-        #     return await self.field_mapping_executor.execute(previous_result)
         return {
             "status": "skipped",
             "message": "Field mapping phase is no longer available - functionality was removed",

@@ -182,12 +182,6 @@ async def execute_field_mapping_phase(
     """Execute field mapping phase directly."""
     logger.info(f"🎯 Attempting direct field mapping execution for flow {flow_id}")
 
-    # REMOVED: Field mapping helpers - field mapping functionality was removed
-    # # Check if field mapping has already been completed
-    # existing_mappings = await check_existing_field_mappings(db, discovery_flow, flow_id)
-    # if existing_mappings:
-    #     return existing_mappings
-
     try:
         from app.services.crewai_flow_service import CrewAIFlowService
         from app.services.crewai_flows.unified_discovery_flow.unified_discovery_flow import (
@@ -236,10 +230,6 @@ async def execute_field_mapping_phase(
         )
 
         logger.info(f"✅ Field mapping phase executed successfully for flow {flow_id}")
-
-        # REMOVED: Field mapping helpers - field mapping functionality was removed
-        # # Auto-generate field mappings if data_import_id exists
-        # await auto_generate_field_mappings(db, context, discovery_flow)
 
         # Update discovery flow status
         discovery_flow.status = "processing"
