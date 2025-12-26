@@ -456,8 +456,9 @@ class CassandraService:
                 most_searched = result.most_searched_symbols or {}
                 search_sources = result.search_sources or {}
 
-                # Update symbol count
-                symbol = search_query.upper().split()[0]  # First word as symbol
+                # Update symbol count (safely extract first word, fallback to query if empty)
+                query_parts = search_query.strip().upper().split()
+                symbol = query_parts[0] if query_parts else search_query.strip().upper() or "unknown"
                 most_searched[symbol] = most_searched.get(symbol, 0) + 1
                 search_sources[source] = search_sources.get(source, 0) + 1
 
@@ -493,7 +494,10 @@ class CassandraService:
                 await loop.run_in_executor(None, execute_update)
             else:
                 # Create new analytics record
-                most_searched = {search_query.upper().split()[0]: 1}
+                # Safely extract first word, fallback to query if empty
+                query_parts = search_query.strip().upper().split()
+                symbol = query_parts[0] if query_parts else search_query.strip().upper() or "unknown"
+                most_searched = {symbol: 1}
                 search_sources = {source: 1}
 
                 insert_query_str = (
@@ -647,6 +651,10 @@ class CassandraService:
                 return None
 
         try:
+            # Convert string UUID to UUID object if needed
+            if isinstance(client_account_id, str):
+                client_account_id = UUID(client_account_id)
+
             loop = asyncio.get_event_loop()
             if not year_month:
                 year_month = datetime.utcnow().strftime("%Y-%m")
