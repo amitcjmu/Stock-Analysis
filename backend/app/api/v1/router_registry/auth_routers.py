@@ -31,14 +31,28 @@ def register_auth_routers(api_router: APIRouter):
             f"⚠️ Auth RBAC router not available from router_imports. Flag: {auth_flag}"
         )
         # Fallback: Try direct import
+        # SECURITY: If auth router fails to load, re-raise ImportError to halt startup
         try:
             from app.api.v1.auth import auth_router as direct_auth_router
 
             logger.info("✅ Direct auth router import successful, registering...")
             api_router.include_router(direct_auth_router, prefix="/auth")
             logger.info("✅ Auth RBAC router registered via direct import at /auth")
-        except Exception as e:
+        except ImportError as e:
             logger.error(
-                f"❌ Failed to register auth router via direct import: {e}",
+                f"❌ CRITICAL: Failed to import auth router - application cannot start without authentication: {e}",
                 exc_info=True,
             )
+            # Re-raise ImportError to halt application startup for security
+            raise ImportError(
+                "Authentication router failed to load. Application startup aborted for security reasons."
+            ) from e
+        except Exception as e:
+            logger.error(
+                f"❌ CRITICAL: Failed to register auth router - application cannot start without authentication: {e}",
+                exc_info=True,
+            )
+            # Convert to ImportError to halt application startup for security
+            raise ImportError(
+                "Authentication router failed to register. Application startup aborted for security reasons."
+            ) from e
