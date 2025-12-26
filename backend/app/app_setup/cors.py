@@ -104,6 +104,7 @@ def add_cors(app, settings):
             cors_origins.extend(
                 [
                     "https://aiforce-assess.vercel.app",
+                    "https://ai-stock-assess.vercel.app",
                     "https://migrate-ui-orchestrator-production.up.railway.app",
                 ]
             )
@@ -117,6 +118,7 @@ def add_cors(app, settings):
             cors_origins.extend(
                 [
                     "https://aiforce-assess.vercel.app",
+                    "https://ai-stock-assess.vercel.app",
                     "https://migrate-ui-orchestrator-production.up.railway.app",
                 ]
             )
@@ -151,9 +153,13 @@ def add_cors(app, settings):
             or os.getenv("RAILWAY_ENVIRONMENT")
             or env == "production"
         ):
-            vercel_domain = "https://aiforce-assess.vercel.app"
-            if vercel_domain not in cors_origins:
-                cors_origins.append(vercel_domain)
+            vercel_domains = [
+                "https://aiforce-assess.vercel.app",
+                "https://ai-stock-assess.vercel.app",
+            ]
+            for vercel_domain in vercel_domains:
+                if vercel_domain not in cors_origins:
+                    cors_origins.append(vercel_domain)
 
         # SECURITY FIX: Validate all origins before returning
         unique_origins = list(set(filter(None, cors_origins)))
