@@ -176,9 +176,6 @@ try:
 except ImportError as e:
     logger.error(f"❌ Failed to import auth router: {e}", exc_info=True)
     routers_with_flags["AUTH_RBAC"] = (False, None)
-except Exception as e:
-    logger.error(f"❌ Unexpected error importing auth router: {e}", exc_info=True)
-    routers_with_flags["AUTH_RBAC"] = (False, None)
 
 # RBAC Admin
 try:
