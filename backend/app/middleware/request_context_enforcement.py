@@ -61,6 +61,10 @@ class RequestContextEnforcementMiddleware(BaseHTTPMiddleware):
         Returns:
             Response from endpoint or 400 error if headers missing
         """
+        # CORS preflight requests should always be exempt
+        if request.method == "OPTIONS":
+            return await call_next(request)
+
         # Check if this endpoint requires enforcement
         if not self._requires_enforcement(request.url.path):
             # Not a collection endpoint - skip enforcement
