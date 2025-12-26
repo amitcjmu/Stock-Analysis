@@ -148,6 +148,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
     return [
       { name: 'Overview', path: '/discovery/overview', icon: LayoutDashboard },
       { name: 'Watchlist', path: '/discovery/watchlist', icon: Star },
+      { name: 'Search History', path: '/discovery/search-history', icon: Clock },
       ...phases
     ];
   }, [allFlowPhases, discoveryFlowId]);

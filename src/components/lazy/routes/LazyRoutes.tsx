@@ -144,6 +144,11 @@ export const LazyWatchlist = createLazyRoute(
   "Watchlist",
 );
 
+export const LazySearchHistory = createLazyRoute(
+  () => import("@/pages/discovery/SearchHistory"),
+  "Search History",
+);
+
 export const LazyFlowStatusMonitor = createLazyRoute(
   () => import("@/pages/discovery/FlowStatusMonitor"),
   "Flow Status Monitor",

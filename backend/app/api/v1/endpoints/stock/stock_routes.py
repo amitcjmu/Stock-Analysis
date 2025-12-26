@@ -213,6 +213,79 @@ async def search_stocks(
         )
 
 
+@router.get("/search/history", response_model=dict)
+async def get_search_history(
+    days: int = Query(30, ge=1, le=365, description="Number of days to look back"),
+    limit: int = Query(100, ge=1, le=1000, description="Maximum number of results"),
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
+):
+    """
+    Get user's stock search history from Cassandra Database
+    """
+    try:
+        from app.services.cassandra_service import cassandra_service
+
+        history = await cassandra_service.get_search_history(
+            context.client_account_id,
+            str(context.user_id or "system"),
+            days=days,
+            limit=limit,
+        )
+
+        return {
+            "success": True,
+            "history": history,
+            "count": len(history),
+            "days": days,
+        }
+
+    except Exception as e:
+        logger.error(f"Error getting search history: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get search history: {str(e)}"
+        )
+
+
+@router.get("/search/analytics", response_model=dict)
+async def get_search_analytics(
+    year_month: Optional[str] = Query(
+        None, description="Year-month (e.g., '2025-01'), defaults to current month"
+    ),
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
+):
+    """
+    Get aggregated search analytics for the current user.
+    """
+    try:
+        from app.services.cassandra_service import cassandra_service
+
+        analytics = await cassandra_service.get_search_analytics(
+            context.client_account_id,
+            str(context.user_id or "system"),
+            year_month=year_month,
+        )
+
+        if not analytics:
+            return {
+                "success": True,
+                "analytics": None,
+                "message": "No analytics data available for this period",
+            }
+
+        return {
+            "success": True,
+            "analytics": analytics,
+        }
+
+    except Exception as e:
+        logger.error(f"Error getting search analytics: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get search analytics: {str(e)}"
+        )
+
+
 @router.post("/analyze", response_model=StockAnalysisResponse)
 async def analyze_stock(
     request: StockAnalysisRequest,
@@ -1113,7 +1186,7 @@ def _build_comprehensive_analysis(results: dict) -> Optional[dict]:
 
 
 @router.post("/analyze/all", response_model=dict)
-async def analyze_stock_all_agents(
+async def analyze_stock_all_agents(  # noqa: C901
     request: StockAnalysisRequest,
     db: AsyncSession = Depends(get_db),
     context: RequestContext = Depends(get_current_context),

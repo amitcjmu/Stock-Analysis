@@ -50,7 +50,8 @@ durationpy==0.10
 et_xmlfile==2.0.0
 executing==2.2.0
 fastapi==0.120.1  # Updated to support starlette 0.49.1 security fix
-feedparser==6.0.11  # For fetching RSS feeds from Indian news sources
+feedparser==6.0.11
+cassandra-driver==3.29.1  # For fetching RSS feeds from Indian news sources
 fastavro==1.11.1
 filelock==3.18.0
 flatbuffers==25.2.10
@@ -254,5 +255,7 @@ websockets==15.0.1
 wrapt==1.17.2
 xmltodict==0.14.2
 yarl==1.20.1
+curl_cffi>=0.7.0  # Required dependency for yfinance 0.2.58+
+yfinance==0.2.66  # Updated to latest version with WebSocket streaming, screener functionality, and improved error handling
 zipp==3.23.0
 zstandard==0.23.0
