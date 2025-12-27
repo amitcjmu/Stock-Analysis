@@ -90,13 +90,13 @@ def create_app():  # factory to assemble app
         )
 
     # Middleware and CORS
-    # IMPORTANT: Add CORS first so it's the outermost middleware and handles OPTIONS preflight
-    # before any other middleware can reject the request
+    # IMPORTANT: In FastAPI, middleware executes in reverse order (last added = first executed)
+    # Add CORS LAST so it's the outermost middleware and handles OPTIONS preflight first
     from app.app_setup.middleware import add_middlewares
     from app.app_setup.cors import add_cors
 
-    add_cors(app, settings)
     add_middlewares(app, settings)
+    add_cors(app, settings)  # Added last = executes first (outermost layer)
 
     # Routes
     from app.app_setup.routes import include_api_routes, add_debug_routes
