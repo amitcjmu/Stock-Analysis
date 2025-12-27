@@ -199,6 +199,12 @@ def add_cors(app, settings):
         r"^https://[a-zA-Z0-9-]+-[a-zA-Z0-9]+-[a-zA-Z0-9]+-projects\.vercel\.app$"
     )
 
+    # Log CORS configuration for debugging
+    logger = logging.getLogger(__name__)
+    logger.info(f"CORS configured with {len(origins)} allowed origins")
+    logger.info(f"CORS allowed origins: {origins}")
+    logger.info(f"CORS regex pattern: {vercel_preview_regex}")
+    
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
