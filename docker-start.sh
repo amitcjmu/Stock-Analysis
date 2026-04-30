@@ -114,6 +114,7 @@ DEBUG=true
 # Add your API keys here
 # OPENAI_API_KEY=your-key-here
 # ANTHROPIC_API_KEY=your-key-here
+# CLAUDE_OPUS_MODEL=claude-opus-4-6
 # DEEPINFRA_API_KEY=your-key-here
 EOF
             echo -e "${GREEN}✅ Created minimal backend/.env file${NC}"
@@ -128,6 +129,14 @@ EOF
         else
             echo -e "${YELLOW}   ⚠️  DEEPINFRA_API_KEY not set in backend/.env${NC}"
             echo -e "${YELLOW}      Add your DeepInfra API key to backend/.env${NC}"
+        fi
+
+        # Anthropic (stock analysis, multi_model_service — requires pip package anthropic in image)
+        if grep -q "^ANTHROPIC_API_KEY=" backend/.env && ! grep -q "^ANTHROPIC_API_KEY=$" backend/.env && ! grep -q "^ANTHROPIC_API_KEY=your-key-here" backend/.env && ! grep -q "^ANTHROPIC_API_KEY=your_anthropic_api_key_here" backend/.env; then
+            echo -e "${GREEN}   ✅ ANTHROPIC_API_KEY is set (Claude / stock analysis)${NC}"
+        else
+            echo -e "${YELLOW}   ⚠️  ANTHROPIC_API_KEY not configured in backend/.env${NC}"
+            echo -e "${YELLOW}      Get a key at https://console.anthropic.com/ then restart: cd config/docker && docker compose restart backend${NC}"
         fi
     fi
 }

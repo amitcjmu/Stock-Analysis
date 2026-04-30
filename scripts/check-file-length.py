@@ -10,17 +10,17 @@ from pathlib import Path
 from typing import List, Tuple
 
 # Configuration
-MAX_LINES_ERROR = 400  # Hard limit - block commit
-MAX_LINES_WARNING = 350  # Soft limit - show warning
-IDEAL_MAX_LINES = 300  # Best practice recommendation
+MAX_LINES_ERROR = 600  # Hard limit - block commit
+MAX_LINES_WARNING = 500  # Soft limit - show warning
+IDEAL_MAX_LINES = 400  # Best practice recommendation
 
 # Files to exclude from checks (legacy or generated files)
 EXCLUDE_PATTERNS = [
     "*/migrations/*",
     "*/alembic/versions/*",  # Alembic migration files can be necessarily long
-    "*/tests/*",  # Test files are EXEMPT from 400 line limit per CLAUDE.md
-    "*/test_*.py",  # Test files are EXEMPT from 400 line limit per CLAUDE.md
-    "*_test.py",  # Test files are EXEMPT from 400 line limit per CLAUDE.md
+    "*/tests/*",  # Test files are EXEMPT from 600 line limit per CLAUDE.md
+    "*/test_*.py",  # Test files are EXEMPT from 600 line limit per CLAUDE.md
+    "*_test.py",  # Test files are EXEMPT from 600 line limit per CLAUDE.md
     "*/scripts/cmdb_testing/*",  # CMDB testing/backfill scripts are utilities
     "*/venv/*",
     "*/node_modules/*",

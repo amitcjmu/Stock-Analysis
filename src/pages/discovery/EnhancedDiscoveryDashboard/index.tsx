@@ -12,7 +12,7 @@ import { Badge } from '../../../components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs';
 import { Popover, PopoverContent, PopoverTrigger } from '../../../components/ui/popover';
 import { PriceChart } from '../../../components/stock/PriceChart';
-import { ModelSelector, ModelType } from '../../../components/stock/ModelSelector';
+import { ModelSelector } from '../../../components/stock/ModelSelector';
 import { useAuth } from '../../../contexts/AuthContext';
 import { apiCall } from '../../../config/api';
 
@@ -82,8 +82,6 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
   const [isInWatchlist, setIsInWatchlist] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
-  const [selectedModel, setSelectedModel] = useState<ModelType>('auto');
-
   // Autocomplete state
   const [suggestions, setSuggestions] = useState<Stock[]>([]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
@@ -365,14 +363,6 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
     setIsAnalyzing(true);
 
     try {
-      // Prepare request body with model parameter (only include if not 'auto')
-      const requestBody: { symbol: string; model?: string } = {
-        symbol: selectedStock.symbol,
-      };
-      if (selectedModel !== 'auto') {
-        requestBody.model = selectedModel;
-      }
-
       const response = await apiCall(
         '/stock/stocks/analyze',
         {
@@ -381,7 +371,7 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
             ...getAuthHeaders(),
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(requestBody),
+          body: JSON.stringify({ symbol: selectedStock.symbol }),
         }
       );
 
@@ -508,10 +498,7 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
                     {/* Model Selector */}
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium text-muted-foreground">AI Model:</span>
-                      <ModelSelector
-                        value={selectedModel}
-                        onChange={setSelectedModel}
-                      />
+                      <ModelSelector />
                     </div>
 
                     {/* Search Input */}
@@ -714,10 +701,7 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
                   onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                   className="flex-1"
                 />
-                <ModelSelector
-                  value={selectedModel}
-                  onChange={setSelectedModel}
-                />
+                <ModelSelector />
                 <Button onClick={handleSearch} disabled={isSearching || !searchQuery.trim()} variant="outline" size="sm">
                   {isSearching ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -820,10 +804,7 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
                       {/* AI Analysis Button */}
                       {!analysis && (
                         <div className="flex justify-between items-center">
-                          <ModelSelector
-                            value={selectedModel}
-                            onChange={setSelectedModel}
-                          />
+                          <ModelSelector />
                           <Button onClick={handleAnalyzeStockWithAI} disabled={isAnalyzing} size="lg">
                             {isAnalyzing ? (
                               <>

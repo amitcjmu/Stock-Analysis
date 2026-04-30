@@ -13,7 +13,7 @@ import { Alert, AlertDescription } from '../../components/ui/alert';
 import { Loader2, Search, TrendingUp, TrendingDown, DollarSign, BarChart3, AlertTriangle, CheckCircle, Star, StarOff, Plus, X, GitCompare, Brain } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { PriceChart } from '../../components/stock/PriceChart';
-import { ModelSelector, ModelType } from '../../components/stock/ModelSelector';
+import { ModelSelector } from '../../components/stock/ModelSelector';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 
 interface Stock {
@@ -133,8 +133,6 @@ const DiscoveryDashboard: React.FC = () => {
   const [newsAnalysis, setNewsAnalysis] = useState<StockAnalysis | null>(null);
   const [stockNews, setStockNews] = useState<any[]>([]);
   const [isLoadingNews, setIsLoadingNews] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<ModelType>('auto');
-
   // Autocomplete state
   const [suggestions, setSuggestions] = useState<Stock[]>([]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
@@ -509,17 +507,8 @@ const DiscoveryDashboard: React.FC = () => {
     setIsAnalyzing(true);
 
     try {
-      console.log('🚀 Starting comprehensive analysis for', selectedStock.symbol, 'with model:', selectedModel);
+      console.log('🚀 Starting comprehensive analysis for', selectedStock.symbol, '(Anthropic Claude)');
 
-      // Prepare request body with model parameter (only include if not 'auto')
-      const requestBody: { symbol: string; model?: string } = {
-        symbol: selectedStock.symbol,
-      };
-      if (selectedModel !== 'auto') {
-        requestBody.model = selectedModel;
-      }
-
-      // Call the analyze/all endpoint that runs all agents
       const response = await apiCall(
         '/stock/stocks/analyze/all',
         {
@@ -528,7 +517,7 @@ const DiscoveryDashboard: React.FC = () => {
             ...getAuthHeaders(),
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(requestBody),
+          body: JSON.stringify({ symbol: selectedStock.symbol }),
         }
       );
 
@@ -597,7 +586,7 @@ const DiscoveryDashboard: React.FC = () => {
     setIsLoadingNews(true);
     try {
       // Include LLM-generated news insights along with Yahoo Finance news
-      const url = `/stock/stocks/${symbol}/news?limit=20&include_llm_news=true${selectedModel !== 'auto' ? `&model=${selectedModel}` : ''}`;
+      const url = `/stock/stocks/${symbol}/news?limit=20&include_llm_news=true`;
       const response = await apiCall(
         url,
         {
@@ -757,10 +746,7 @@ const DiscoveryDashboard: React.FC = () => {
                     {/* Model Selector */}
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium text-muted-foreground">AI Model:</span>
-                      <ModelSelector
-                        value={selectedModel}
-                        onChange={setSelectedModel}
-                      />
+                      <ModelSelector />
                     </div>
 
                     {/* Search Input */}
@@ -957,10 +943,7 @@ const DiscoveryDashboard: React.FC = () => {
                     </div>
                   )}
                 </div>
-                <ModelSelector
-                  value={selectedModel}
-                  onChange={setSelectedModel}
-                />
+                <ModelSelector />
                 <Button onClick={handleSearch} disabled={isSearching || !searchQuery.trim()} variant="outline" size="sm">
                   {isSearching ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -1075,10 +1058,7 @@ const DiscoveryDashboard: React.FC = () => {
                       {/* AI Analysis Button */}
                       {!analysis && (
                         <div className="flex justify-between items-center">
-                          <ModelSelector
-                            value={selectedModel}
-                            onChange={setSelectedModel}
-                          />
+                          <ModelSelector />
                           <Button
                             onClick={handleAnalyzeStockWithAI}
                             disabled={isAnalyzing}

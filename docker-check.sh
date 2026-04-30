@@ -137,8 +137,8 @@ echo -e "${BLUE}Configuration Check:${NC}"
 if [ -f "backend/.env" ]; then
     echo -e "  ${GREEN}✓${NC} backend/.env exists"
     # Check for API keys
-    if grep -q "OPENAI_API_KEY=your-key-here\|ANTHROPIC_API_KEY=your-key-here" backend/.env; then
-        echo -e "  ${YELLOW}⚠${NC} API keys not configured in backend/.env"
+    if grep -qE "OPENAI_API_KEY=your-key-here|ANTHROPIC_API_KEY=(your-key-here|your_anthropic_api_key_here)" backend/.env; then
+        echo -e "  ${YELLOW}⚠${NC} API keys still at template values in backend/.env (set real keys for OpenAI/Anthropic)"
     fi
 else
     echo -e "  ${RED}✗${NC} backend/.env missing"

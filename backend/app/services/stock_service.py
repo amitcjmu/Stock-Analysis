@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.context import RequestContext
 from app.models.stock import Stock, StockAnalysis
 from app.services.stock_data_api import StockDataAPIService
+from app.services.stock_sector_universe import TRENDING_SECTOR_UNIVERSE
 
 logger = logging.getLogger(__name__)
 
@@ -33,10 +34,10 @@ class StockService:
         Logs search to Cassandra for analytics.
         """
         import time
-        
+
         # Initialize start_time first to avoid NameError in exception handler
         start_time = time.time()
-        
+
         from app.services.cassandra_service import cassandra_service
 
         source = "database"
@@ -344,3 +345,50 @@ class StockService:
         except Exception as e:
             logger.error(f"Error getting stock news for {symbol}: {e}")
             return []
+
+    async def get_trending_sectors(self) -> List[Dict[str, Any]]:
+        """Return available in-app trending sectors."""
+        sectors = []
+        for sector_id, sector_data in TRENDING_SECTOR_UNIVERSE.items():
+            sectors.append(
+                {
+                    "id": sector_id,
+                    "name": sector_data.get("name"),
+                    "one_day_change_percent": sector_data.get("one_day_change_percent"),
+                    "gainers": sector_data.get("gainers"),
+                    "losers": sector_data.get("losers"),
+                    "stock_count": len(sector_data.get("symbols", [])),
+                }
+            )
+        sectors.sort(
+            key=lambda item: item.get("one_day_change_percent") or 0.0, reverse=True
+        )
+        return sectors
+
+    async def get_stocks_for_sector(
+        self, sector_id: str, refresh: bool = False
+    ) -> Dict[str, Any]:
+        """Return stock snapshots for a configured sector universe."""
+        sector_data = TRENDING_SECTOR_UNIVERSE.get(sector_id)
+        if not sector_data:
+            return {"sector": None, "stocks": []}
+
+        symbols = sector_data.get("symbols", [])
+        stocks: List[Dict[str, Any]] = []
+
+        for symbol in symbols:
+            stock_data = await self.get_stock_by_symbol(symbol, force_refresh=refresh)
+            if stock_data:
+                stocks.append(stock_data)
+
+        return {
+            "sector": {
+                "id": sector_id,
+                "name": sector_data.get("name"),
+                "one_day_change_percent": sector_data.get("one_day_change_percent"),
+                "gainers": sector_data.get("gainers"),
+                "losers": sector_data.get("losers"),
+                "stock_count": len(symbols),
+            },
+            "stocks": stocks,
+        }

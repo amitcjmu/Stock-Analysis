@@ -87,7 +87,7 @@ def register_core_routers(api_router: APIRouter):
     logger.info("✅ Flow metadata router registered")
 
     # Stock Analysis
-    from app.api.v1.endpoints.stock.stock_routes import router as stock_router
+    from app.api.v1.endpoints.stock.stock_routes_modular import router as stock_router
 
     api_router.include_router(stock_router, prefix="/stock/stocks")
     logger.info("✅ Stock analysis router registered")

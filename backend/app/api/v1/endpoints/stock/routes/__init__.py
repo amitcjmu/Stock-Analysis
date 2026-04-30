@@ -1,0 +1,1 @@
+"""Modular stock route handlers."""

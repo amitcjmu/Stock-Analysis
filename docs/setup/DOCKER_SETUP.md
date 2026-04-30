@@ -57,6 +57,19 @@ ANTHROPIC_API_KEY=your-key-here
 DEEPINFRA_API_KEY=your-key-here
 ```
 
+#### Anthropic Claude (stock analysis and `multi_model_service`)
+
+1. **API key**: In `backend/.env`, set `ANTHROPIC_API_KEY` to a key from [Anthropic Console](https://console.anthropic.com/). Optional: `CLAUDE_OPUS_MODEL` (default `claude-opus-4-6` is set in the app).
+2. **Python package**: The backend image installs `anthropic` from `backend/requirements.txt` / `requirements-docker.txt` at build time. Rebuild if you changed dependencies: `./docker-start.sh --rebuild`.
+3. **Docker Compose**: The main stack loads `backend/.env` via `env_file` on the `backend` service (`config/docker/docker-compose.yml`). Do not leave `ANTHROPIC_API_KEY` only in the shell unless you also pass it through Compose in a way that does not override `env_file` with an empty value.
+4. **Restart after editing `.env`**:
+
+```bash
+cd config/docker && docker compose restart backend
+```
+
+**Railway**: In the Railway service → Variables, add `ANTHROPIC_API_KEY` (same name as in the app). Redeploy so the new variable is picked up.
+
 ### 3. Service Management
 
 ```bash

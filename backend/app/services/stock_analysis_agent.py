@@ -1,5 +1,5 @@
 """
-Stock Analysis Agent - Uses CrewAI and LLM to analyze stocks
+Stock Analysis Agent — LLM analysis via Anthropic Claude (multi_model_service).
 """
 
 import logging
@@ -13,6 +13,10 @@ from app.services.multi_model_service import (
     multi_model_service,
     TaskComplexity,
     ModelType,
+)
+from app.services.stock_llm_fallback import (
+    analysis_when_anthropic_insufficient_credits,
+    analysis_when_anthropic_unconfigured,
 )
 from app.services.stock_service import StockService
 
@@ -36,7 +40,7 @@ class StockAnalysisAgent:
 
         Args:
             stock_symbol: Stock symbol to analyze
-            model: Optional model name (gemini, llama4_maverick, gemma3_4b, auto)
+            model: Ignored; all stock LLM calls use Anthropic Claude (see multi_model_service).
         """
         try:
             # Get stock data
@@ -50,28 +54,48 @@ class StockAnalysisAgent:
             # Generate analysis prompt
             prompt = self._create_analysis_prompt(stock_data)
 
-            # Determine model type
-            model_type = None
-            if model:
-                model_lower = model.lower()
-                if model_lower == "gemini":
-                    model_type = ModelType.GEMINI
-                elif model_lower == "llama4_maverick" or model_lower == "llama":
-                    model_type = ModelType.LLAMA_4_MAVERICK
-                elif model_lower == "gemma3_4b" or model_lower == "gemma":
-                    model_type = ModelType.GEMMA_3_4B
-                # If model is "auto" or None, model_type stays None and auto-selection will be used
-
-            # Call LLM for analysis
             logger.info(
-                f"🤖 Generating stock analysis for {stock_symbol} using model: {model or 'auto'}"
+                "🤖 Generating stock analysis for %s via Anthropic Claude",
+                stock_symbol,
             )
             response_data = await multi_model_service.generate_response(
                 prompt=prompt,
                 task_type="analysis",
-                complexity=TaskComplexity.AGENTIC,  # Use agentic complexity for comprehensive analysis
-                model_type=model_type,  # Pass selected model or None for auto
+                complexity=TaskComplexity.AGENTIC,
+                model_type=ModelType.CLAUDE_OPUS_4_6,
             )
+
+            if response_data.get("status") == "placeholder":
+                analysis_data = analysis_when_anthropic_unconfigured(
+                    "comprehensive", stock_data
+                )
+                analysis = await self.stock_service.save_stock_analysis(
+                    UUID(str(stock.id)), analysis_data
+                )
+                return {
+                    "stock": stock.to_dict(),
+                    "analysis": analysis.to_dict(),
+                }
+
+            if (
+                response_data.get("status") == "error"
+                and response_data.get("anthropic_error_kind") == "insufficient_credits"
+            ):
+                analysis_data = analysis_when_anthropic_insufficient_credits(
+                    "comprehensive", stock_data
+                )
+                analysis = await self.stock_service.save_stock_analysis(
+                    UUID(str(stock.id)), analysis_data
+                )
+                return {
+                    "stock": stock.to_dict(),
+                    "analysis": analysis.to_dict(),
+                }
+
+            if response_data.get("status") == "error":
+                raise ValueError(
+                    response_data.get("error", f"LLM error for {stock_symbol}")
+                )
 
             # Extract the actual response text from the response dict
             # multi_model_service returns {"response": "...", "status": "...", ...}
@@ -83,7 +107,11 @@ class StockAnalysisAgent:
                 raise ValueError(f"Empty response from LLM for {stock_symbol}")
 
             # Parse LLM response into structured format
-            analysis_data = self._parse_llm_response(response_text, stock_data)
+            analysis_data = self._parse_llm_response(
+                response_text,
+                stock_data,
+                response_data.get("model_used") or ModelType.CLAUDE_OPUS_4_6.value,
+            )
 
             # Save analysis to database
             analysis = await self.stock_service.save_stock_analysis(

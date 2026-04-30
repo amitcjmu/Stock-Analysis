@@ -38,6 +38,8 @@ services:
       - DEEPINFRA_API_KEY=${DEEPINFRA_API_KEY}
       - GOOGLE_GEMINI_API_KEY=${GOOGLE_GEMINI_API_KEY:-}
       - GEMINI_MODEL=${GEMINI_MODEL:-gemini-1.5-pro}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - CLAUDE_OPUS_MODEL=${CLAUDE_OPUS_MODEL:-claude-opus-4-6}
       - FRONTEND_URL=http://localhost:3001
       - ENVIRONMENT=development
       - DEBUG=true

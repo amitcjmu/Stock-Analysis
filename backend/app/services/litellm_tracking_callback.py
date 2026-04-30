@@ -25,7 +25,7 @@ except ImportError:
     LITELLM_AVAILABLE = False
     CustomLogger = object  # type: ignore
 
-from app.services.llm_usage_tracker import llm_tracker
+from app.services.llm_usage_tracker_service import llm_tracker
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +45,7 @@ class LLMUsageCallback(CustomLogger):
         """Called before LiteLLM makes an API call."""
         logger.debug(f"LiteLLM pre-call: model={model}")
 
-    def log_success_event(
+    def log_success_event(  # noqa: C901
         self, kwargs: dict, response_obj: Any, start_time: float, end_time: float
     ):
         """Called when LiteLLM call succeeds."""

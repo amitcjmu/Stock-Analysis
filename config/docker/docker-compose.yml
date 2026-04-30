@@ -78,6 +78,10 @@ services:
       # Discovery Flow Configuration
       - USE_FAST_DISCOVERY_MODE=false
 
+      # Anthropic Claude — set ANTHROPIC_API_KEY (and optional CLAUDE_OPUS_MODEL) in
+      # ../../backend/.env (see env_file above). Do not duplicate here with ${...}
+      # or an empty host env would override the .env file. Package: anthropic (in requirements.txt).
+
       # Disable OpenTelemetry to prevent connection errors
       - OTEL_SDK_DISABLED=true
       - OTEL_TRACES_EXPORTER=none

@@ -14,7 +14,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.dependencies import get_db
-from app.services.llm_usage_tracker import llm_tracker
+from app.services.llm_usage_tracker_service import llm_tracker
 
 router = APIRouter(prefix="/finops")
 logger = logging.getLogger(__name__)

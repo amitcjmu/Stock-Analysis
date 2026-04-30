@@ -14,8 +14,12 @@ from app.services.multi_model_service import (
     TaskComplexity,
     ModelType,
 )
-from app.services.stock_service import StockService
 from app.services.stock_data_api import StockDataAPIService
+from app.services.stock_llm_fallback import (
+    analysis_when_anthropic_insufficient_credits,
+    analysis_when_anthropic_unconfigured,
+)
+from app.services.stock_service import StockService
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +48,7 @@ class StockHistoryAgent:
             stock_symbol: Stock symbol to analyze
             period: Time period for historical data
             interval: Data interval
-            model: Optional model name (gemini, llama4_maverick, gemma3_4b, auto)
+            model: Ignored; LLM calls use Anthropic Claude only.
         """
         logger.info(f"📈 [HISTORY AGENT] Starting analysis for {stock_symbol}")
         try:
@@ -88,31 +92,48 @@ class StockHistoryAgent:
                 f"📈 [HISTORY AGENT] Prompt created, length: {len(prompt)} characters"
             )
 
-            # Determine model type
-            model_type = None
-            if model:
-                model_lower = model.lower()
-                if model_lower == "gemini":
-                    model_type = ModelType.GEMINI
-                elif model_lower == "llama4_maverick" or model_lower == "llama":
-                    model_type = ModelType.LLAMA_4_MAVERICK
-                elif model_lower == "gemma3_4b" or model_lower == "gemma":
-                    model_type = ModelType.GEMMA_3_4B
-                # If model is "auto" or None, model_type stays None and auto-selection will be used
-
-            # Call LLM for analysis
+            # Call LLM for analysis (Anthropic only)
             logger.info(
-                f"📈 [HISTORY AGENT] 🤖 Calling LLM for history analysis of {stock_symbol} using model: {model or 'auto'}"
+                "📈 [HISTORY AGENT] 🤖 Calling Anthropic for history analysis of %s",
+                stock_symbol,
             )
             response_data = await multi_model_service.generate_response(
                 prompt=prompt,
                 task_type="analysis",
                 complexity=TaskComplexity.AGENTIC,
-                model_type=model_type,  # Pass selected model or None for auto
+                model_type=ModelType.CLAUDE_OPUS_4_6,
             )
             logger.info("📈 [HISTORY AGENT] LLM response received")
 
-            # Check for errors in response
+            if response_data.get("status") == "placeholder":
+                analysis_data = analysis_when_anthropic_unconfigured(
+                    "history", stock_data
+                )
+                analysis = await self.stock_service.save_stock_analysis(
+                    UUID(str(stock.id)), analysis_data
+                )
+                stock_dict = stock.to_dict() if hasattr(stock, "to_dict") else stock
+                analysis_dict = (
+                    analysis.to_dict() if hasattr(analysis, "to_dict") else analysis
+                )
+                return {"stock": stock_dict, "analysis": analysis_dict}
+
+            if (
+                response_data.get("status") == "error"
+                and response_data.get("anthropic_error_kind") == "insufficient_credits"
+            ):
+                analysis_data = analysis_when_anthropic_insufficient_credits(
+                    "history", stock_data
+                )
+                analysis = await self.stock_service.save_stock_analysis(
+                    UUID(str(stock.id)), analysis_data
+                )
+                stock_dict = stock.to_dict() if hasattr(stock, "to_dict") else stock
+                analysis_dict = (
+                    analysis.to_dict() if hasattr(analysis, "to_dict") else analysis
+                )
+                return {"stock": stock_dict, "analysis": analysis_dict}
+
             if response_data.get("status") == "error":
                 error_msg = response_data.get("error", "Unknown error")
                 logger.error(f"📈 [HISTORY AGENT] LLM returned error: {error_msg}")
@@ -160,8 +181,9 @@ class StockHistoryAgent:
             )
 
             # Log return structure details
+            _result_keys = list({"stock": stock_dict, "analysis": analysis_dict}.keys())
             logger.info(
-                f"📈 [HISTORY AGENT] Returning result with keys: {list({'stock': stock_dict, 'analysis': analysis_dict}.keys())}"
+                "📈 [HISTORY AGENT] Returning result with keys: %s", _result_keys
             )
             if isinstance(analysis_dict, dict):
                 logger.info(
@@ -353,11 +375,18 @@ Provide only valid JSON, no additional text.
             # Parse JSON
             analysis_json = json.loads(response_clean)
 
+            recs = analysis_json.get("recommendations")
+            if not isinstance(recs, dict):
+                recs = {}
+            patterns = analysis_json.get("technical_patterns")
+            if not isinstance(patterns, list):
+                patterns = []
+
             # Structure the analysis data
             return {
                 "analysis_type": "history",
                 "summary": analysis_json.get("summary", ""),
-                "key_insights": analysis_json.get("technical_patterns", []),
+                "key_insights": patterns,
                 "technical_analysis": {
                     "price_trends": analysis_json.get("price_trends", {}),
                     "key_price_levels": analysis_json.get("key_price_levels", {}),
@@ -367,18 +396,16 @@ Provide only valid JSON, no additional text.
                     ),
                 },
                 "price_targets": analysis_json.get("price_forecast", {}),
-                "recommendations": analysis_json.get("recommendations", {}),
+                "recommendations": recs,
                 "llm_model": model_used,
                 "llm_prompt": self._create_history_prompt(
                     stock_data, historical_data, "1y"
                 ),
                 "llm_response": analysis_json,
-                "confidence_score": analysis_json.get("recommendations", {}).get(
-                    "confidence", 0.5
-                ),
+                "confidence_score": recs.get("confidence", 0.5),
             }
 
-        except json.JSONDecodeError as e:
+        except (json.JSONDecodeError, TypeError, AttributeError, ValueError) as e:
             logger.warning(f"Failed to parse LLM response as JSON: {e}")
             logger.warning(f"Response text (first 500 chars): {response[:500]}")
 

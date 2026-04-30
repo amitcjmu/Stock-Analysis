@@ -73,6 +73,13 @@ class Settings(BaseSettings):
         env="GEMINI_MODEL",
     )
 
+    # Anthropic Claude API (optional — enables Claude Opus 4.6 for stock analysis)
+    ANTHROPIC_API_KEY: str = Field(default="", env="ANTHROPIC_API_KEY")
+    CLAUDE_OPUS_MODEL: str = Field(
+        default="claude-opus-4-6",
+        env="CLAUDE_OPUS_MODEL",
+    )
+
     # NewsAPI.org Configuration (optional, for enhanced news fetching)
     NEWSAPI_KEY: str = Field(default="", env="NEWSAPI_KEY")
 

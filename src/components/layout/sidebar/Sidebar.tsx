@@ -147,6 +147,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
     // Always include Overview and Watchlist at the top
     return [
       { name: 'Overview', path: '/discovery/overview', icon: LayoutDashboard },
+      { name: 'Trending Sectors', path: '/discovery/trending-sectors', icon: TrendingUp },
       { name: 'Watchlist', path: '/discovery/watchlist', icon: Star },
       { name: 'Search History', path: '/discovery/search-history', icon: Clock },
       ...phases

@@ -1,3 +1,20 @@
+## [Unreleased]
+
+### Stock analysis & LLM gateway
+
+- **Anthropic-only `multi_model_service`**: All `generate_response()` / `chat_with_context()` traffic uses Claude (`CLAUDE_OPUS_MODEL`, default `claude-opus-4-6`) with `ANTHROPIC_API_KEY`. DeepInfra/Gemini paths removed from this service.
+- **Stock UI**: Model dropdown replaced with a read-only “Claude (Anthropic)” badge; analyze requests no longer send a `model` field.
+- **Stock agents (no API key)**: When `multi_model_service` returns `status: placeholder`, analysis/financials/statistics/history/news agents persist `stock_llm_fallback.analysis_when_anthropic_unconfigured()` instead of parsing placeholder text, so the UI shows a short setup message instead of internal prompts.
+- **Anthropic setup**: `docker-start.sh` warns when `ANTHROPIC_API_KEY` is missing or still a template; `docker-compose.yml` documents env_file-only wiring; `docs/setup/DOCKER_SETUP.md` and `backend/.env.example` document key + rebuild + restart; `config/deployment/railway.toml` declares `ANTHROPIC_API_KEY` for production/staging.
+- **Anthropic billing errors**: `multi_model_service` classifies insufficient-credit 400s, logs them at warning without a full traceback, sets `anthropic_error_kind`; stock agents persist `analysis_when_anthropic_insufficient_credits` so the UI explains Plans & Billing instead of failing the request.
+- **Financial scorecard layer**: `StockFinancialsAgent` now adds a deterministic `investment_scorecard` (valuation, quality, growth, risk, momentum), defence-sector context detection, and low-price band classification to `fundamental_analysis` so analysis remains useful even when LLM outputs are inconsistent.
+- **Defence stock screener API**: Added `GET /api/v1/stock/stocks/screen/defence` with `min_score`, `price_band`, `max_price`, `limit`, and `refresh` filters to return deterministic scorecard-ranked Indian defence stocks without requiring additional LLM calls.
+- **Trending sectors UI**: Added a fully in-app `Trending Sectors` page at `/discovery/trending-sectors` with sector table and click-to-load sector stocks workflow; wired route + lazy loader + sidebar submenu entry under Stock Analysis.
+- **Trending sectors backend APIs**: Added `GET /api/v1/stock/stocks/sectors/trending` and `GET /api/v1/stock/stocks/sectors/{sector_id}/stocks` so the sectors page is backend-driven (no hardcoded frontend sector/stock mappings).
+- **Sector stocks productivity controls**: Added in-page stock search, sort, pagination, checkbox-based row selection, “Add selected to watchlist”, and “Add all to watchlist” bulk action in `Trending Sectors` for faster sector-by-sector analysis workflows.
+
+---
+
 ## [1.22.0] - 2025-11-18
 
 ### 🎯 **Risk Assessment & Assessment Flow Maturity**

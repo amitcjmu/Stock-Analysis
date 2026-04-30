@@ -17,8 +17,11 @@ FRONTEND_URL = "https://aiforce-assess.vercel.app/"
 DATABASE_URL = "${{Postgres.DATABASE_URL}}"
 SECRET_KEY = "${{RAILWAY_SECRET_KEY}}"
 DEEPINFRA_API_KEY = "${{DEEPINFRA_API_KEY}}"
+# Add ANTHROPIC_API_KEY in Railway Variables (Project → Variables). Optional: CLAUDE_OPUS_MODEL (defaults in app).
+ANTHROPIC_API_KEY = "${{ANTHROPIC_API_KEY}}"
 
 [environments.staging]
 [environments.staging.variables]
 ENVIRONMENT = "staging"
 DEBUG = "true"
+ANTHROPIC_API_KEY = "${{ANTHROPIC_API_KEY}}"

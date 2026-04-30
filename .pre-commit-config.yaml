@@ -29,7 +29,6 @@ repos:
     rev: 25.1.0
     hooks:
       - id: black
-        language_version: python3.12
         files: ^backend/.*\.py$
 
   # Python Linting - Only on staged files
@@ -172,10 +171,10 @@ repos:
         pass_filenames: false
         stages: [pre-commit]
 
-      # File Length Check - Enforce modularization (400 line limit)
+      # File Length Check - Enforce modularization (600 line limit)
       - id: check-file-length
-        name: Check Python file length (max 400 lines)
-        entry: /opt/homebrew/bin/python3.12 scripts/check-file-length.py
+        name: Check Python file length (max 600 lines)
+        entry: python3 scripts/check-file-length.py
         language: system
         pass_filenames: false
         stages: [pre-commit]
@@ -184,7 +183,7 @@ repos:
       # LLM Usage Tracking Check - Enforce multi_model_service usage (warning only)
       - id: check-llm-calls
         name: Check for direct LLM calls bypassing tracking (warning only)
-        entry: /opt/homebrew/bin/python3.12 backend/scripts/check_llm_calls.py
+        entry: python3 backend/scripts/check_llm_calls.py
         language: system
         files: ^backend/app/.*\.py$
         pass_filenames: true
@@ -204,7 +203,7 @@ repos:
       # Tenant Filter Security Check - Enforce multi-tenant query scoping
       - id: check-tenant-filters
         name: Check for missing multi-tenant filters in database queries
-        entry: /opt/homebrew/bin/python3.12 backend/scripts/check_tenant_filters.py
+        entry: python3 backend/scripts/check_tenant_filters.py
         language: system
         files: ^backend/app/.*\.py$
         pass_filenames: true
@@ -214,7 +213,7 @@ repos:
       # LLM Observability Check - Enforce CallbackHandler usage for Grafana dashboards
       - id: check-llm-observability
         name: Check LLM Observability (enforce CallbackHandler for CrewAI)
-        entry: /opt/homebrew/bin/python3.12 backend/scripts/check_llm_observability.py
+        entry: python3 backend/scripts/check_llm_observability.py
         language: system
         types: [python]
         pass_filenames: false

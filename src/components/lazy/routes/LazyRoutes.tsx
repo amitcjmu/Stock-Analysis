@@ -150,6 +150,11 @@ export const LazySearchHistory = createLazyRoute(
   "Search History",
 );
 
+export const LazyTrendingSectors = createLazyRoute(
+  () => import("@/pages/discovery/TrendingSectors"),
+  "Trending Sectors",
+);
+
 export const LazyFlowStatusMonitor = createLazyRoute(
   () => import("@/pages/discovery/FlowStatusMonitor"),
   "Flow Status Monitor",

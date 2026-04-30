@@ -19,7 +19,7 @@ router = APIRouter()
 @router.get("/models")
 async def get_chat_models():
     """
-    Get information about available chat models and their capabilities.
+    Get information about the LLM gateway (Anthropic Claude only).
     """
     try:
         model_info = multi_model_service.get_model_info()
@@ -27,17 +27,17 @@ async def get_chat_models():
         return {
             "status": "success",
             "models": model_info,
-            "chat_model": "gemma3_4b",
-            "agentic_model": "llama4_maverick",
+            "llm_provider": "anthropic",
+            "default_model": model_info["model_configs"]
+            .get("claude_opus_4_6", {})
+            .get("model_name", "claude-opus-4-6"),
             "capabilities": {
-                "chat": ["conversational", "helpful", "concise"],
+                "chat": ["conversational", "helpful", "reasoning"],
                 "agentic": ["complex_analysis", "field_mapping", "reasoning"],
-                "multimodal": ["image_processing", "visual_analysis"],
             },
             "recommendations": {
-                "user_questions": "Use /chat endpoint with Gemma 3 4B",
-                "asset_analysis": "Use /analyze-cmdb endpoint with Llama 4 Maverick",
-                "quick_help": "Use /chat/ask-about-assets for context-aware responses",
+                "user_questions": "Use /chat — routed to Anthropic Claude",
+                "asset_analysis": "Use task-specific endpoints — Anthropic Claude",
             },
         }
 
@@ -53,46 +53,34 @@ async def get_chat_models():
 @router.post("/test-models")
 async def test_chat_models():
     """
-    Test endpoint to verify both models are working correctly.
+    Verify Anthropic Claude is reachable via multi_model_service.
     """
     try:
-        test_prompt = "Hello! Please introduce yourself and your capabilities."
+        test_prompt = "Reply with one short sentence confirming you are ready to help."
 
-        # Test Gemma 3 4B for chat
-        gemma_result = await multi_model_service.generate_response(
-            prompt=test_prompt, task_type="chat", complexity=TaskComplexity.SIMPLE
-        )
-
-        # Test Llama 4 Maverick for agentic tasks
-        llama_result = await multi_model_service.generate_response(
-            prompt="Analyze the benefits of using multiple AI models for different enterprise tasks.",
-            task_type="complex_analysis",
-            complexity=TaskComplexity.AGENTIC,
+        claude_result = await multi_model_service.generate_response(
+            prompt=test_prompt,
+            task_type="chat",
+            complexity=TaskComplexity.SIMPLE,
         )
 
         return {
             "status": "success",
             "tests": {
-                "gemma_3_4b_chat": {
-                    "status": gemma_result["status"],
-                    "model_used": gemma_result.get("model_used"),
-                    "response_length": len(gemma_result.get("response", "")),
-                    "response_preview": gemma_result.get("response", "")[:150] + "...",
-                },
-                "llama_4_maverick_agentic": {
-                    "status": llama_result["status"],
-                    "model_used": llama_result.get("model_used"),
-                    "response_length": len(llama_result.get("response", "")),
-                    "response_preview": llama_result.get("response", "")[:150] + "...",
+                "anthropic_claude": {
+                    "status": claude_result["status"],
+                    "model_used": claude_result.get("model_used"),
+                    "response_length": len(claude_result.get("response", "")),
+                    "response_preview": (claude_result.get("response", "") or "")[:150]
+                    + (
+                        "..."
+                        if len(claude_result.get("response", "") or "") > 150
+                        else ""
+                    ),
                 },
             },
             "multi_model_service_status": (
-                "operational"
-                if all(
-                    result["status"] == "success"
-                    for result in [gemma_result, llama_result]
-                )
-                else "partial"
+                "operational" if claude_result["status"] == "success" else "partial"
             ),
         }
 

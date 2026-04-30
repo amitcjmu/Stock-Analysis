@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.models.llm_usage import LLMModelPricing, LLMUsageLog
-from app.services.llm_usage_tracker import llm_tracker
+from app.services.llm_usage_tracker_service import llm_tracker
 
 router = APIRouter()
 

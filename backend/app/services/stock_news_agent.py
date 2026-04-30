@@ -14,6 +14,10 @@ from app.services.multi_model_service import (
     TaskComplexity,
     ModelType,
 )
+from app.services.stock_llm_fallback import (
+    analysis_when_anthropic_insufficient_credits,
+    analysis_when_anthropic_unconfigured,
+)
 from app.services.stock_service import StockService
 
 logger = logging.getLogger(__name__)
@@ -40,7 +44,7 @@ class StockNewsAgent:
         Args:
             stock_symbol: Stock symbol to analyze
             news_data: List of news articles
-            model: Optional model name (gemini, llama4_maverick, gemma3_4b, auto)
+            model: Ignored; LLM calls use Anthropic Claude only.
         """
         logger.info(f"📰 [NEWS AGENT] Starting analysis for {stock_symbol}")
         try:
@@ -70,27 +74,16 @@ class StockNewsAgent:
                     f"📰 [NEWS AGENT] Sample news titles: {[n.get('title', 'N/A')[:50] for n in news_data[:3]]}"
                 )
 
-            # Determine model type
-            model_type = None
-            if model:
-                model_lower = model.lower()
-                if model_lower == "gemini":
-                    model_type = ModelType.GEMINI
-                elif model_lower == "llama4_maverick" or model_lower == "llama":
-                    model_type = ModelType.LLAMA_4_MAVERICK
-                elif model_lower == "gemma3_4b" or model_lower == "gemma":
-                    model_type = ModelType.GEMMA_3_4B
-                # If model is "auto" or None, model_type stays None and auto-selection will be used
-
-            # Call LLM for analysis
+            # Call LLM for analysis (Anthropic only)
             logger.info(
-                f"📰 [NEWS AGENT] 🤖 Calling LLM for news analysis of {stock_symbol} using model: {model or 'auto'}"
+                "📰 [NEWS AGENT] 🤖 Calling Anthropic for news analysis of %s",
+                stock_symbol,
             )
             response_data = await multi_model_service.generate_response(
                 prompt=prompt,
                 task_type="analysis",
                 complexity=TaskComplexity.AGENTIC,
-                model_type=model_type,  # Pass selected model or None for auto
+                model_type=ModelType.CLAUDE_OPUS_4_6,
             )
             logger.info("📰 [NEWS AGENT] LLM response received")
             logger.info(f"📰 [NEWS AGENT] Response keys: {list(response_data.keys())}")
@@ -98,7 +91,33 @@ class StockNewsAgent:
                 f"📰 [NEWS AGENT] Response status: {response_data.get('status', 'N/A')}"
             )
 
-            # Check for errors in response
+            if response_data.get("status") == "placeholder":
+                analysis_data = analysis_when_anthropic_unconfigured("news", stock_data)
+                analysis = await self.stock_service.save_stock_analysis(
+                    UUID(str(stock.id)), analysis_data
+                )
+                stock_dict = stock.to_dict() if hasattr(stock, "to_dict") else stock
+                analysis_dict = (
+                    analysis.to_dict() if hasattr(analysis, "to_dict") else analysis
+                )
+                return {"stock": stock_dict, "analysis": analysis_dict}
+
+            if (
+                response_data.get("status") == "error"
+                and response_data.get("anthropic_error_kind") == "insufficient_credits"
+            ):
+                analysis_data = analysis_when_anthropic_insufficient_credits(
+                    "news", stock_data
+                )
+                analysis = await self.stock_service.save_stock_analysis(
+                    UUID(str(stock.id)), analysis_data
+                )
+                stock_dict = stock.to_dict() if hasattr(stock, "to_dict") else stock
+                analysis_dict = (
+                    analysis.to_dict() if hasattr(analysis, "to_dict") else analysis
+                )
+                return {"stock": stock_dict, "analysis": analysis_dict}
+
             if response_data.get("status") == "error":
                 error_msg = response_data.get("error", "Unknown error")
                 logger.error(f"📰 [NEWS AGENT] LLM returned error: {error_msg}")
@@ -161,9 +180,8 @@ class StockNewsAgent:
             )
 
             # Log return structure details
-            logger.info(
-                f"📰 [NEWS AGENT] Returning result with keys: {list({'stock': stock_dict, 'analysis': analysis_dict}.keys())}"
-            )
+            _result_keys = list({"stock": stock_dict, "analysis": analysis_dict}.keys())
+            logger.info("📰 [NEWS AGENT] Returning result with keys: %s", _result_keys)
             if isinstance(analysis_dict, dict):
                 logger.info(
                     f"📰 [NEWS AGENT] Analysis keys: {list(analysis_dict.keys())}"
@@ -305,29 +323,37 @@ Provide only valid JSON, no additional text.
             # Parse JSON
             analysis_json = json.loads(response_clean)
 
+            recs = analysis_json.get("recommendations")
+            if not isinstance(recs, dict):
+                recs = {}
+            insights = analysis_json.get("news_insights")
+            if not isinstance(insights, list):
+                insights = []
+            themes = analysis_json.get("key_news_themes")
+            if not isinstance(themes, list):
+                themes = []
+
             # Structure the analysis data
             return {
                 "analysis_type": "news",
                 "summary": analysis_json.get("summary", ""),
-                "key_insights": analysis_json.get("news_insights", []),
+                "key_insights": insights,
                 "risk_assessment": {
                     "news_sentiment": analysis_json.get("news_sentiment", {}),
                     "news_impact_analysis": analysis_json.get(
                         "news_impact_analysis", {}
                     ),
                     "market_sentiment": analysis_json.get("market_sentiment", {}),
-                    "key_news_themes": analysis_json.get("key_news_themes", []),
+                    "key_news_themes": themes,
                 },
-                "recommendations": analysis_json.get("recommendations", {}),
+                "recommendations": recs,
                 "llm_model": model_used,
                 "llm_prompt": self._create_news_prompt(stock_data, []),
                 "llm_response": analysis_json,
-                "confidence_score": analysis_json.get("recommendations", {}).get(
-                    "confidence", 0.5
-                ),
+                "confidence_score": recs.get("confidence", 0.5),
             }
 
-        except json.JSONDecodeError as e:
+        except (json.JSONDecodeError, TypeError, AttributeError, ValueError) as e:
             logger.warning(f"Failed to parse LLM response as JSON: {e}")
             logger.warning(f"Response text (first 500 chars): {response[:500]}")
 
