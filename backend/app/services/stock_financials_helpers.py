@@ -3,7 +3,7 @@
 import math
 from typing import Any, Dict
 
-from app.utils.llm_json_parser import safe_parse_llm_json
+from app.utils.json_sanitization import safe_parse_llm_json
 
 
 def _safe_float(self, value: Any, default: float = 0.0) -> float:

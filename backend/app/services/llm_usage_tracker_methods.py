@@ -56,13 +56,18 @@ async def track_llm_call(
     metadata: Optional[Dict[str, Any]] = None,
 ):
     start_time = time.time()
-    usage_log = LLMUsageLog(
+    resolved_feature_context = feature_context or self.current_request_context.get(
+        "feature_context"
+    )
+    context_payload = {
         **self.current_request_context,
+        "feature_context": resolved_feature_context,
+    }
+    usage_log = LLMUsageLog(
+        **context_payload,
         llm_provider=provider,
         model_name=model,
         model_version=model_version,
-        feature_context=feature_context
-        or self.current_request_context.get("feature_context"),
         additional_metadata=metadata or {},
     )
     try:
@@ -97,8 +102,15 @@ async def log_llm_usage(
     feature_context: Optional[str] = None,
     metadata: Optional[Dict[str, Any]] = None,
 ) -> str:
-    usage_log = LLMUsageLog(
+    resolved_feature_context = feature_context or self.current_request_context.get(
+        "feature_context"
+    )
+    context_payload = {
         **self.current_request_context,
+        "feature_context": resolved_feature_context,
+    }
+    usage_log = LLMUsageLog(
+        **context_payload,
         llm_provider=provider,
         model_name=model,
         model_version=model_version,
@@ -111,8 +123,6 @@ async def log_llm_usage(
         error_message=error_message,
         request_data=self._sanitize_data(request_data),
         response_data=self._sanitize_data(response_data),
-        feature_context=feature_context
-        or self.current_request_context.get("feature_context"),
         additional_metadata=metadata or {},
     )
     await self._calculate_costs(usage_log)
